@@ -74,7 +74,10 @@ export class CuentaBancariaService {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error en Supabase al actualizar cuenta bancaria:', error);
+      throw error;
+    }
     return data;
   }
 

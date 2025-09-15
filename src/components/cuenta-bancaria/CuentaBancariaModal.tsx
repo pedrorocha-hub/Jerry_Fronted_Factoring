@@ -76,7 +76,18 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
       onClose();
     } catch (error) {
       dismissToast(loadingToast);
-      showError(`Error actualizando cuenta bancaria: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      console.error("Error al actualizar la cuenta:", error); // Log the full error for debugging
+      
+      let errorMessage = 'Ocurrió un error inesperado.';
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        // This handles Supabase/PostgREST errors
+        errorMessage = (error as { message: string }).message;
+      } else if (error instanceof Error) {
+        // This handles standard JavaScript errors
+        errorMessage = error.message;
+      }
+      
+      showError(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
