@@ -4,376 +4,144 @@ import { CuentaBancaria, CuentaBancariaInsert, CuentaBancariaUpdate, CuentaBanca
 export class CuentaBancariaService {
   // Obtener todas las cuentas bancarias
   static async getAll(): Promise<CuentaBancariaWithFicha[]> {
-    try {
-      console.log('CuentaBancariaService: Fetching all cuentas bancarias...');
-      
-      const { data, error } = await supabase
-        .from('cuentas_bancarias')
-        .select(`
-          *,
-          ficha_ruc:ficha_ruc_id (
-            id,
-            nombre_empresa,
-            ruc
-          )
-        `)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('cuentas_bancarias')
+      .select(`
+        *,
+        ficha_ruc:ficha_ruc_id (
+          id,
+          nombre_empresa,
+          ruc
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching cuentas bancarias:', error);
-        throw new Error(`Error en consulta de cuentas bancarias: ${error.message}`);
-      }
-
-      console.log('CuentaBancariaService: Data loaded:', data);
-      return data || [];
-
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.getAll:', error);
-      throw error;
-    }
+    if (error) throw error;
+    return data || [];
   }
 
-  // Obtener cuenta bancaria por ID
-  static async getById(id: number): Promise<CuentaBancariaWithFicha | null> {
-    try {
-      const { data, error } = await supabase
-        .from('cuentas_bancarias')
-        .select(`
-          *,
-          ficha_ruc:ficha_ruc_id (
-            id,
-            nombre_empresa,
-            ruc
-          )
-        `)
-        .eq('id', id)
-        .single();
+  // Obtener cuenta por ID (corregido a string)
+  static async getById(id: string): Promise<CuentaBancariaWithFicha | null> {
+    const { data, error } = await supabase
+      .from('cuentas_bancarias')
+      .select(`*, ficha_ruc:ficha_ruc_id (*)`)
+      .eq('id', id)
+      .single();
 
-      if (error) {
-        console.error('Error fetching cuenta bancaria by ID:', error);
-        throw error;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.getById:', error);
-      throw error;
-    }
+    if (error) throw error;
+    return data;
   }
 
-  // Obtener cuentas bancarias por Ficha RUC ID
-  static async getByFichaRucId(fichaRucId: number): Promise<CuentaBancaria[]> {
-    try {
-      const { data, error } = await supabase
-        .from('cuentas_bancarias')
-        .select('*')
-        .eq('ficha_ruc_id', fichaRucId)
-        .order('nombre_banco', { ascending: true })
-        .order('moneda_cuenta', { ascending: true });
+  // Obtener cuentas por ID de documento
+  static async getByDocumentoId(documentoId: string): Promise<CuentaBancariaWithFicha[]> {
+    const { data, error } = await supabase
+      .from('cuentas_bancarias')
+      .select(`*, ficha_ruc:ficha_ruc_id (*)`)
+      .eq('documento_id', documentoId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching cuentas by ficha RUC ID:', error);
-        throw error;
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.getByFichaRucId:', error);
-      throw error;
-    }
+    if (error) throw error;
+    return data || [];
   }
 
-  // Crear nueva cuenta bancaria
+  // Crear nueva cuenta
   static async create(cuentaData: CuentaBancariaInsert): Promise<CuentaBancaria> {
-    try {
-      const { data, error } = await supabase
-        .from('cuentas_bancarias')
-        .insert(cuentaData)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('cuentas_bancarias')
+      .insert(cuentaData)
+      .select()
+      .single();
 
-      if (error) {
-        console.error('Error creating cuenta bancaria:', error);
-        throw error;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.create:', error);
-      throw error;
-    }
+    if (error) throw error;
+    return data;
   }
 
-  // Actualizar cuenta bancaria existente
-  static async update(id: number, cuentaData: CuentaBancariaUpdate): Promise<CuentaBancaria> {
-    try {
-      const updateData = {
-        ...cuentaData,
-        updated_at: new Date().toISOString()
-      };
+  // Actualizar cuenta (corregido a string)
+  static async update(id: string, cuentaData: Partial<CuentaBancariaUpdate>): Promise<CuentaBancaria> {
+    const { data, error } = await supabase
+      .from('cuentas_bancarias')
+      .update({ ...cuentaData, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
 
-      const { data, error } = await supabase
-        .from('cuentas_bancarias')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error updating cuenta bancaria:', error);
-        throw error;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.update:', error);
-      throw error;
-    }
+    if (error) throw error;
+    return data;
   }
 
-  // Eliminar cuenta bancaria
-  static async delete(id: number): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('cuentas_bancarias')
-        .delete()
-        .eq('id', id);
+  // Eliminar cuenta (corregido a string)
+  static async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('cuentas_bancarias')
+      .delete()
+      .eq('id', id);
 
-      if (error) {
-        console.error('Error deleting cuenta bancaria:', error);
-        throw error;
-      }
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.delete:', error);
-      throw error;
-    }
+    if (error) throw error;
   }
 
-  // Buscar cuentas bancarias por texto
-  static async search(searchTerm: string): Promise<CuentaBancariaWithFicha[]> {
-    try {
-      const { data, error } = await supabase
+  // Marcar como principal
+  static async setPrincipal(id: string): Promise<void> {
+    const { data: cuenta, error: fetchError } = await supabase
+      .from('cuentas_bancarias')
+      .select('ficha_ruc_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !cuenta) throw new Error('Cuenta no encontrada.');
+
+    if (cuenta.ficha_ruc_id) {
+      await supabase
         .from('cuentas_bancarias')
-        .select(`
-          *,
-          ficha_ruc:ficha_ruc_id (
-            id,
-            nombre_empresa,
-            ruc
-          )
-        `)
-        .or(`nombre_banco.ilike.%${searchTerm}%,numero_cuenta.ilike.%${searchTerm}%,titular_cuenta.ilike.%${searchTerm}%`)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error searching cuentas bancarias:', error);
-        throw error;
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.search:', error);
-      throw error;
+        .update({ es_principal: false })
+        .eq('ficha_ruc_id', cuenta.ficha_ruc_id);
     }
+
+    await supabase
+      .from('cuentas_bancarias')
+      .update({ es_principal: true })
+      .eq('id', id);
+  }
+
+  // Asociar con Ficha RUC
+  static async associateWithFichaRuc(cuentaId: string, fichaRucId: number): Promise<void> {
+    const { error } = await supabase
+      .from('cuentas_bancarias')
+      .update({ ficha_ruc_id: fichaRucId })
+      .eq('id', cuentaId);
+
+    if (error) throw error;
   }
 
   // Obtener estadísticas
   static async getStats() {
-    try {
-      const { count: totalCount } = await supabase
-        .from('cuentas_bancarias')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activasCount } = await supabase
-        .from('cuentas_bancarias')
-        .select('*', { count: 'exact', head: true })
-        .eq('estado_cuenta', 'activa');
-
-      const { count: thisMonthCount } = await supabase
-        .from('cuentas_bancarias')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
-
-      // Contar por moneda
-      const { data: monedaStats } = await supabase
-        .from('cuentas_bancarias')
-        .select('moneda_cuenta')
-        .not('moneda_cuenta', 'is', null);
-
-      const monedaCount: { [key: string]: number } = {};
-      monedaStats?.forEach(item => {
-        if (item.moneda_cuenta) {
-          monedaCount[item.moneda_cuenta] = (monedaCount[item.moneda_cuenta] || 0) + 1;
-        }
-      });
-
-      // Contar por estado
-      const { data: estadoStats } = await supabase
-        .from('cuentas_bancarias')
-        .select('estado_cuenta');
-
-      const estadoCount: { [key: string]: number } = {};
-      estadoStats?.forEach(item => {
-        if (item.estado_cuenta) {
-          estadoCount[item.estado_cuenta] = (estadoCount[item.estado_cuenta] || 0) + 1;
-        }
-      });
-
-      return {
-        total: totalCount || 0,
-        thisMonth: thisMonthCount || 0,
-        activeCounts: activasCount || 0,
-        inactiveCounts: (totalCount || 0) - (activasCount || 0),
-        mostCommonEstado: Object.entries(estadoCount).sort(([,a], [,b]) => b - a)[0]?.[0] || '',
-        estadoDistribution: estadoCount,
-        monedaDistribution: monedaCount
-      };
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.getStats:', error);
-      return {
-        total: 0,
-        thisMonth: 0,
-        activeCounts: 0,
-        inactiveCounts: 0,
-        mostCommonEstado: '',
-        estadoDistribution: {},
-        monedaDistribution: {}
-      };
-    }
+    const { count: total } = await supabase.from('cuentas_bancarias').select('*', { count: 'exact', head: true });
+    const { count: activeCounts } = await supabase.from('cuentas_bancarias').select('*', { count: 'exact', head: true }).eq('estado_cuenta', 'Activa');
+    const { count: thisMonth } = await supabase.from('cuentas_bancarias').select('*', { count: 'exact', head: true }).gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
+    
+    return {
+      total: total || 0,
+      activeCounts: activeCounts || 0,
+      inactiveCounts: (total || 0) - (activeCounts || 0),
+      thisMonth: thisMonth || 0,
+    };
   }
 
-  // Crear múltiples cuentas para una ficha RUC
-  static async createMultiple(fichaRucId: number, cuentas: Omit<CuentaBancariaInsert, 'ficha_ruc_id'>[]): Promise<CuentaBancaria[]> {
-    try {
-      const cuentasWithFichaId = cuentas.map(cuenta => ({
-        ...cuenta,
-        ficha_ruc_id: fichaRucId
-      }));
-
-      const { data, error } = await supabase
-        .from('cuentas_bancarias')
-        .insert(cuentasWithFichaId)
-        .select();
-
-      if (error) {
-        console.error('Error creating multiple cuentas bancarias:', error);
-        throw error;
-      }
-
-      return data || [];
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.createMultiple:', error);
-      throw error;
-    }
-  }
-
-  // Crear datos de prueba que reflejen la estructura real (múltiples cuentas por banco)
+  // Crear datos de prueba
   static async createTestData(): Promise<void> {
-    try {
-      console.log('CuentaBancariaService: Creating test data...');
-      
-      // Verificar si existe al menos una ficha RUC
-      const { data: fichasRuc, error: fichasError } = await supabase
-        .from('ficha_ruc')
-        .select('id, ruc, nombre_empresa')
-        .limit(1);
-        
-      if (fichasError) {
-        throw new Error(`Error fetching ficha RUC: ${fichasError.message}`);
-      }
-      
-      let fichaRucId: number;
-      
-      if (fichasRuc && fichasRuc.length > 0) {
-        fichaRucId = fichasRuc[0].id;
-      } else {
-        // Crear una ficha RUC de prueba
-        const { data: nuevaFicha, error: createFichaError } = await supabase
-          .from('ficha_ruc')
-          .insert({
-            nombre_empresa: 'EMPRESA DE PRUEBA S.A.C.',
-            ruc: '20123456789',
-            actividad_empresa: 'Actividad de prueba',
-            estado_contribuyente: 'Activo'
-          })
-          .select()
-          .single();
-          
-        if (createFichaError || !nuevaFicha) {
-          throw new Error(`Error creating test ficha RUC: ${createFichaError?.message || 'Unknown error'}`);
-        }
-        
-        fichaRucId = nuevaFicha.id;
-      }
-      
-      // Crear cuentas de prueba que reflejen la estructura real
-      // Un banco puede tener múltiples cuentas (diferentes monedas, tipos)
-      const testCuentas: CuentaBancariaInsert[] = [
-        // BCP - Cuenta Corriente en Soles
-        {
-          ficha_ruc_id: fichaRucId,
-          nombre_banco: 'BCP - Banco de Crédito del Perú',
-          numero_cuenta: '191-123456789-0-12',
-          tipo_cuenta: 'Corriente',
-          codigo_cci: '00219112345678901234',
-          moneda_cuenta: 'PEN',
-          titular_cuenta: fichasRuc?.[0]?.nombre_empresa || 'EMPRESA DE PRUEBA S.A.C.',
-          estado_cuenta: 'activa'
-        },
-        // BCP - Cuenta de Ahorros en USD
-        {
-          ficha_ruc_id: fichaRucId,
-          nombre_banco: 'BCP - Banco de Crédito del Perú',
-          numero_cuenta: '191-987654321-1-05',
-          tipo_cuenta: 'Ahorros',
-          codigo_cci: '00219198765432109876',
-          moneda_cuenta: 'USD',
-          titular_cuenta: fichasRuc?.[0]?.nombre_empresa || 'EMPRESA DE PRUEBA S.A.C.',
-          estado_cuenta: 'activa'
-        },
-        // Interbank - Cuenta Corriente en Soles
-        {
-          ficha_ruc_id: fichaRucId,
-          nombre_banco: 'Interbank',
-          numero_cuenta: '898-300123456789',
-          tipo_cuenta: 'Corriente',
-          codigo_cci: '00389830012345678901',
-          moneda_cuenta: 'PEN',
-          titular_cuenta: fichasRuc?.[0]?.nombre_empresa || 'EMPRESA DE PRUEBA S.A.C.',
-          estado_cuenta: 'activa'
-        },
-        // Interbank - Cuenta de Ahorros en USD
-        {
-          ficha_ruc_id: fichaRucId,
-          nombre_banco: 'Interbank',
-          numero_cuenta: '898-300987654321',
-          tipo_cuenta: 'Ahorros',
-          codigo_cci: '00389830098765432109',
-          moneda_cuenta: 'USD',
-          titular_cuenta: fichasRuc?.[0]?.nombre_empresa || 'EMPRESA DE PRUEBA S.A.C.',
-          estado_cuenta: 'activa'
-        },
-        // BBVA - Solo cuenta en Soles
-        {
-          ficha_ruc_id: fichaRucId,
-          nombre_banco: 'BBVA',
-          numero_cuenta: '0011-0123-0123456789',
-          tipo_cuenta: 'Corriente',
-          codigo_cci: '00110012301234567890',
-          moneda_cuenta: 'PEN',
-          titular_cuenta: fichasRuc?.[0]?.nombre_empresa || 'EMPRESA DE PRUEBA S.A.C.',
-          estado_cuenta: 'activa'
-        }
-      ];
-
-      for (const cuentaData of testCuentas) {
-        await this.create(cuentaData);
-      }
-
-      console.log(`CuentaBancariaService: Created ${testCuentas.length} test cuentas bancarias`);
-    } catch (error) {
-      console.error('Error in CuentaBancariaService.createTestData:', error);
-      throw error;
+    const { data: fichas } = await supabase.from('ficha_ruc').select('id, nombre_empresa').limit(1);
+    if (!fichas || fichas.length === 0) {
+      console.error("No hay Fichas RUC para asociar. Crea una primero.");
+      return;
     }
+    const ficha = fichas[0];
+
+    const testCuentas: Omit<CuentaBancaria, 'id' | 'created_at' | 'updated_at'>[] = [
+      { documento_id: 'test-doc-id', ficha_ruc_id: ficha.id, nombre_banco: 'BCP', numero_cuenta: '191-12345678-0-11', tipo_cuenta: 'Corriente', codigo_cci: '00219100123456781150', moneda_cuenta: 'PEN', titular_cuenta: ficha.nombre_empresa, estado_cuenta: 'Activa', es_principal: true, notas: 'Cuenta principal en Soles.' },
+      { documento_id: 'test-doc-id', ficha_ruc_id: ficha.id, nombre_banco: 'BCP', numero_cuenta: '191-12345679-1-12', tipo_cuenta: 'Ahorros', codigo_cci: '00219100123456791251', moneda_cuenta: 'USD', titular_cuenta: ficha.nombre_empresa, estado_cuenta: 'Activa', es_principal: false, notas: 'Cuenta de ahorros en Dólares.' },
+      { documento_id: 'test-doc-id', ficha_ruc_id: ficha.id, nombre_banco: 'Interbank', numero_cuenta: '898-3001234567', tipo_cuenta: 'Corriente', codigo_cci: '00389800300123456741', moneda_cuenta: 'PEN', titular_cuenta: ficha.nombre_empresa, estado_cuenta: 'Activa', es_principal: false, notas: '' },
+    ];
+
+    const { error } = await supabase.from('cuentas_bancarias').insert(testCuentas);
+    if (error) throw error;
   }
 }
