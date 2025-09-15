@@ -5,67 +5,23 @@ export class ReporteTributarioService {
   // Obtener todos los reportes tributarios
   static async getAll(): Promise<ReporteTributarioWithFicha[]> {
     try {
-      console.log('ReporteTributarioService: Fetching all reportes tributarios...');
-      
-      // Primero vamos a ver qué columnas existen realmente
-      const { data: reportesData, error: reportesError } = await supabase
+      const { data, error } = await supabase
         .from('reporte_tributario')
-        .select('*')
-        .limit(1);
+        .select(`
+          *,
+          ficha_ruc:ruc (
+            id,
+            nombre_empresa,
+            ruc
+          )
+        `);
 
-      if (reportesError) {
-        console.error('Error fetching reportes tributarios:', reportesError);
-        throw new Error(`Error en consulta de reportes: ${reportesError.message}`);
+      if (error) {
+        console.error('Error fetching reportes tributarios:', error);
+        throw new Error(`Error en consulta de reportes: ${error.message}`);
       }
 
-      console.log('Sample reporte data structure:', reportesData?.[0]);
-
-      // Ahora hacer la consulta completa sin ordenar por anio_reporte
-      const { data: allReportesData, error: allReportesError } = await supabase
-        .from('reporte_tributario')
-        .select('*');
-
-      if (allReportesError) {
-        console.error('Error fetching all reportes tributarios:', allReportesError);
-        throw new Error(`Error en consulta de reportes: ${allReportesError.message}`);
-      }
-
-      console.log('All reportes data:', allReportesData);
-
-      if (!allReportesData || allReportesData.length === 0) {
-        console.log('No reportes found');
-        return [];
-      }
-
-      // Obtener los datos de ficha_ruc por separado
-      const fichaRucIds = [...new Set(allReportesData.map(r => r.ficha_ruc_id).filter(id => id))];
-      console.log('Ficha RUC IDs:', fichaRucIds);
-
-      let fichasData = [];
-      if (fichaRucIds.length > 0) {
-        const { data: fichasResult, error: fichasError } = await supabase
-          .from('ficha_ruc')
-          .select('id, nombre_empresa, ruc')
-          .in('id', fichaRucIds);
-
-        if (fichasError) {
-          console.error('Error fetching fichas RUC:', fichasError);
-          // No lanzar error, solo continuar sin datos de ficha
-        } else {
-          fichasData = fichasResult || [];
-        }
-      }
-
-      console.log('Fichas data:', fichasData);
-
-      // Combinar los datos
-      const reportesWithFicha: ReporteTributarioWithFicha[] = allReportesData.map(reporte => ({
-        ...reporte,
-        ficha_ruc: fichasData.find(ficha => ficha.id === reporte.ficha_ruc_id) || undefined
-      }));
-
-      console.log(`ReporteTributarioService: Returning ${reportesWithFicha.length} reportes with ficha data`);
-      return reportesWithFicha;
+      return data || [];
 
     } catch (error) {
       console.error('Error in ReporteTributarioService.getAll:', error);
@@ -76,41 +32,25 @@ export class ReporteTributarioService {
   // Obtener reporte tributario por ID
   static async getById(id: number): Promise<ReporteTributarioWithFicha | null> {
     try {
-      const { data: reporteData, error: reporteError } = await supabase
+      const { data, error } = await supabase
         .from('reporte_tributario')
-        .select('*')
+        .select(`
+          *,
+          ficha_ruc:ruc (
+            id,
+            nombre_empresa,
+            ruc
+          )
+        `)
         .eq('id', id)
         .single();
 
-      if (reporteError) {
-        console.error('Error fetching reporte tributario by ID:', reporteError);
-        throw reporteError;
+      if (error) {
+        console.error('Error fetching reporte tributario by ID:', error);
+        throw error;
       }
 
-      if (!reporteData) {
-        return null;
-      }
-
-      // Obtener datos de ficha RUC si existe ficha_ruc_id
-      let fichaData = null;
-      if (reporteData.ficha_ruc_id) {
-        const { data: fichaResult, error: fichaError } = await supabase
-          .from('ficha_ruc')
-          .select('id, nombre_empresa, ruc')
-          .eq('id', reporteData.ficha_ruc_id)
-          .single();
-
-        if (fichaError) {
-          console.error('Error fetching ficha RUC:', fichaError);
-        } else {
-          fichaData = fichaResult;
-        }
-      }
-
-      return {
-        ...reporteData,
-        ficha_ruc: fichaData || undefined
-      };
+      return data;
 
     } catch (error) {
       console.error('Error in ReporteTributarioService.getById:', error);
@@ -118,22 +58,22 @@ export class ReporteTributarioService {
     }
   }
 
-  // Obtener reportes tributarios por Ficha RUC ID
-  static async getByFichaRucId(fichaRucId: number): Promise<ReporteTributario[]> {
+  // Obtener reportes tributarios por RUC
+  static async getByRuc(ruc: string): Promise<ReporteTributario[]> {
     try {
       const { data, error } = await supabase
         .from('reporte_tributario')
         .select('*')
-        .eq('ficha_ruc_id', fichaRucId);
+        .eq('ruc', ruc);
 
       if (error) {
-        console.error('Error fetching reportes by ficha RUC ID:', error);
+        console.error('Error fetching reportes by RUC:', error);
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in ReporteTributarioService.getByFichaRucId:', error);
+      console.error('Error in ReporteTributarioService.getByRuc:', error);
       throw error;
     }
   }
@@ -206,43 +146,9 @@ export class ReporteTributarioService {
 
   // Buscar reportes tributarios por texto
   static async search(searchTerm: string): Promise<ReporteTributarioWithFicha[]> {
-    try {
-      // Por ahora solo buscar todos los reportes
-      const { data: reportesData, error } = await supabase
-        .from('reporte_tributario')
-        .select('*');
-
-      if (error) {
-        console.error('Error searching reportes tributarios:', error);
-        throw error;
-      }
-
-      if (!reportesData || reportesData.length === 0) {
-        return [];
-      }
-
-      // Obtener datos de ficha RUC
-      const fichaRucIds = [...new Set(reportesData.map(r => r.ficha_ruc_id).filter(id => id))];
-      let fichasData = [];
-      
-      if (fichaRucIds.length > 0) {
-        const { data: fichasResult } = await supabase
-          .from('ficha_ruc')
-          .select('id, nombre_empresa, ruc')
-          .in('id', fichaRucIds);
-        fichasData = fichasResult || [];
-      }
-
-      // Combinar los datos
-      return reportesData.map(reporte => ({
-        ...reporte,
-        ficha_ruc: fichasData.find(ficha => ficha.id === reporte.ficha_ruc_id) || undefined
-      }));
-
-    } catch (error) {
-      console.error('Error in ReporteTributarioService.search:', error);
-      throw error;
-    }
+    // Esta función es compleja de implementar con la relación por RUC y búsqueda de texto en la tabla relacionada.
+    // Por ahora, devolverá todos los reportes.
+    return this.getAll();
   }
 
   // Obtener estadísticas
@@ -304,17 +210,17 @@ export class ReporteTributarioService {
       // Verificar si existe al menos una ficha RUC
       const { data: fichasRuc, error: fichasError } = await supabase
         .from('ficha_ruc')
-        .select('id')
+        .select('ruc')
         .limit(1);
         
       if (fichasError) {
         throw new Error(`Error fetching ficha RUC: ${fichasError.message}`);
       }
       
-      let fichaRucId: number;
+      let ruc: string;
       
       if (fichasRuc && fichasRuc.length > 0) {
-        fichaRucId = fichasRuc[0].id;
+        ruc = fichasRuc[0].ruc;
       } else {
         // Crear una ficha RUC de prueba
         const { data: nuevaFicha, error: createFichaError } = await supabase
@@ -332,12 +238,12 @@ export class ReporteTributarioService {
           throw new Error(`Error creating test ficha RUC: ${createFichaError?.message || 'Unknown error'}`);
         }
         
-        fichaRucId = nuevaFicha.id;
+        ruc = nuevaFicha.ruc;
       }
       
       // Crear un reporte de prueba simple con solo los campos básicos
       const testReporte = {
-        ficha_ruc_id: fichaRucId,
+        ruc: ruc,
         // Agregar otros campos según la estructura real de la tabla
       };
       

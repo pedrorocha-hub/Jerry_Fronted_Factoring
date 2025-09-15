@@ -1,7 +1,7 @@
 export interface CuentaBancaria {
   id: string;
   documento_id: string;
-  ficha_ruc_id?: number;
+  ruc?: string;
   banco?: string;
   numero_cuenta?: string;
   tipo_cuenta?: TipoCuenta;
@@ -28,7 +28,7 @@ export type Moneda = 'PEN' | 'USD' | 'EUR';
 
 export interface CuentaBancariaInsert {
   documento_id: string;
-  ficha_ruc_id?: number;
+  ruc?: string;
   banco?: string;
   numero_cuenta?: string;
   tipo_cuenta?: TipoCuenta;
@@ -42,7 +42,7 @@ export interface CuentaBancariaInsert {
 }
 
 export interface CuentaBancariaUpdate {
-  ficha_ruc_id?: number;
+  ruc?: string;
   banco?: string;
   numero_cuenta?: string;
   tipo_cuenta?: TipoCuenta;

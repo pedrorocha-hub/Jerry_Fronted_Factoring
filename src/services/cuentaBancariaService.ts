@@ -10,7 +10,7 @@ export class CuentaBancariaService {
       .from('cuentas_bancarias')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           ruc,
           nombre_empresa
@@ -28,7 +28,7 @@ export class CuentaBancariaService {
       .from('cuentas_bancarias')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           ruc,
           nombre_empresa
@@ -47,7 +47,7 @@ export class CuentaBancariaService {
       .from('cuentas_bancarias')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           ruc,
           nombre_empresa

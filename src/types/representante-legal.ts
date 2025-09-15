@@ -1,6 +1,6 @@
 export interface RepresentanteLegal {
   id: number;
-  ficha_ruc_id: number;
+  ruc: string;
   nombre_completo: string;
   numero_documento_identidad: string;
   cargo?: string;
@@ -12,7 +12,7 @@ export interface RepresentanteLegal {
 }
 
 export interface RepresentanteLegalInsert {
-  ficha_ruc_id: number;
+  ruc: string;
   nombre_completo: string;
   numero_documento_identidad: string;
   cargo?: string;
@@ -22,6 +22,7 @@ export interface RepresentanteLegalInsert {
 }
 
 export interface RepresentanteLegalUpdate {
+  ruc?: string;
   nombre_completo?: string;
   numero_documento_identidad?: string;
   cargo?: string;

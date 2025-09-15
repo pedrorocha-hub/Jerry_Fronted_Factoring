@@ -1,6 +1,6 @@
 export interface FacturaNegociar {
   id: number;
-  ficha_ruc_id: number;
+  ruc: string;
   numero_factura: string;
   fecha_emision?: string;
   fecha_vencimiento?: string;
@@ -15,7 +15,7 @@ export interface FacturaNegociar {
 }
 
 export interface FacturaNegociarInsert {
-  ficha_ruc_id: number;
+  ruc: string;
   numero_factura: string;
   fecha_emision?: string;
   fecha_vencimiento?: string;
@@ -28,6 +28,7 @@ export interface FacturaNegociarInsert {
 }
 
 export interface FacturaNegociarUpdate {
+  ruc?: string;
   numero_factura?: string;
   fecha_emision?: string;
   fecha_vencimiento?: string;

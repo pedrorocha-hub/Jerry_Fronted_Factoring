@@ -8,7 +8,7 @@ export class FacturaNegociarService {
       .from('factura_negociar')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           nombre_empresa,
           ruc
@@ -30,7 +30,7 @@ export class FacturaNegociarService {
       .from('factura_negociar')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           nombre_empresa,
           ruc
@@ -47,16 +47,16 @@ export class FacturaNegociarService {
     return data;
   }
 
-  // Obtener facturas por Ficha RUC ID
-  static async getByFichaRucId(fichaRucId: number): Promise<FacturaNegociar[]> {
+  // Obtener facturas por RUC
+  static async getByRuc(ruc: string): Promise<FacturaNegociar[]> {
     const { data, error } = await supabase
       .from('factura_negociar')
       .select('*')
-      .eq('ficha_ruc_id', fichaRucId)
+      .eq('ruc', ruc)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching facturas by ficha RUC ID:', error);
+      console.error('Error fetching facturas by RUC:', error);
       throw error;
     }
 
@@ -120,7 +120,7 @@ export class FacturaNegociarService {
       .from('factura_negociar')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           nombre_empresa,
           ruc
@@ -210,15 +210,15 @@ export class FacturaNegociarService {
   }
 
   // Crear múltiples facturas para una ficha RUC
-  static async createMultiple(fichaRucId: number, facturas: Omit<FacturaNegociarInsert, 'ficha_ruc_id'>[]): Promise<FacturaNegociar[]> {
-    const facturasWithFichaId = facturas.map(factura => ({
+  static async createMultiple(ruc: string, facturas: Omit<FacturaNegociarInsert, 'ruc'>[]): Promise<FacturaNegociar[]> {
+    const facturasWithRuc = facturas.map(factura => ({
       ...factura,
-      ficha_ruc_id: fichaRucId
+      ruc: ruc
     }));
 
     const { data, error } = await supabase
       .from('factura_negociar')
-      .insert(facturasWithFichaId)
+      .insert(facturasWithRuc)
       .select();
 
     if (error) {
@@ -238,7 +238,7 @@ export class FacturaNegociarService {
       .from('factura_negociar')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           nombre_empresa,
           ruc

@@ -1,6 +1,6 @@
 export interface ReporteTributario {
   id: number;
-  ficha_ruc_id?: number;
+  ruc?: string;
   // Hacer todos los campos opcionales hasta que sepamos la estructura real
   anio_reporte?: number;
   ano_reporte?: number; // Por si usa 'ano' en lugar de 'anio'
@@ -30,11 +30,12 @@ export interface ReporteTributario {
 }
 
 export interface ReporteTributarioInsert {
-  ficha_ruc_id: number;
+  ruc: string;
   [key: string]: any; // Permitir cualquier campo
 }
 
 export interface ReporteTributarioUpdate {
+  ruc?: string;
   [key: string]: any; // Permitir cualquier campo
 }
 

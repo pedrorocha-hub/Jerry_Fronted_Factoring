@@ -8,7 +8,7 @@ export class RepresentanteLegalService {
       .from('representante_legal')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           nombre_empresa,
           ruc
@@ -30,7 +30,7 @@ export class RepresentanteLegalService {
       .from('representante_legal')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           nombre_empresa,
           ruc
@@ -47,16 +47,16 @@ export class RepresentanteLegalService {
     return data;
   }
 
-  // Obtener representantes legales por Ficha RUC ID
-  static async getByFichaRucId(fichaRucId: number): Promise<RepresentanteLegal[]> {
+  // Obtener representantes legales por RUC
+  static async getByRuc(ruc: string): Promise<RepresentanteLegal[]> {
     const { data, error } = await supabase
       .from('representante_legal')
       .select('*')
-      .eq('ficha_ruc_id', fichaRucId)
+      .eq('ruc', ruc)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching representantes by ficha RUC ID:', error);
+      console.error('Error fetching representantes by RUC:', error);
       throw error;
     }
 
@@ -120,7 +120,7 @@ export class RepresentanteLegalService {
       .from('representante_legal')
       .select(`
         *,
-        ficha_ruc:ficha_ruc_id (
+        ficha_ruc:ruc (
           id,
           nombre_empresa,
           ruc
@@ -197,15 +197,15 @@ export class RepresentanteLegalService {
   }
 
   // Crear múltiples representantes para una ficha RUC
-  static async createMultiple(fichaRucId: number, representantes: Omit<RepresentanteLegalInsert, 'ficha_ruc_id'>[]): Promise<RepresentanteLegal[]> {
-    const representantesWithFichaId = representantes.map(rep => ({
+  static async createMultiple(ruc: string, representantes: Omit<RepresentanteLegalInsert, 'ruc'>[]): Promise<RepresentanteLegal[]> {
+    const representantesWithRuc = representantes.map(rep => ({
       ...rep,
-      ficha_ruc_id: fichaRucId
+      ruc: ruc
     }));
 
     const { data, error } = await supabase
       .from('representante_legal')
-      .insert(representantesWithFichaId)
+      .insert(representantesWithRuc)
       .select();
 
     if (error) {
