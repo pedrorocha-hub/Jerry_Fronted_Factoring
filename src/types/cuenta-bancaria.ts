@@ -23,7 +23,7 @@ export interface CuentaBancaria {
   };
 }
 
-export type TipoCuenta = 'Corriente' | 'Ahorros' | 'Plazo Fijo' | 'CTS' | 'Otros';
+export type TipoCuenta = 'corriente' | 'ahorros' | 'plazo_fijo' | 'cts' | 'otros' | 'detraccion';
 export type Moneda = 'PEN' | 'USD' | 'EUR';
 
 export interface CuentaBancariaInsert {
@@ -56,11 +56,12 @@ export interface CuentaBancariaUpdate {
 }
 
 export const TIPO_CUENTA_LABELS: Record<TipoCuenta, string> = {
-  'Corriente': 'Cuenta Corriente',
-  'Ahorros': 'Cuenta de Ahorros',
-  'Plazo Fijo': 'Cuenta a Plazo Fijo',
-  'CTS': 'CTS',
-  'Otros': 'Otros'
+  'corriente': 'Cuenta Corriente',
+  'ahorros': 'Cuenta de Ahorros',
+  'plazo_fijo': 'Cuenta a Plazo Fijo',
+  'cts': 'CTS',
+  'detraccion': 'Cuenta de Detracciones',
+  'otros': 'Otros'
 };
 
 export const MONEDA_LABELS: Record<Moneda, { label: string; symbol: string }> = {

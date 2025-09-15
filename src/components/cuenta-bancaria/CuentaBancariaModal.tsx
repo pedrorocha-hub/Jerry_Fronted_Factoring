@@ -108,13 +108,14 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
   const getTipoCuentaBadge = (tipo?: TipoCuenta) => {
     if (!tipo) return null;
     const variants = {
-      'Corriente': 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-      'Ahorros': 'bg-green-500/10 text-green-400 border border-green-500/20',
-      'Plazo Fijo': 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-      'CTS': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
-      'Otros': 'bg-gray-800 text-gray-300 border border-gray-700',
+      'corriente': 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+      'ahorros': 'bg-green-500/10 text-green-400 border border-green-500/20',
+      'plazo_fijo': 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+      'cts': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+      'detraccion': 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+      'otros': 'bg-gray-800 text-gray-300 border border-gray-700',
     };
-    return <Badge variant="outline" className={variants[tipo] || variants.Otros}>{tipo}</Badge>;
+    return <Badge variant="outline" className={variants[tipo] || variants.otros}>{TIPO_CUENTA_LABELS[tipo] || tipo}</Badge>;
   };
 
   if (!cuenta) return null;
