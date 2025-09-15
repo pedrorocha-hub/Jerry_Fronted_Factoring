@@ -49,7 +49,12 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
         codigo_cuenta_interbancaria: cuenta.codigo_cuenta_interbancaria || '',
         moneda_cuenta: cuenta.moneda_cuenta,
         titular_cuenta: cuenta.titular_cuenta,
-        estado_cuenta: cuenta.estado_cuenta
+        estado_cuenta: cuenta.estado_cuenta,
+        // Nuevos campos para la segunda cuenta
+        numero_cuenta_2: cuenta.numero_cuenta_2 || '',
+        codigo_cuenta_interbancaria_2: cuenta.codigo_cuenta_interbancaria_2 || '',
+        tipo_cuenta_2: cuenta.tipo_cuenta_2,
+        moneda_cuenta_2: cuenta.moneda_cuenta_2,
       });
     }
     setMode(initialMode);
@@ -150,7 +155,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#121212] border-gray-800 text-white max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-[#121212] border-gray-800 text-white max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -178,26 +183,28 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
+        <div className="space-y-6 py-4">
           <div className="space-y-4 p-4 bg-gray-900/30 rounded-lg border border-gray-800">
             <h3 className="text-lg font-semibold flex items-center text-[#00FF80]">
               <Building2 className="h-5 w-5 mr-2" />
               Información General
             </h3>
-            {renderField('Nombre del Banco *', 'nombre_banco', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.nombre_banco}</span>) : (
-              <Input id="nombre_banco" value={formData.nombre_banco || ''} onChange={(e) => handleInputChange('nombre_banco', e.target.value)} placeholder="Nombre del banco" className="bg-gray-900/50 border-gray-700" />
-            ))}
-            {renderField('Titular *', 'titular_cuenta', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.titular_cuenta}</span>) : (
-              <Input id="titular_cuenta" value={formData.titular_cuenta || ''} onChange={(e) => handleInputChange('titular_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
-            ))}
-            {renderField('Estado *', 'estado_cuenta', mode === 'view' ? renderViewMode(getEstadoBadge(cuenta.estado_cuenta)) : (
-              <Select value={formData.estado_cuenta || ''} onValueChange={(value) => handleInputChange('estado_cuenta', value)}>
-                <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
-                <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                  {Object.entries(ESTADO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {renderField('Nombre del Banco *', 'nombre_banco', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.nombre_banco}</span>) : (
+                <Input id="nombre_banco" value={formData.nombre_banco || ''} onChange={(e) => handleInputChange('nombre_banco', e.target.value)} placeholder="Nombre del banco" className="bg-gray-900/50 border-gray-700" />
+              ))}
+              {renderField('Titular *', 'titular_cuenta', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.titular_cuenta}</span>) : (
+                <Input id="titular_cuenta" value={formData.titular_cuenta || ''} onChange={(e) => handleInputChange('titular_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
+              ))}
+              {renderField('Estado *', 'estado_cuenta', mode === 'view' ? renderViewMode(getEstadoBadge(cuenta.estado_cuenta)) : (
+                <Select value={formData.estado_cuenta || ''} onValueChange={(value) => handleInputChange('estado_cuenta', value)}>
+                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
+                  <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                    {Object.entries(ESTADO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ))}
+            </div>
             {cuenta.ficha_ruc && (
               <div className="pt-4 border-t border-gray-800">
                 <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
@@ -211,40 +218,78 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
             )}
           </div>
 
-          <div className="space-y-4 p-4 bg-gray-900/30 rounded-lg border border-gray-800">
-            <h3 className="text-lg font-semibold flex items-center text-[#00FF80]">
-              <CreditCard className="h-5 w-5 mr-2" />
-              Detalles de la Cuenta
-            </h3>
-            {renderField('Número de Cuenta *', 'numero_cuenta', mode === 'view' ? renderViewMode(<span className="font-mono font-medium">{cuenta.numero_cuenta}</span>) : (
-              <Input id="numero_cuenta" value={formData.numero_cuenta || ''} onChange={(e) => handleInputChange('numero_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
-            ))}
-            {renderField('Código CCI', 'codigo_cuenta_interbancaria', mode === 'view' ? renderViewMode(
-              <div className="flex items-center">
-                <Hash className="h-4 w-4 mr-2 text-gray-500" />
-                <span className="font-mono">{cuenta.codigo_cuenta_interbancaria || 'No especificado'}</span>
-              </div>
-            ) : (
-              <Input id="codigo_cuenta_interbancaria" value={formData.codigo_cuenta_interbancaria || ''} onChange={(e) => handleInputChange('codigo_cuenta_interbancaria', e.target.value)} className="bg-gray-900/50 border-gray-700" />
-            ))}
-            {renderField('Tipo de Cuenta', 'tipo_cuenta', mode === 'view' ? renderViewMode(getTipoCuentaBadge(cuenta.tipo_cuenta)) : (
-              <Select value={formData.tipo_cuenta || ''} onValueChange={(value) => handleSelectChange('tipo_cuenta', value)}>
-                <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
-                <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                  <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
-                  {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            ))}
-            {renderField('Moneda *', 'moneda_cuenta', mode === 'view' ? renderViewMode(getMonedaBadge(cuenta.moneda_cuenta)) : (
-              <Select value={formData.moneda_cuenta || ''} onValueChange={(value) => handleSelectChange('moneda_cuenta', value)}>
-                <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
-                <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                  <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
-                  {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4 p-4 bg-gray-900/30 rounded-lg border border-gray-800">
+              <h3 className="text-lg font-semibold flex items-center text-[#00FF80]">
+                <CreditCard className="h-5 w-5 mr-2" />
+                Detalles de la Cuenta 1
+              </h3>
+              {renderField('Número de Cuenta *', 'numero_cuenta', mode === 'view' ? renderViewMode(<span className="font-mono font-medium">{cuenta.numero_cuenta}</span>) : (
+                <Input id="numero_cuenta" value={formData.numero_cuenta || ''} onChange={(e) => handleInputChange('numero_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
+              ))}
+              {renderField('Código CCI', 'codigo_cuenta_interbancaria', mode === 'view' ? renderViewMode(
+                <div className="flex items-center">
+                  <Hash className="h-4 w-4 mr-2 text-gray-500" />
+                  <span className="font-mono">{cuenta.codigo_cuenta_interbancaria || 'No especificado'}</span>
+                </div>
+              ) : (
+                <Input id="codigo_cuenta_interbancaria" value={formData.codigo_cuenta_interbancaria || ''} onChange={(e) => handleInputChange('codigo_cuenta_interbancaria', e.target.value)} className="bg-gray-900/50 border-gray-700" />
+              ))}
+              {renderField('Tipo de Cuenta', 'tipo_cuenta', mode === 'view' ? renderViewMode(getTipoCuentaBadge(cuenta.tipo_cuenta)) : (
+                <Select value={formData.tipo_cuenta || ''} onValueChange={(value) => handleSelectChange('tipo_cuenta', value)}>
+                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+                  <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                    <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
+                    {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ))}
+              {renderField('Moneda *', 'moneda_cuenta', mode === 'view' ? renderViewMode(getMonedaBadge(cuenta.moneda_cuenta)) : (
+                <Select value={formData.moneda_cuenta || ''} onValueChange={(value) => handleSelectChange('moneda_cuenta', value)}>
+                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
+                  <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                    <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
+                    {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ))}
+            </div>
+
+            <div className="space-y-4 p-4 bg-gray-900/30 rounded-lg border border-gray-800">
+              <h3 className="text-lg font-semibold flex items-center text-[#00FF80]">
+                <CreditCard className="h-5 w-5 mr-2" />
+                Detalles de la Cuenta 2
+              </h3>
+              {renderField('Número de Cuenta', 'numero_cuenta_2', mode === 'view' ? renderViewMode(<span className="font-mono font-medium">{cuenta.numero_cuenta_2 || 'No especificado'}</span>) : (
+                <Input id="numero_cuenta_2" value={formData.numero_cuenta_2 || ''} onChange={(e) => handleInputChange('numero_cuenta_2', e.target.value)} className="bg-gray-900/50 border-gray-700" />
+              ))}
+              {renderField('Código CCI', 'codigo_cuenta_interbancaria_2', mode === 'view' ? renderViewMode(
+                <div className="flex items-center">
+                  <Hash className="h-4 w-4 mr-2 text-gray-500" />
+                  <span className="font-mono">{cuenta.codigo_cuenta_interbancaria_2 || 'No especificado'}</span>
+                </div>
+              ) : (
+                <Input id="codigo_cuenta_interbancaria_2" value={formData.codigo_cuenta_interbancaria_2 || ''} onChange={(e) => handleInputChange('codigo_cuenta_interbancaria_2', e.target.value)} className="bg-gray-900/50 border-gray-700" />
+              ))}
+              {renderField('Tipo de Cuenta', 'tipo_cuenta_2', mode === 'view' ? renderViewMode(getTipoCuentaBadge(cuenta.tipo_cuenta_2)) : (
+                <Select value={formData.tipo_cuenta_2 || ''} onValueChange={(value) => handleSelectChange('tipo_cuenta_2', value)}>
+                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
+                  <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                    <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
+                    {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ))}
+              {renderField('Moneda', 'moneda_cuenta_2', mode === 'view' ? renderViewMode(getMonedaBadge(cuenta.moneda_cuenta_2)) : (
+                <Select value={formData.moneda_cuenta_2 || ''} onValueChange={(value) => handleSelectChange('moneda_cuenta_2', value)}>
+                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
+                  <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                    <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
+                    {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ))}
+            </div>
           </div>
         </div>
 
