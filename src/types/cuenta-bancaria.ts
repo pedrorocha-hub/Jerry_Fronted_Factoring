@@ -1,11 +1,11 @@
 export interface CuentaBancaria {
-  id: string; // Corregido de number a string (UUID)
+  id: string;
   documento_id: string;
   ficha_ruc_id?: number;
   nombre_banco?: string;
   numero_cuenta: string;
   tipo_cuenta?: TipoCuenta;
-  codigo_cci?: string; // Renombrado de codigo_cuenta_interbancaria
+  codigo_cuenta_interbancaria?: string; // Corregido: de codigo_cci a este nombre
   moneda_cuenta?: Moneda;
   titular_cuenta?: string;
   estado_cuenta: EstadoCuenta;
@@ -34,7 +34,7 @@ export interface CuentaBancariaInsert {
   nombre_banco?: string;
   numero_cuenta: string;
   tipo_cuenta?: TipoCuenta;
-  codigo_cci?: string;
+  codigo_cuenta_interbancaria?: string; // Corregido
   moneda_cuenta?: Moneda;
   titular_cuenta?: string;
   estado_cuenta?: EstadoCuenta;
@@ -47,31 +47,13 @@ export interface CuentaBancariaUpdate {
   nombre_banco?: string;
   numero_cuenta?: string;
   tipo_cuenta?: TipoCuenta;
-  codigo_cci?: string;
+  codigo_cuenta_interbancaria?: string; // Corregido
   moneda_cuenta?: Moneda;
   titular_cuenta?: string;
   estado_cuenta?: EstadoCuenta;
   es_principal?: boolean;
   notas?: string;
 }
-
-export const BANCOS_PERU = [
-  'BBVA',
-  'BCP - Banco de Crédito del Perú',
-  'Scotiabank',
-  'Interbank',
-  'Banco de la Nación',
-  'Banco Pichincha',
-  'Banco Falabella',
-  'Banco Ripley',
-  'HSBC',
-  'Citibank',
-  'Banco Santander',
-  'Mi Banco',
-  'Banco Azteca',
-  'Banco Cencosud',
-  'Otros'
-] as const;
 
 export const TIPO_CUENTA_LABELS: Record<TipoCuenta, string> = {
   'Corriente': 'Cuenta Corriente',
