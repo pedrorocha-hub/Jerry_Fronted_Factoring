@@ -8,7 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  Building2
+  Building2,
+  DollarSign,
+  Hash
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -94,14 +96,14 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
 
   const getEstadoBadge = (estado: string) => {
     const variants = {
-      'Activa': 'bg-[#00FF80]/10 text-[#00FF80] border border-[#00FF80]/20',
-      'Inactiva': 'bg-gray-800 text-gray-300 border border-gray-700',
-      'Bloqueada': 'bg-red-500/10 text-red-400 border border-red-500/20',
-      'Cerrada': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+      'activa': 'bg-[#00FF80]/10 text-[#00FF80] border border-[#00FF80]/20',
+      'inactiva': 'bg-gray-800 text-gray-300 border border-gray-700',
+      'bloqueada': 'bg-red-500/10 text-red-400 border border-red-500/20',
+      'cerrada': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
     };
 
     return (
-      <Badge className={variants[estado as keyof typeof variants] || variants.Inactiva}>
+      <Badge className={variants[estado as keyof typeof variants] || variants.inactiva}>
         {estado}
       </Badge>
     );
@@ -144,6 +146,16 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
       </Badge>
     );
   };
+
+  // Agrupar cuentas por banco para mejor visualización
+  const cuentasPorBanco = paginatedCuentas.reduce((acc, cuenta) => {
+    const banco = cuenta.nombre_banco || 'Sin banco';
+    if (!acc[banco]) {
+      acc[banco] = [];
+    }
+    acc[banco].push(cuenta);
+    return acc;
+  }, {} as Record<string, CuentaBancariaWithFicha[]>);
 
   return (
     <div className="space-y-4 p-6">
@@ -195,10 +207,10 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
           <TableHeader>
             <TableRow className="border-gray-800 hover:bg-gray-900/50">
               <TableHead className="text-gray-300">Banco</TableHead>
+              <TableHead className="text-gray-300">Tipo / Moneda</TableHead>
               <TableHead className="text-gray-300">Número de Cuenta</TableHead>
-              <TableHead className="text-gray-300">Tipo</TableHead>
+              <TableHead className="text-gray-300">CCI</TableHead>
               <TableHead className="text-gray-300">Titular</TableHead>
-              <TableHead className="text-gray-300">Moneda</TableHead>
               <TableHead className="text-gray-300">Estado</TableHead>
               <TableHead className="text-gray-300">Empresa</TableHead>
               <TableHead className="text-right text-gray-300">Acciones</TableHead>
@@ -217,26 +229,46 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
               paginatedCuentas.map((cuenta) => (
                 <TableRow key={cuenta.id} className="border-gray-800 hover:bg-gray-900/50 transition-colors">
                   <TableCell>
-                    <div className="font-medium text-white">{cuenta.nombre_banco}</div>
-                    {cuenta.codigo_cci && (
-                      <div className="text-xs text-gray-400">
-                        CCI: {cuenta.codigo_cci}
+                    <div className="flex items-center space-x-2">
+                      <Building2 className="h-4 w-4 text-[#00FF80]" />
+                      <div>
+                        <div className="font-medium text-white">{cuenta.nombre_banco}</div>
+                        {cuenta.tipo_cuenta && (
+                          <div className="text-xs text-gray-400">{cuenta.tipo_cuenta}</div>
+                        )}
                       </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="space-y-1">
+                      {getTipoCuentaBadge(cuenta.tipo_cuenta)}
+                      {getMonedaBadge(cuenta.moneda_cuenta)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <CreditCard className="h-4 w-4 text-gray-400" />
+                      <code className="font-mono text-sm text-white bg-gray-900/50 px-2 py-1 rounded">
+                        {cuenta.numero_cuenta}
+                      </code>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {cuenta.codigo_cci ? (
+                      <div className="flex items-center space-x-2">
+                        <Hash className="h-4 w-4 text-gray-400" />
+                        <code className="font-mono text-xs text-gray-300 bg-gray-900/50 px-2 py-1 rounded">
+                          {cuenta.codigo_cci}
+                        </code>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 text-sm">Sin CCI</span>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-mono text-sm text-white">{cuenta.numero_cuenta}</div>
-                  </TableCell>
-                  <TableCell>
-                    {getTipoCuentaBadge(cuenta.tipo_cuenta)}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm max-w-xs truncate text-white">
                       {cuenta.titular_cuenta}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {getMonedaBadge(cuenta.moneda_cuenta)}
                   </TableCell>
                   <TableCell>
                     {getEstadoBadge(cuenta.estado_cuenta)}
@@ -291,6 +323,26 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
           </TableBody>
         </Table>
       </div>
+
+      {/* Información adicional sobre múltiples cuentas */}
+      {Object.keys(cuentasPorBanco).length > 0 && (
+        <div className="bg-[#00FF80]/10 border border-[#00FF80]/20 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-[#00FF80] mb-2">Resumen por Banco:</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
+            {Object.entries(cuentasPorBanco).map(([banco, cuentasBanco]) => (
+              <div key={banco} className="text-gray-300">
+                <span className="font-medium">{banco}:</span>
+                <span className="ml-1">
+                  {cuentasBanco.length} cuenta{cuentasBanco.length !== 1 ? 's' : ''}
+                </span>
+                <div className="text-xs text-gray-400 ml-2">
+                  {cuentasBanco.map(c => c.moneda_cuenta).join(', ')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Paginación */}
       {totalPages > 1 && (

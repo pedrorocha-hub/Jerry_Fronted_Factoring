@@ -1,6 +1,6 @@
 export interface CuentaBancaria {
   id: number;
-  ficha_ruc_id: number;
+  ficha_ruc_id?: number;
   nombre_banco: string;
   numero_cuenta: string;
   tipo_cuenta?: string;
@@ -13,17 +13,18 @@ export interface CuentaBancaria {
 }
 
 export interface CuentaBancariaInsert {
-  ficha_ruc_id: number;
+  ficha_ruc_id?: number;
   nombre_banco: string;
   numero_cuenta: string;
   tipo_cuenta?: string;
   codigo_cci?: string;
-  moneda_cuenta?: string;
+  moneda_cuenta: string;
   titular_cuenta: string;
   estado_cuenta?: string;
 }
 
 export interface CuentaBancariaUpdate {
+  ficha_ruc_id?: number;
   nombre_banco?: string;
   numero_cuenta?: string;
   tipo_cuenta?: string;
