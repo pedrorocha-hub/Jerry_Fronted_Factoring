@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CuentaBancaria, CuentaBancariaUpdate, BANCOS_PERU, TIPO_CUENTA_LABELS, MONEDA_LABELS, ESTADO_CUENTA_LABELS, TipoCuenta, Moneda, EstadoCuenta } from '@/types/cuenta-bancaria';
+import { CuentaBancaria, CuentaBancariaUpdate, TIPO_CUENTA_LABELS, MONEDA_LABELS, ESTADO_CUENTA_LABELS, TipoCuenta, Moneda, EstadoCuenta } from '@/types/cuenta-bancaria';
 import { CuentaBancariaService } from '@/services/cuentaBancariaService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
@@ -162,12 +162,12 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
                   <span className="font-medium">{cuenta.nombre_banco}</span>
                 </div>
               ) : (
-                <Select value={formData.nombre_banco || ''} onValueChange={(value) => handleInputChange('nombre_banco', value)}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar banco" /></SelectTrigger>
-                  <SelectContent>
-                    {BANCOS_PERU.map(banco => <SelectItem key={banco} value={banco}>{banco}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="nombre_banco"
+                  value={formData.nombre_banco || ''}
+                  onChange={(e) => handleInputChange('nombre_banco', e.target.value)}
+                  placeholder="Nombre del banco"
+                />
               )}
             </div>
             <div>

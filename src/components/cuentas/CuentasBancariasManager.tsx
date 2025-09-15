@@ -52,14 +52,13 @@ import {
 import { 
   CuentaBancaria, 
   CuentaBancariaInsert,
-  BANCOS_PERU,
   TIPO_CUENTA_LABELS,
   MONEDA_LABELS,
   ESTADO_CUENTA_LABELS,
   TipoCuenta,
   Moneda,
   EstadoCuenta
-} from '@/types/cuentaBancaria';
+} from '@/types/cuenta-bancaria';
 import { CuentaBancariaService } from '@/services/cuentaBancariaService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
@@ -91,13 +90,13 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
   const [formData, setFormData] = useState<CuentaBancariaInsert>({
     documento_id: documentoId,
     ficha_ruc_id: undefined,
-    banco: '',
+    nombre_banco: '',
     tipo_cuenta: undefined,
-    moneda: undefined,
+    moneda_cuenta: undefined,
     numero_cuenta: '',
-    numero_cci: '',
+    codigo_cci: '',
     titular_cuenta: '',
-    estado: 'activa',
+    estado_cuenta: 'Activa',
     es_principal: false,
     notas: ''
   });
@@ -141,8 +140,8 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
       const cleanFormData = {
         ...formData,
         ficha_ruc_id: formData.ficha_ruc_id || undefined,
-        banco: formData.banco?.trim() || undefined,
-        numero_cci: formData.numero_cci?.trim() || undefined,
+        nombre_banco: formData.nombre_banco?.trim() || undefined,
+        codigo_cci: formData.codigo_cci?.trim() || undefined,
         titular_cuenta: formData.titular_cuenta?.trim() || undefined,
         notas: formData.notas?.trim() || undefined,
       };
@@ -168,13 +167,13 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
     setFormData({
       documento_id: cuenta.documento_id,
       ficha_ruc_id: cuenta.ficha_ruc_id || undefined,
-      banco: cuenta.banco || '',
+      nombre_banco: cuenta.nombre_banco || '',
       tipo_cuenta: cuenta.tipo_cuenta,
-      moneda: cuenta.moneda,
+      moneda_cuenta: cuenta.moneda_cuenta,
       numero_cuenta: cuenta.numero_cuenta,
-      numero_cci: cuenta.numero_cci || '',
+      codigo_cci: cuenta.codigo_cci || '',
       titular_cuenta: cuenta.titular_cuenta || '',
-      estado: cuenta.estado,
+      estado_cuenta: cuenta.estado_cuenta,
       es_principal: cuenta.es_principal,
       notas: cuenta.notas || ''
     });
@@ -219,13 +218,13 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
     setFormData({
       documento_id: documentoId,
       ficha_ruc_id: undefined,
-      banco: '',
+      nombre_banco: '',
       tipo_cuenta: undefined,
-      moneda: undefined,
+      moneda_cuenta: undefined,
       numero_cuenta: '',
-      numero_cci: '',
+      codigo_cci: '',
       titular_cuenta: '',
-      estado: 'activa',
+      estado_cuenta: 'Activa',
       es_principal: false,
       notas: ''
     });
@@ -247,9 +246,10 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
   const getEstadoBadge = (estado: EstadoCuenta) => {
     const variants = {
-      'activa': 'bg-[#00FF80]/10 text-[#00FF80] border border-[#00FF80]/20',
-      'inactiva': 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
-      'cerrada': 'bg-red-500/10 text-red-400 border border-red-500/20',
+      'Activa': 'bg-[#00FF80]/10 text-[#00FF80] border border-[#00FF80]/20',
+      'Inactiva': 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
+      'Cerrada': 'bg-red-500/10 text-red-400 border border-red-500/20',
+      'Bloqueada': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
     };
 
     return (
@@ -263,10 +263,11 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
     if (!tipo) return <Badge className="bg-gray-800 text-gray-300 border border-gray-700">No especificado</Badge>;
     
     const variants = {
-      'corriente': 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-      'ahorros': 'bg-green-500/10 text-green-400 border border-green-500/20',
-      'detraccion': 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-      'otros': 'bg-gray-800 text-gray-300 border border-gray-700',
+      'Corriente': 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+      'Ahorros': 'bg-green-500/10 text-green-400 border border-green-500/20',
+      'Plazo Fijo': 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+      'CTS': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+      'Otros': 'bg-gray-800 text-gray-300 border border-gray-700',
     };
 
     return (
@@ -384,22 +385,12 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-gray-300">Banco</Label>
-                    <Select 
-                      value={formData.banco || ''} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, banco: value || undefined }))}
-                    >
-                      <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
-                        <SelectValue placeholder="Seleccionar banco (opcional)" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#121212] border-gray-800">
-                        <SelectItem value="" className="text-white hover:bg-gray-800">Sin especificar</SelectItem>
-                        {BANCOS_PERU.map((banco) => (
-                          <SelectItem key={banco} value={banco} className="text-white hover:bg-gray-800">
-                            {banco}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      value={formData.nombre_banco || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, nombre_banco: e.target.value }))}
+                      placeholder="Nombre del banco"
+                      className="bg-gray-900/50 border-gray-700 text-white"
+                    />
                   </div>
 
                   <div>
@@ -427,8 +418,8 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                   <div>
                     <Label className="text-gray-300">Moneda</Label>
                     <Select 
-                      value={formData.moneda || ''} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, moneda: value as Moneda || undefined }))}
+                      value={formData.moneda_cuenta || ''} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, moneda_cuenta: value as Moneda || undefined }))}
                     >
                       <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
                         <SelectValue placeholder="Seleccionar moneda (opcional)" />
@@ -447,8 +438,8 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                   <div>
                     <Label className="text-gray-300">Estado</Label>
                     <Select 
-                      value={formData.estado} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, estado: value as EstadoCuenta }))}
+                      value={formData.estado_cuenta} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, estado_cuenta: value as EstadoCuenta }))}
                     >
                       <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
                         <SelectValue />
@@ -477,10 +468,10 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                   </div>
 
                   <div>
-                    <Label className="text-gray-300">Número CCI</Label>
+                    <Label className="text-gray-300">Código CCI</Label>
                     <Input
-                      value={formData.numero_cci}
-                      onChange={(e) => setFormData(prev => ({ ...prev, numero_cci: e.target.value }))}
+                      value={formData.codigo_cci}
+                      onChange={(e) => setFormData(prev => ({ ...prev, codigo_cci: e.target.value }))}
                       placeholder="Ej: 00211012345678901234"
                       className="bg-gray-900/50 border-gray-700 text-white"
                     />
@@ -672,12 +663,12 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                         </Button>
                       </div>
                       
-                      {cuenta.codigo_cuenta_interbancaria && (
+                      {cuenta.codigo_cci && (
                         <div className="flex items-center space-x-2">
                           <Hash className="h-4 w-4 text-gray-400" />
                           <span className="text-gray-400 text-sm">CCI:</span>
                           <code className="bg-gray-900/50 px-2 py-1 rounded text-[#00FF80] text-sm font-mono">
-                            {maskNumber(cuenta.codigo_cuenta_interbancaria, showNumbers[cuenta.id])}
+                            {maskNumber(cuenta.codigo_cci, showNumbers[cuenta.id])}
                           </code>
                         </div>
                       )}
