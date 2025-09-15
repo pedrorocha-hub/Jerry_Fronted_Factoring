@@ -20,11 +20,7 @@ const CuentaBancariaPage = () => {
   const [stats, setStats] = useState({
     total: 0,
     thisMonth: 0,
-    mostCommonEstado: '',
-    estadoDistribution: {} as { [key: string]: number },
-    monedaDistribution: {} as { [key: string]: number },
-    activeCounts: 0,
-    inactiveCounts: 0
+    monedaDistribution: {} as { [key: string]: number }
   });
 
   useEffect(() => {
@@ -114,11 +110,12 @@ const CuentaBancariaPage = () => {
     const loadingToast = showLoading('Creando datos de prueba...');
     
     try {
-      await CuentaBancariaService.createTestData();
+      // await CuentaBancariaService.createTestData(); // This method needs to be updated or removed
+      showError('La creación de datos de prueba necesita ser actualizada.');
       dismissToast(loadingToast);
-      showSuccess('Datos de prueba creados exitosamente');
-      await loadCuentas();
-      await loadStats();
+      // showSuccess('Datos de prueba creados exitosamente');
+      // await loadCuentas();
+      // await loadStats();
     } catch (error) {
       dismissToast(loadingToast);
       console.error('CuentaBancaria: Error creating test data:', error);
@@ -154,7 +151,7 @@ const CuentaBancariaPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-white">Cuentas Bancarias</h1>
               <p className="text-gray-400">
-                Gestión de información bancaria asociada a las Fichas RUC
+                Gestión de información bancaria asociada a los documentos
               </p>
             </div>
             
@@ -167,16 +164,6 @@ const CuentaBancariaPage = () => {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Actualizar
               </Button>
-              {cuentas.length === 0 && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleCreateTestData}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear Datos de Prueba
-                </Button>
-              )}
               <Button className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Cuenta Bancaria
@@ -194,7 +181,7 @@ const CuentaBancariaPage = () => {
           )}
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="bg-[#121212] border border-gray-800 hover:border-[#00FF80]/30 transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-400">
@@ -210,21 +197,6 @@ const CuentaBancariaPage = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-[#121212] border border-gray-800 hover:border-[#00FF80]/30 transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
-                  Cuentas Activas
-                </CardTitle>
-                <div className="p-2 bg-[#00FF80]/10 rounded-lg border border-[#00FF80]/20">
-                  <DollarSign className="h-4 w-4 text-[#00FF80]" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-[#00FF80] font-mono">{stats.activeCounts}</div>
-                <p className="text-xs text-gray-500">Estado activo</p>
-              </CardContent>
-            </Card>
-
             <Card className="bg-[#121212] border border-gray-800 hover:border-purple-500/30 transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-400">
@@ -237,23 +209,6 @@ const CuentaBancariaPage = () => {
               <CardContent>
                 <div className="text-2xl font-bold text-purple-400 font-mono">{stats.thisMonth}</div>
                 <p className="text-xs text-gray-500">Registradas este mes</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-[#121212] border border-gray-800 hover:border-orange-500/30 transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
-                  Empresas Vinculadas
-                </CardTitle>
-                <div className="p-2 bg-orange-500/10 rounded-lg border border-orange-500/20">
-                  <Building2 className="h-4 w-4 text-orange-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-orange-400 font-mono">
-                  {new Set(cuentas.map(c => c.ficha_ruc_id)).size}
-                </div>
-                <p className="text-xs text-gray-500">Fichas RUC asociadas</p>
               </CardContent>
             </Card>
           </div>
@@ -286,11 +241,7 @@ const CuentaBancariaPage = () => {
                     <li>4. Los resultados aparecerán en esta tabla</li>
                   </ol>
                 </div>
-                <div className="mt-6 space-x-3">
-                  <Button onClick={handleCreateTestData} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear Datos de Prueba
-                  </Button>
+                <div className="mt-6">
                   <Button 
                     variant="outline" 
                     onClick={() => window.location.href = '/upload'}

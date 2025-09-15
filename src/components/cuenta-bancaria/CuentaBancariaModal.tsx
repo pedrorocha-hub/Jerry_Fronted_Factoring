@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Eye, Edit, CreditCard, Building2, DollarSign, Hash, User } from 'lucide-react';
+import { Save, Eye, Edit, CreditCard, Building2, Hash, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { CuentaBancaria, CuentaBancariaUpdate, TIPO_CUENTA_LABELS, MONEDA_LABELS, ESTADO_CUENTA_LABELS, TipoCuenta, Moneda, EstadoCuenta } from '@/types/cuenta-bancaria';
+import { CuentaBancaria, CuentaBancariaUpdate, TIPO_CUENTA_LABELS, MONEDA_LABELS, TipoCuenta, Moneda } from '@/types/cuenta-bancaria';
 import { CuentaBancariaService } from '@/services/cuentaBancariaService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
@@ -43,14 +43,12 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
   useEffect(() => {
     if (cuenta) {
       setFormData({
-        nombre_banco: cuenta.nombre_banco,
+        banco: cuenta.banco,
         numero_cuenta: cuenta.numero_cuenta,
         tipo_cuenta: cuenta.tipo_cuenta,
         codigo_cuenta_interbancaria: cuenta.codigo_cuenta_interbancaria || '',
         moneda_cuenta: cuenta.moneda_cuenta,
         titular_cuenta: cuenta.titular_cuenta,
-        estado_cuenta: cuenta.estado_cuenta,
-        // Nuevos campos para la segunda cuenta
         numero_cuenta_2: cuenta.numero_cuenta_2 || '',
         codigo_cuenta_interbancaria_2: cuenta.codigo_cuenta_interbancaria_2 || '',
         tipo_cuenta_2: cuenta.tipo_cuenta_2,
@@ -68,7 +66,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
   };
 
   const handleSelectChange = (field: keyof CuentaBancariaUpdate, value: string) => {
-    const finalValue = (value === '--NONE--' || value === '') ? null : value;
+    const finalValue = (value === '--NONE--' || value === '') ? undefined : value;
     setFormData(prev => ({
       ...prev,
       [field]: finalValue
@@ -89,30 +87,10 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
       onClose();
     } catch (error) {
       dismissToast(loadingToast);
-      console.error("Error al actualizar la cuenta:", error);
-      
-      let errorMessage = 'Ocurrió un error inesperado.';
-      if (typeof error === 'object' && error !== null && 'message' in error) {
-        errorMessage = (error as { message: string }).message;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      showError(`Error: ${errorMessage}`);
+      showError(`Error al actualizar la cuenta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
-  };
-
-  const getEstadoBadge = (estado?: EstadoCuenta) => {
-    if (!estado) return null;
-    const variants = {
-      'Activa': 'bg-[#00FF80]/10 text-[#00FF80] border border-[#00FF80]/20',
-      'Inactiva': 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20',
-      'Cerrada': 'bg-red-500/10 text-red-400 border border-red-500/20',
-      'Bloqueada': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
-    };
-    return <Badge className={variants[estado] || variants.Inactiva}>{estado}</Badge>;
   };
 
   const getMonedaBadge = (moneda?: Moneda) => {
@@ -186,36 +164,17 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
         <div className="space-y-6 py-4">
           <div className="space-y-4 p-4 bg-gray-900/30 rounded-lg border border-gray-800">
             <h3 className="text-lg font-semibold flex items-center text-[#00FF80]">
-              <Building2 className="h-5 w-5 mr-2" />
-              Información General
+              <User className="h-5 w-5 mr-2" />
+              Información del Titular
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {renderField('Nombre del Banco *', 'nombre_banco', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.nombre_banco}</span>) : (
-                <Input id="nombre_banco" value={formData.nombre_banco || ''} onChange={(e) => handleInputChange('nombre_banco', e.target.value)} placeholder="Nombre del banco" className="bg-gray-900/50 border-gray-700" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {renderField('Nombre del Banco', 'banco', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.banco}</span>) : (
+                <Input id="banco" value={formData.banco || ''} onChange={(e) => handleInputChange('banco', e.target.value)} placeholder="Nombre del banco" className="bg-gray-900/50 border-gray-700" />
               ))}
-              {renderField('Titular *', 'titular_cuenta', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.titular_cuenta}</span>) : (
+              {renderField('Titular', 'titular_cuenta', mode === 'view' ? renderViewMode(<span className="font-medium">{cuenta.titular_cuenta}</span>) : (
                 <Input id="titular_cuenta" value={formData.titular_cuenta || ''} onChange={(e) => handleInputChange('titular_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
               ))}
-              {renderField('Estado *', 'estado_cuenta', mode === 'view' ? renderViewMode(getEstadoBadge(cuenta.estado_cuenta)) : (
-                <Select value={formData.estado_cuenta || ''} onValueChange={(value) => handleInputChange('estado_cuenta', value)}>
-                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
-                  <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                    {Object.entries(ESTADO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              ))}
             </div>
-            {cuenta.ficha_ruc && (
-              <div className="pt-4 border-t border-gray-800">
-                <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
-                  <Building2 className="h-4 w-4 mr-2 text-gray-500" /> Empresa Asociada
-                </h4>
-                <div className="bg-gray-900/50 p-4 rounded-lg border border-gray-700">
-                  <div className="font-medium text-[#00FF80]">{cuenta.ficha_ruc.nombre_empresa}</div>
-                  <div className="text-sm text-gray-400 font-mono">RUC: {cuenta.ficha_ruc.ruc}</div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -224,7 +183,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
                 <CreditCard className="h-5 w-5 mr-2" />
                 Detalles de la Cuenta 1
               </h3>
-              {renderField('Número de Cuenta *', 'numero_cuenta', mode === 'view' ? renderViewMode(<span className="font-mono font-medium">{cuenta.numero_cuenta}</span>) : (
+              {renderField('Número de Cuenta', 'numero_cuenta', mode === 'view' ? renderViewMode(<span className="font-mono font-medium">{cuenta.numero_cuenta}</span>) : (
                 <Input id="numero_cuenta" value={formData.numero_cuenta || ''} onChange={(e) => handleInputChange('numero_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
               ))}
               {renderField('Código CCI', 'codigo_cuenta_interbancaria', mode === 'view' ? renderViewMode(
@@ -240,16 +199,16 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
                   <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
                   <SelectContent className="bg-[#121212] border-gray-800 text-white">
                     <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
-                    {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
+                    {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key as TipoCuenta} className="hover:bg-gray-800">{label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ))}
-              {renderField('Moneda *', 'moneda_cuenta', mode === 'view' ? renderViewMode(getMonedaBadge(cuenta.moneda_cuenta)) : (
+              {renderField('Moneda', 'moneda_cuenta', mode === 'view' ? renderViewMode(getMonedaBadge(cuenta.moneda_cuenta)) : (
                 <Select value={formData.moneda_cuenta || ''} onValueChange={(value) => handleSelectChange('moneda_cuenta', value)}>
                   <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
                   <SelectContent className="bg-[#121212] border-gray-800 text-white">
                     <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
-                    {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
+                    {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key as Moneda} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ))}
@@ -276,7 +235,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
                   <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
                   <SelectContent className="bg-[#121212] border-gray-800 text-white">
                     <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
-                    {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
+                    {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key as TipoCuenta} className="hover:bg-gray-800">{label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ))}
@@ -285,7 +244,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
                   <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
                   <SelectContent className="bg-[#121212] border-gray-800 text-white">
                     <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
-                    {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
+                    {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key as Moneda} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               ))}

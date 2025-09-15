@@ -1,28 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CuentaBancaria, CuentaBancariaInsert, CuentaBancariaUpdate } from '@/types/cuenta-bancaria';
 
-// Definimos un tipo extendido para las consultas con JOIN
-export type CuentaBancariaWithFicha = CuentaBancaria & {
-  ficha_ruc: {
-    id: number;
-    nombre_empresa: string;
-    ruc: string;
-  } | null;
-};
+// El tipo WithFicha ya no es necesario
+export type CuentaBancariaWithFicha = CuentaBancaria;
 
 export class CuentaBancariaService {
-  // Obtener todas las cuentas bancarias con datos de Ficha RUC
-  static async getAll(): Promise<CuentaBancariaWithFicha[]> {
+  // Obtener todas las cuentas bancarias
+  static async getAll(): Promise<CuentaBancaria[]> {
     const { data, error } = await supabase
       .from('cuentas_bancarias')
-      .select(`
-        *,
-        ficha_ruc:ficha_ruc_id (
-          id,
-          nombre_empresa,
-          ruc
-        )
-      `)
+      .select(`*`)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -30,10 +17,10 @@ export class CuentaBancariaService {
   }
 
   // Obtener una cuenta por su ID
-  static async getById(id: string): Promise<CuentaBancariaWithFicha | null> {
+  static async getById(id: string): Promise<CuentaBancaria | null> {
     const { data, error } = await supabase
       .from('cuentas_bancarias')
-      .select(`*, ficha_ruc:ficha_ruc_id (*)`)
+      .select(`*`)
       .eq('id', id)
       .single();
 
@@ -42,10 +29,10 @@ export class CuentaBancariaService {
   }
 
   // Obtener todas las cuentas asociadas a un documento
-  static async getByDocumentoId(documentoId: string): Promise<CuentaBancariaWithFicha[]> {
+  static async getByDocumentoId(documentoId: string): Promise<CuentaBancaria[]> {
     const { data, error } = await supabase
       .from('cuentas_bancarias')
-      .select(`*, ficha_ruc:ficha_ruc_id (*)`)
+      .select(`*`)
       .eq('documento_id', documentoId)
       .order('created_at', { ascending: false });
 
@@ -91,38 +78,37 @@ export class CuentaBancariaService {
     if (error) throw error;
   }
 
-  // Establecer una cuenta como principal para una empresa
-  static async setPrincipal(id: string): Promise<void> {
-    const { data: cuenta, error: fetchError } = await supabase
+  // Obtener estadísticas simplificadas
+  static async getStats() {
+    const { count: totalCount } = await supabase
       .from('cuentas_bancarias')
-      .select('ficha_ruc_id')
-      .eq('id', id)
-      .single();
+      .select('*', { count: 'exact', head: true });
 
-    if (fetchError || !cuenta) throw new Error('Cuenta no encontrada.');
-
-    // Si la cuenta está asociada a una empresa, quitar la marca de principal a las otras
-    if (cuenta.ficha_ruc_id) {
-      await supabase
-        .from('cuentas_bancarias')
-        .update({ es_principal: false })
-        .eq('ficha_ruc_id', cuenta.ficha_ruc_id);
-    }
-
-    // Marcar la cuenta actual como principal
-    await supabase
+    const { count: thisMonthCount } = await supabase
       .from('cuentas_bancarias')
-      .update({ es_principal: true })
-      .eq('id', id);
-  }
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString());
 
-  // Asociar una cuenta con una Ficha RUC
-  static async associateWithFichaRuc(cuentaId: string, fichaRucId: number): Promise<void> {
-    const { error } = await supabase
+    const { data: monedaStats } = await supabase
       .from('cuentas_bancarias')
-      .update({ ficha_ruc_id: fichaRucId })
-      .eq('id', cuentaId);
+      .select('moneda_cuenta, moneda_cuenta_2');
 
-    if (error) throw error;
+    const monedaDistribution: { [key: string]: number } = {};
+    monedaStats?.forEach(item => {
+      if (item.moneda_cuenta) {
+        monedaDistribution[item.moneda_cuenta] = (monedaDistribution[item.moneda_cuenta] || 0) + 1;
+      }
+      if (item.moneda_cuenta_2) {
+        monedaDistribution[item.moneda_cuenta_2] = (monedaDistribution[item.moneda_cuenta_2] || 0) + 1;
+      }
+    });
+
+    return {
+      total: totalCount || 0,
+      thisMonth: thisMonthCount || 0,
+      monedaDistribution,
+      activeCounts: 0, // Campo obsoleto, se mantiene por compatibilidad temporal
+      inactiveCounts: 0 // Campo obsoleto
+    };
   }
 }
