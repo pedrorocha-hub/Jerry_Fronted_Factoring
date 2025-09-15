@@ -147,16 +147,6 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
     );
   };
 
-  // Agrupar cuentas por banco para mejor visualización
-  const cuentasPorBanco = paginatedCuentas.reduce((acc, cuenta) => {
-    const banco = cuenta.nombre_banco || 'Sin banco';
-    if (!acc[banco]) {
-      acc[banco] = [];
-    }
-    acc[banco].push(cuenta);
-    return acc;
-  }, {} as Record<string, CuentaBancariaWithFicha[]>);
-
   return (
     <div className="space-y-4 p-6">
       {/* Filtros */}
@@ -323,26 +313,6 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
           </TableBody>
         </Table>
       </div>
-
-      {/* Información adicional sobre múltiples cuentas */}
-      {Object.keys(cuentasPorBanco).length > 0 && (
-        <div className="bg-[#00FF80]/10 border border-[#00FF80]/20 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-[#00FF80] mb-2">Resumen por Banco:</h4>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
-            {Object.entries(cuentasPorBanco).map(([banco, cuentasBanco]) => (
-              <div key={banco} className="text-gray-300">
-                <span className="font-medium">{banco}:</span>
-                <span className="ml-1">
-                  {cuentasBanco.length} cuenta{cuentasBanco.length !== 1 ? 's' : ''}
-                </span>
-                <div className="text-xs text-gray-400 ml-2">
-                  {cuentasBanco.map(c => c.moneda_cuenta).join(', ')}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Paginación */}
       {totalPages > 1 && (
