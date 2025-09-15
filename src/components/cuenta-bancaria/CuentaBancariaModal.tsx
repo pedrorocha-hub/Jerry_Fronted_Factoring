@@ -1,0 +1,383 @@
+import React, { useState, useEffect } from 'react';
+import { X, Save, Eye, Edit, CreditCard, Building2, DollarSign, Hash } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { CuentaBancariaWithFicha, CuentaBancariaUpdate } from '@/types/cuenta-bancaria';
+import { CuentaBancariaService } from '@/services/cuentaBancariaService';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+
+interface CuentaBancariaModalProps {
+  cuenta: CuentaBancariaWithFicha | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  mode: 'view' | 'edit';
+}
+
+const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
+  cuenta,
+  isOpen,
+  onClose,
+  onSave,
+  mode: initialMode
+}) => {
+  const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
+  const [formData, setFormData] = useState<CuentaBancariaUpdate>({});
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (cuenta) {
+      setFormData({
+        nombre_banco: cuenta.nombre_banco,
+        numero_cuenta: cuenta.numero_cuenta,
+        tipo_cuenta: cuenta.tipo_cuenta,
+        codigo_cci: cuenta.codigo_cci || '',
+        moneda_cuenta: cuenta.moneda_cuenta,
+        titular_cuenta: cuenta.titular_cuenta,
+        estado_cuenta: cuenta.estado_cuenta
+      });
+    }
+    setMode(initialMode);
+  }, [cuenta, initialMode]);
+
+  const handleInputChange = (field: keyof CuentaBancariaUpdate, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!cuenta) return;
+
+    const loadingToast = showLoading('Guardando cambios...');
+    setLoading(true);
+
+    try {
+      await CuentaBancariaService.update(cuenta.id, formData);
+      dismissToast(loadingToast);
+      showSuccess('Cuenta bancaria actualizada exitosamente');
+      onSave();
+      onClose();
+    } catch (error) {
+      dismissToast(loadingToast);
+      showError(`Error actualizando cuenta bancaria: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getEstadoBadge = (estado: string) => {
+    const variants = {
+      'Activa': 'bg-green-100 text-green-800 border-green-200',
+      'Inactiva': 'bg-gray-100 text-gray-800 border-gray-200',
+      'Bloqueada': 'bg-red-100 text-red-800 border-red-200',
+      'Cerrada': 'bg-orange-100 text-orange-800 border-orange-200',
+    };
+
+    return (
+      <Badge className={variants[estado as keyof typeof variants] || variants.Inactiva}>
+        {estado}
+      </Badge>
+    );
+  };
+
+  const getMonedaBadge = (moneda: string) => {
+    const variants = {
+      'PEN': 'bg-blue-100 text-blue-800 border-blue-200',
+      'USD': 'bg-green-100 text-green-800 border-green-200',
+      'EUR': 'bg-purple-100 text-purple-800 border-purple-200',
+    };
+
+    const symbols = {
+      'PEN': 'S/',
+      'USD': '$',
+      'EUR': '€',
+    };
+
+    return (
+      <Badge className={variants[moneda as keyof typeof variants] || variants.PEN}>
+        {symbols[moneda as keyof typeof symbols] || moneda}
+      </Badge>
+    );
+  };
+
+  const getTipoCuentaBadge = (tipo?: string) => {
+    if (!tipo) return null;
+    
+    const variants = {
+      'Corriente': 'bg-blue-50 text-blue-700 border-blue-200',
+      'Ahorros': 'bg-green-50 text-green-700 border-green-200',
+      'Plazo Fijo': 'bg-purple-50 text-purple-700 border-purple-200',
+      'CTS': 'bg-orange-50 text-orange-700 border-orange-200',
+      'Otros': 'bg-gray-50 text-gray-700 border-gray-200',
+    };
+
+    return (
+      <Badge variant="outline" className={variants[tipo as keyof typeof variants] || variants.Otros}>
+        {tipo}
+      </Badge>
+    );
+  };
+
+  if (!cuenta) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <CreditCard className="h-6 w-6 text-blue-600" />
+              <div>
+                <span className="text-xl font-bold">
+                  {mode === 'view' ? 'Ver' : 'Editar'} Cuenta Bancaria
+                </span>
+                <div className="text-sm text-gray-500 font-mono">
+                  {cuenta.numero_cuenta}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              {mode === 'view' ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMode('edit')}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMode('view')}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver
+                </Button>
+              )}
+            </div>
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
+          {/* Información de la Cuenta */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <CreditCard className="h-5 w-5 mr-2 text-blue-600" />
+              Información de la Cuenta
+            </h3>
+
+            <div>
+              <Label htmlFor="nombre_banco">Nombre del Banco *</Label>
+              {mode === 'view' ? (
+                <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                  <span className="font-medium">{cuenta.nombre_banco}</span>
+                </div>
+              ) : (
+                <Input
+                  id="nombre_banco"
+                  value={formData.nombre_banco || ''}
+                  onChange={(e) => handleInputChange('nombre_banco', e.target.value)}
+                  placeholder="Banco de Crédito del Perú, Interbank, etc."
+                />
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="numero_cuenta">Número de Cuenta *</Label>
+              {mode === 'view' ? (
+                <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                  <span className="font-mono font-medium">{cuenta.numero_cuenta}</span>
+                </div>
+              ) : (
+                <Input
+                  id="numero_cuenta"
+                  value={formData.numero_cuenta || ''}
+                  onChange={(e) => handleInputChange('numero_cuenta', e.target.value)}
+                  placeholder="Número de cuenta bancaria"
+                />
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="tipo_cuenta">Tipo de Cuenta</Label>
+              {mode === 'view' ? (
+                <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                  {getTipoCuentaBadge(cuenta.tipo_cuenta)}
+                </div>
+              ) : (
+                <Select
+                  value={formData.tipo_cuenta || ''}
+                  onValueChange={(value) => handleInputChange('tipo_cuenta', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo de cuenta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Corriente">Corriente</SelectItem>
+                    <SelectItem value="Ahorros">Ahorros</SelectItem>
+                    <SelectItem value="Plazo Fijo">Plazo Fijo</SelectItem>
+                    <SelectItem value="CTS">CTS</SelectItem>
+                    <SelectItem value="Otros">Otros</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="codigo_cci">Código CCI</Label>
+              {mode === 'view' ? (
+                <div className="mt-1 p-3 bg-gray-50 rounded-md flex items-center">
+                  <Hash className="h-4 w-4 mr-2 text-gray-400" />
+                  <span className="font-mono">{cuenta.codigo_cci || 'No especificado'}</span>
+                </div>
+              ) : (
+                <Input
+                  id="codigo_cci"
+                  value={formData.codigo_cci || ''}
+                  onChange={(e) => handleInputChange('codigo_cci', e.target.value)}
+                  placeholder="Código de Cuenta Interbancaria"
+                  maxLength={20}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Información Adicional */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+              Información Adicional
+            </h3>
+
+            <div>
+              <Label htmlFor="moneda_cuenta">Moneda de la Cuenta *</Label>
+              {mode === 'view' ? (
+                <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                  
+                  {getMonedaBadge(cuenta.moneda_cuenta)}
+                </div>
+              ) : (
+                <Select
+                  value={formData.moneda_cuenta || ''}
+                  onValueChange={(value) => handleInputChange('moneda_cuenta', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar moneda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PEN">Soles (PEN)</SelectItem>
+                    <SelectItem value="USD">Dólares (USD)</SelectItem>
+                    <SelectItem value="EUR">Euros (EUR)</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="titular_cuenta">Titular de la Cuenta *</Label>
+              {mode === 'view' ? (
+                <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                  <span className="font-medium">{cuenta.titular_cuenta}</span>
+                </div>
+              ) : (
+                <Input
+                  id="titular_cuenta"
+                  value={formData.titular_cuenta || ''}
+                  onChange={(e) => handleInputChange('titular_cuenta', e.target.value)}
+                  placeholder="Nombre del titular de la cuenta"
+                />
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="estado_cuenta">Estado de la Cuenta *</Label>
+              {mode === 'view' ? (
+                <div className="mt-1 p-3 bg-gray-50 rounded-md">
+                  {getEstadoBadge(cuenta.estado_cuenta)}
+                </div>
+              ) : (
+                <Select
+                  value={formData.estado_cuenta || ''}
+                  onValueChange={(value) => handleInputChange('estado_cuenta', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Activa">Activa</SelectItem>
+                    <SelectItem value="Inactiva">Inactiva</SelectItem>
+                    <SelectItem value="Bloqueada">Bloqueada</SelectItem>
+                    <SelectItem value="Cerrada">Cerrada</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Empresa Asociada */}
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                <Building2 className="h-4 w-4 mr-2 text-gray-400" />
+                Empresa Asociada
+              </h4>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="font-medium text-blue-900">
+                  {cuenta.ficha_ruc?.nombre_empresa || 'N/A'}
+                </div>
+                <div className="text-sm text-blue-700 font-mono">
+                  RUC: {cuenta.ficha_ruc?.ruc || 'N/A'}
+                </div>
+              </div>
+            </div>
+
+            {/* Información de Auditoría */}
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Información de Registro</h4>
+              <div className="text-xs text-gray-500 space-y-1">
+                <div>
+                  <strong>Creado:</strong> {new Date(cuenta.created_at).toLocaleString('es-ES')}
+                </div>
+                <div>
+                  <strong>Actualizado:</strong> {new Date(cuenta.updated_at).toLocaleString('es-ES')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Botones de Acción */}
+        <div className="flex justify-end space-x-3 pt-4 border-t">
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          {mode === 'edit' && (
+            <Button onClick={handleSave} disabled={loading}>
+              <Save className="h-4 w-4 mr-2" />
+              {loading ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default CuentaBancariaModal;

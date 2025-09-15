@@ -1,0 +1,150 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 0%; /* Black */
+    --foreground: 0 0% 100%; /* White */
+    --card: 0 0% 7%; /* #121212 */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 142 100% 50%; /* #00FF80 */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 64%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 31%; /* Gray-800 */
+    --input: 0 0% 31%;
+    --ring: 142 100% 50%;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-black text-white;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  html, body, #root {
+    @apply min-h-screen bg-black;
+  }
+
+  /* Ensure all containers have dark background */
+  .bg-background {
+    @apply bg-black;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-900;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+
+  /* Ensure modals and overlays are dark */
+  .fixed.inset-0 {
+    @apply bg-black/80;
+  }
+
+  /* Custom animations */
+  @keyframes pulse-green {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  .animate-pulse-green {
+    animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Ensure all text inputs are dark */
+  input, textarea, select {
+    @apply bg-gray-900 border-gray-700 text-white;
+  }
+
+  input::placeholder, textarea::placeholder {
+    @apply text-gray-500;
+  }
+
+  /* Ensure buttons maintain proper styling */
+  button {
+    @apply transition-all duration-200;
+  }
+
+  /* Ensure tables are dark */
+  table {
+    @apply bg-transparent;
+  }
+
+  th, td {
+    @apply border-gray-800;
+  }
+
+  /* Ensure cards are consistently dark */
+  .card {
+    @apply bg-[#121212] border-gray-800;
+  }
+
+  /* Ensure dropdowns and selects are dark */
+  [role="menu"], [role="listbox"] {
+    @apply bg-[#121212] border-gray-800;
+  }
+
+  /* Ensure alerts maintain proper styling */
+  .alert {
+    @apply border-gray-800;
+  }
+
+  /* Loading spinner styling */
+  .loading-spinner {
+    border-color: #00FF80;
+    border-top-color: transparent;
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #00FF80 0%, #00CC66 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, #00FF80 0%, #00CC66 100%) 1;
+  }
+
+  .shadow-green {
+    box-shadow: 0 0 20px rgba(0, 255, 128, 0.1);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 255, 128, 0.3);
+  }
+}
