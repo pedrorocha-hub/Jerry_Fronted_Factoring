@@ -53,6 +53,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
         codigo_cuenta_interbancaria_2: cuenta.codigo_cuenta_interbancaria_2 || '',
         tipo_cuenta_2: cuenta.tipo_cuenta_2,
         moneda_cuenta_2: cuenta.moneda_cuenta_2,
+        ficha_ruc_id: cuenta.ficha_ruc_id,
       });
     }
     setMode(initialMode);
@@ -175,6 +176,18 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
                 <Input id="titular_cuenta" value={formData.titular_cuenta || ''} onChange={(e) => handleInputChange('titular_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
               ))}
             </div>
+            {cuenta.ficha_ruc && (
+              <div className="pt-4 border-t border-gray-700">
+                <h4 className="text-sm font-medium text-gray-300 mb-2 flex items-center">
+                  <Building2 className="h-4 w-4 mr-2" />
+                  Empresa Asociada
+                </h4>
+                <div className="bg-[#00FF80]/10 p-3 rounded-lg border border-[#00FF80]/20">
+                  <div className="font-medium text-[#00FF80]">{cuenta.ficha_ruc.nombre_empresa}</div>
+                  <div className="text-sm text-gray-300 font-mono">RUC: {cuenta.ficha_ruc.ruc}</div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

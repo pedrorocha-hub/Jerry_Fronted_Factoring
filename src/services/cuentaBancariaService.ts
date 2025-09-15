@@ -1,15 +1,21 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CuentaBancaria, CuentaBancariaInsert, CuentaBancariaUpdate } from '@/types/cuenta-bancaria';
 
-// El tipo WithFicha ya no es necesario
 export type CuentaBancariaWithFicha = CuentaBancaria;
 
 export class CuentaBancariaService {
   // Obtener todas las cuentas bancarias
-  static async getAll(): Promise<CuentaBancaria[]> {
+  static async getAll(): Promise<CuentaBancariaWithFicha[]> {
     const { data, error } = await supabase
       .from('cuentas_bancarias')
-      .select(`*`)
+      .select(`
+        *,
+        ficha_ruc:ficha_ruc_id (
+          id,
+          ruc,
+          nombre_empresa
+        )
+      `)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -17,10 +23,17 @@ export class CuentaBancariaService {
   }
 
   // Obtener una cuenta por su ID
-  static async getById(id: string): Promise<CuentaBancaria | null> {
+  static async getById(id: string): Promise<CuentaBancariaWithFicha | null> {
     const { data, error } = await supabase
       .from('cuentas_bancarias')
-      .select(`*`)
+      .select(`
+        *,
+        ficha_ruc:ficha_ruc_id (
+          id,
+          ruc,
+          nombre_empresa
+        )
+      `)
       .eq('id', id)
       .single();
 
@@ -29,10 +42,17 @@ export class CuentaBancariaService {
   }
 
   // Obtener todas las cuentas asociadas a un documento
-  static async getByDocumentoId(documentoId: string): Promise<CuentaBancaria[]> {
+  static async getByDocumentoId(documentoId: string): Promise<CuentaBancariaWithFicha[]> {
     const { data, error } = await supabase
       .from('cuentas_bancarias')
-      .select(`*`)
+      .select(`
+        *,
+        ficha_ruc:ficha_ruc_id (
+          id,
+          ruc,
+          nombre_empresa
+        )
+      `)
       .eq('documento_id', documentoId)
       .order('created_at', { ascending: false });
 

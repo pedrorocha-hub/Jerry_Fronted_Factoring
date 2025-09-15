@@ -62,7 +62,9 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
       (cuenta.banco?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       (cuenta.numero_cuenta?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       (cuenta.titular_cuenta?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (cuenta.codigo_cuenta_interbancaria && cuenta.codigo_cuenta_interbancaria.toLowerCase().includes(searchTerm.toLowerCase()));
+      (cuenta.codigo_cuenta_interbancaria && cuenta.codigo_cuenta_interbancaria.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (cuenta.ficha_ruc?.nombre_empresa && cuenta.ficha_ruc.nombre_empresa.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (cuenta.ficha_ruc?.ruc && cuenta.ficha_ruc.ruc.includes(searchTerm));
     
     const matchesMoneda = monedaFilter === 'all' || cuenta.moneda_cuenta === monedaFilter;
     
@@ -110,7 +112,7 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Buscar por banco, número de cuenta o titular..."
+            placeholder="Buscar por banco, cuenta, titular o empresa..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
@@ -141,13 +143,14 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
               <TableHead className="text-gray-300">Número de Cuenta</TableHead>
               <TableHead className="text-gray-300">CCI</TableHead>
               <TableHead className="text-gray-300">Titular</TableHead>
+              <TableHead className="text-gray-300">Empresa</TableHead>
               <TableHead className="text-right text-gray-300">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedCuentas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-400">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-400">
                   <CreditCard className="h-12 w-12 text-gray-600 mx-auto mb-4" />
                   <p>No se encontraron cuentas bancarias</p>
                   <p className="text-sm">Las cuentas procesadas aparecerán aquí</p>
@@ -192,6 +195,16 @@ const CuentaBancariaTable: React.FC<CuentaBancariaTableProps> = ({
                     <div className="text-sm max-w-xs truncate text-white">
                       {cuenta.titular_cuenta}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {cuenta.ficha_ruc ? (
+                      <div>
+                        <div className="font-medium text-sm text-white">{cuenta.ficha_ruc.nombre_empresa}</div>
+                        <div className="text-xs text-gray-500 font-mono">RUC: {cuenta.ficha_ruc.ruc}</div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 text-sm">No asociada</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
