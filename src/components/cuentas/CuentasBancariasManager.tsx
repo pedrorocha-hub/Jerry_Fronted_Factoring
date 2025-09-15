@@ -72,7 +72,7 @@ interface CuentasBancariasManagerProps {
 interface FichaRucOption {
   id: number; // Corregido: INTEGER
   ruc: string;
-  razon_social: string;
+  nombre_empresa: string; // Cambiado de razon_social a nombre_empresa
 }
 
 const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({ 
@@ -126,7 +126,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
       setFichasRuc(data.map(ficha => ({
         id: ficha.id,
         ruc: ficha.ruc,
-        razon_social: ficha.razon_social
+        nombre_empresa: ficha.nombre_empresa // Cambiado de razon_social a nombre_empresa
       })));
     } catch (error) {
       console.error('Error cargando fichas RUC:', error);
@@ -294,7 +294,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
   const filteredFichasRuc = fichasRuc.filter(ficha => 
     ficha.ruc.includes(searchRuc) || 
-    ficha.razon_social.toLowerCase().includes(searchRuc.toLowerCase())
+    ficha.nombre_empresa.toLowerCase().includes(searchRuc.toLowerCase())
   );
 
   if (loading) {
@@ -344,7 +344,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                   <Label className="text-gray-300">Empresa (Ficha RUC)</Label>
                   <div className="space-y-2">
                     <Input
-                      placeholder="Buscar por RUC o razón social..."
+                      placeholder="Buscar por RUC o nombre de empresa..."
                       value={searchRuc}
                       onChange={(e) => setSearchRuc(e.target.value)}
                       className="bg-gray-900/50 border-gray-700 text-white"
@@ -358,7 +358,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                         if (fichaRucId) {
                           const selectedFicha = fichasRuc.find(f => f.id === fichaRucId);
                           if (selectedFicha && !formData.titular_cuenta) {
-                            setFormData(prev => ({ ...prev, titular_cuenta: selectedFicha.razon_social }));
+                            setFormData(prev => ({ ...prev, titular_cuenta: selectedFicha.nombre_empresa }));
                           }
                         }
                       }}
@@ -371,7 +371,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                         {filteredFichasRuc.map((ficha) => (
                           <SelectItem key={ficha.id} value={ficha.id.toString()} className="text-white hover:bg-gray-800">
                             <div className="flex flex-col">
-                              <span className="font-medium">{ficha.razon_social}</span>
+                              <span className="font-medium">{ficha.nombre_empresa}</span>
                               <span className="text-xs text-gray-400">RUC: {ficha.ruc}</span>
                             </div>
                           </SelectItem>
@@ -565,7 +565,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <Building2 className="h-5 w-5 text-[#00FF80]" />
-                        <h4 className="font-semibold text-white">{cuenta.banco || 'Banco no especificado'}</h4>
+                        <h4 className="font-semibold text-white">{cuenta.nombre_banco || 'Banco no especificado'}</h4>
                         {cuenta.es_principal && (
                           <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
                             <Star className="h-3 w-3 mr-1" />
@@ -573,7 +573,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                           </Badge>
                         )}
                       </div>
-                      {getEstadoBadge(cuenta.estado)}
+                      {getEstadoBadge(cuenta.estado_cuenta)}
                     </div>
 
                     {/* Información de la empresa (Ficha RUC) */}
@@ -597,21 +597,20 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                             <span className="ml-2 text-white">{cuenta.ficha_ruc.estado_contribuyente}</span>
                           </div>
                           <div className="col-span-2">
-                            <span className="text-gray-400">Razón Social:</span>
-                            <p className="mt-1 text-white font-medium">{cuenta.ficha_ruc.razon_social}</p>
+                            <span className="text-gray-400">Empresa:</span>
+                            <p className="mt-1 text-white font-medium">{cuenta.ficha_ruc.nombre_empresa}</p>
                           </div>
-                          {cuenta.ficha_ruc.nombre_comercial && (
+                          {cuenta.ficha_ruc.actividad_empresa && (
                             <div className="col-span-2">
-                              <span className="text-gray-400">Nombre Comercial:</span>
-                              <p className="mt-1 text-white">{cuenta.ficha_ruc.nombre_comercial}</p>
+                              <span className="text-gray-400">Actividad:</span>
+                              <p className="mt-1 text-white text-sm">{cuenta.ficha_ruc.actividad_empresa}</p>
                             </div>
                           )}
-                          {(cuenta.ficha_ruc.distrito || cuenta.ficha_ruc.provincia) && (
+                          {cuenta.ficha_ruc.domicilio_fiscal && (
                             <div className="col-span-2 flex items-center space-x-1">
                               <MapPin className="h-3 w-3 text-gray-400" />
                               <span className="text-gray-400 text-xs">
-                                {[cuenta.ficha_ruc.distrito, cuenta.ficha_ruc.provincia, cuenta.ficha_ruc.departamento_ubigeo]
-                                  .filter(Boolean).join(', ')}
+                                {cuenta.ficha_ruc.domicilio_fiscal}
                               </span>
                             </div>
                           )}
@@ -631,7 +630,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                                 {fichasRuc.slice(0, 5).map((ficha) => (
                                   <SelectItem key={ficha.id} value={ficha.id.toString()} className="text-white hover:bg-gray-800">
                                     <div className="flex flex-col">
-                                      <span className="text-xs font-medium">{ficha.razon_social}</span>
+                                      <span className="text-xs font-medium">{ficha.nombre_empresa}</span>
                                       <span className="text-xs text-gray-400">RUC: {ficha.ruc}</span>
                                     </div>
                                   </SelectItem>
@@ -651,7 +650,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                       </div>
                       <div>
                         <span className="text-gray-400">Moneda:</span>
-                        <div className="ml-2 inline-block">{getMonedaBadge(cuenta.moneda)}</div>
+                        <div className="ml-2 inline-block">{getMonedaBadge(cuenta.moneda_cuenta)}</div>
                       </div>
                     </div>
 
@@ -673,12 +672,12 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                         </Button>
                       </div>
                       
-                      {cuenta.numero_cci && (
+                      {cuenta.codigo_cuenta_interbancaria && (
                         <div className="flex items-center space-x-2">
                           <Hash className="h-4 w-4 text-gray-400" />
                           <span className="text-gray-400 text-sm">CCI:</span>
                           <code className="bg-gray-900/50 px-2 py-1 rounded text-[#00FF80] text-sm font-mono">
-                            {maskNumber(cuenta.numero_cci, showNumbers[cuenta.id])}
+                            {maskNumber(cuenta.codigo_cuenta_interbancaria, showNumbers[cuenta.id])}
                           </code>
                         </div>
                       )}

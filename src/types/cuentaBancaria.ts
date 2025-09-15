@@ -18,28 +18,10 @@ export interface CuentaBancaria {
   ficha_ruc?: {
     id: number;
     ruc: string;
-    razon_social: string; // Nombre correcto de la columna
+    nombre_empresa: string; // Nombre correcto de la columna
     estado_contribuyente?: string;
-    condicion_domicilio?: string;
-    ubigeo?: string;
-    tipo_via?: string;
-    nombre_via?: string;
-    codigo_zona?: string;
-    tipo_zona?: string;
-    numero?: string;
-    interior?: string;
-    lote?: string;
-    departamento?: string;
-    manzana?: string;
-    kilometro?: string;
-    distrito?: string;
-    provincia?: string;
-    departamento_ubicacion?: string;
-    actividad_economica?: string;
-    ciiu?: string;
-    tipo_facturacion?: string;
-    tipo_contabilidad?: string;
-    actividad_comercio_exterior?: string;
+    domicilio_fiscal?: string;
+    actividad_empresa?: string;
   };
 }
 

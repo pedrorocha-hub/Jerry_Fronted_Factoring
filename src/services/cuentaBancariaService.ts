@@ -19,14 +19,10 @@ export class CuentaBancariaService {
         ficha_ruc:ficha_ruc_id (
           id,
           ruc,
-          razon_social,
+          nombre_empresa,
           estado_contribuyente,
-          condicion_domicilio,
-          distrito,
-          provincia,
-          departamento_ubicacion,
-          actividad_economica,
-          ciiu
+          domicilio_fiscal,
+          actividad_empresa
         )
       `)
       .eq('documento_id', documentoId)
@@ -55,14 +51,10 @@ export class CuentaBancariaService {
         ficha_ruc:ficha_ruc_id (
           id,
           ruc,
-          razon_social,
+          nombre_empresa,
           estado_contribuyente,
-          condicion_domicilio,
-          distrito,
-          provincia,
-          departamento_ubicacion,
-          actividad_economica,
-          ciiu
+          domicilio_fiscal,
+          actividad_empresa
         )
       `)
       .single();
@@ -96,14 +88,10 @@ export class CuentaBancariaService {
         ficha_ruc:ficha_ruc_id (
           id,
           ruc,
-          razon_social,
+          nombre_empresa,
           estado_contribuyente,
-          condicion_domicilio,
-          distrito,
-          provincia,
-          departamento_ubicacion,
-          actividad_economica,
-          ciiu
+          domicilio_fiscal,
+          actividad_empresa
         )
       `)
       .single();
@@ -139,14 +127,10 @@ export class CuentaBancariaService {
         ficha_ruc:ficha_ruc_id (
           id,
           ruc,
-          razon_social,
+          nombre_empresa,
           estado_contribuyente,
-          condicion_domicilio,
-          distrito,
-          provincia,
-          departamento_ubicacion,
-          actividad_economica,
-          ciiu
+          domicilio_fiscal,
+          actividad_empresa
         )
       `)
       .eq('id', id)
@@ -196,14 +180,10 @@ export class CuentaBancariaService {
         ficha_ruc:ficha_ruc_id (
           id,
           ruc,
-          razon_social,
+          nombre_empresa,
           estado_contribuyente,
-          condicion_domicilio,
-          distrito,
-          provincia,
-          departamento_ubicacion,
-          actividad_economica,
-          ciiu
+          domicilio_fiscal,
+          actividad_empresa
         )
       `)
       .order('created_at', { ascending: false });
@@ -224,14 +204,10 @@ export class CuentaBancariaService {
         ficha_ruc:ficha_ruc_id!inner (
           id,
           ruc,
-          razon_social,
+          nombre_empresa,
           estado_contribuyente,
-          condicion_domicilio,
-          distrito,
-          provincia,
-          departamento_ubicacion,
-          actividad_economica,
-          ciiu
+          domicilio_fiscal,
+          actividad_empresa
         )
       `)
       .eq('ficha_ruc.ruc', rucNumber)
@@ -251,10 +227,10 @@ export class CuentaBancariaService {
   }
 
   // Buscar Ficha RUC por número para asociar
-  static async findFichaRucByNumber(rucNumber: string): Promise<{ id: number; razon_social: string } | null> {
+  static async findFichaRucByNumber(rucNumber: string): Promise<{ id: number; nombre_empresa: string } | null> {
     const { data, error } = await supabase
       .from('ficha_ruc')
-      .select('id, ruc, razon_social')
+      .select('id, ruc, nombre_empresa')
       .eq('ruc', rucNumber)
       .single();
 
@@ -349,7 +325,7 @@ export class CuentaBancariaService {
     tipo_cuenta?: TipoCuenta;
     estado_cuenta?: EstadoCuenta;
     ruc?: string;
-    razon_social?: string;
+    nombre_empresa?: string;
   }): Promise<CuentaBancaria[]> {
     let query = supabase
       .from('cuentas_bancarias')
@@ -358,14 +334,10 @@ export class CuentaBancariaService {
         ficha_ruc:ficha_ruc_id (
           id,
           ruc,
-          razon_social,
+          nombre_empresa,
           estado_contribuyente,
-          condicion_domicilio,
-          distrito,
-          provincia,
-          departamento_ubicacion,
-          actividad_economica,
-          ciiu
+          domicilio_fiscal,
+          actividad_empresa
         )
       `);
 
@@ -384,8 +356,8 @@ export class CuentaBancariaService {
     if (filters.ruc) {
       query = query.eq('ficha_ruc.ruc', filters.ruc);
     }
-    if (filters.razon_social) {
-      query = query.ilike('ficha_ruc.razon_social', `%${filters.razon_social}%`);
+    if (filters.nombre_empresa) {
+      query = query.ilike('ficha_ruc.nombre_empresa', `%${filters.nombre_empresa}%`);
     }
 
     const { data, error } = await query
@@ -400,11 +372,11 @@ export class CuentaBancariaService {
   }
 
   // Obtener todas las opciones de Ficha RUC para selección
-  static async getFichaRucOptions(): Promise<Array<{ id: number; ruc: string; razon_social: string }>> {
+  static async getFichaRucOptions(): Promise<Array<{ id: number; ruc: string; nombre_empresa: string }>> {
     const { data, error } = await supabase
       .from('ficha_ruc')
-      .select('id, ruc, razon_social')
-      .order('razon_social');
+      .select('id, ruc, nombre_empresa')
+      .order('nombre_empresa');
 
     if (error) {
       throw new Error(`Error obteniendo opciones de Ficha RUC: ${error.message}`);
@@ -454,7 +426,7 @@ export class CuentaBancariaService {
       // Buscar una Ficha RUC existente para asociar
       const { data: fichaRucData } = await supabase
         .from('ficha_ruc')
-        .select('id, ruc, razon_social')
+        .select('id, ruc, nombre_empresa')
         .limit(1)
         .single();
 
@@ -468,7 +440,7 @@ export class CuentaBancariaService {
           tipo_cuenta: 'corriente',
           codigo_cuenta_interbancaria: '00219112345678901234', // CCI
           moneda_cuenta: 'PEN',
-          titular_cuenta: fichaRucData?.razon_social || 'EMPRESA DE PRUEBA S.A.C.',
+          titular_cuenta: fichaRucData?.nombre_empresa || 'EMPRESA DE PRUEBA S.A.C.',
           estado_cuenta: 'activa',
           es_principal: true,
           notas: 'Cuenta principal para operaciones'
@@ -481,7 +453,7 @@ export class CuentaBancariaService {
           tipo_cuenta: 'ahorros',
           codigo_cuenta_interbancaria: '00389830012345678901', // CCI
           moneda_cuenta: 'USD',
-          titular_cuenta: fichaRucData?.razon_social || 'EMPRESA DE PRUEBA S.A.C.',
+          titular_cuenta: fichaRucData?.nombre_empresa || 'EMPRESA DE PRUEBA S.A.C.',
           estado_cuenta: 'activa',
           es_principal: false,
           notas: 'Cuenta en dólares para exportaciones'
