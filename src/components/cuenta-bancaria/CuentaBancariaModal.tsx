@@ -63,7 +63,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
   };
 
   const handleSelectChange = (field: keyof CuentaBancariaUpdate, value: string) => {
-    const finalValue = value === '' ? undefined : value;
+    const finalValue = value === '--NONE--' ? undefined : value;
     setFormData(prev => ({
       ...prev,
       [field]: finalValue
@@ -194,7 +194,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
               <Select value={formData.tipo_cuenta || ''} onValueChange={(value) => handleSelectChange('tipo_cuenta', value)}>
                 <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar tipo" /></SelectTrigger>
                 <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                  <SelectItem value="" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
+                  <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
                   {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -218,7 +218,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
               <Select value={formData.moneda_cuenta || ''} onValueChange={(value) => handleSelectChange('moneda_cuenta', value)}>
                 <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
                 <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                  <SelectItem value="" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
+                  <SelectItem value="--NONE--" className="text-gray-400 italic">-- Sin especificar --</SelectItem>
                   {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{symbol} - {label}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -227,7 +227,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
               <Input id="titular_cuenta" value={formData.titular_cuenta || ''} onChange={(e) => handleInputChange('titular_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />
             ))}
             {renderField('Estado *', 'estado_cuenta', mode === 'view' ? renderViewMode(getEstadoBadge(cuenta.estado_cuenta)) : (
-              <Select value={formData.estado_cuenta || ''} onValueChange={(value) => handleSelectChange('estado_cuenta', value)}>
+              <Select value={formData.estado_cuenta || ''} onValueChange={(value) => handleInputChange('estado_cuenta', value)}>
                 <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
                 <SelectContent className="bg-[#121212] border-gray-800 text-white">
                   {Object.entries(ESTADO_CUENTA_LABELS).map(([key, label]) => <SelectItem key={key} value={key} className="hover:bg-gray-800">{label}</SelectItem>)}

@@ -331,7 +331,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                     <Select 
                       value={formData.ficha_ruc_id?.toString() || ''} 
                       onValueChange={(value) => {
-                        const fichaRucId = value ? parseInt(value) : undefined;
+                        const fichaRucId = value === '--NONE--' ? undefined : (value ? parseInt(value) : undefined);
                         setFormData(prev => ({ ...prev, ficha_ruc_id: fichaRucId }));
                         if (fichaRucId) {
                           const selectedFicha = fichasRuc.find(f => f.id === fichaRucId);
@@ -345,7 +345,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                         <SelectValue placeholder="Seleccionar empresa (opcional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#121212] border-gray-800 max-h-60">
-                        <SelectItem value="" className="text-white hover:bg-gray-800">Sin asociar</SelectItem>
+                        <SelectItem value="--NONE--" className="text-white hover:bg-gray-800">Sin asociar</SelectItem>
                         {filteredFichasRuc.map((ficha) => (
                           <SelectItem key={ficha.id} value={ficha.id.toString()} className="text-white hover:bg-gray-800">
                             <div className="flex flex-col">
@@ -374,13 +374,16 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                     <Label className="text-gray-300">Tipo de Cuenta</Label>
                     <Select 
                       value={formData.tipo_cuenta || ''} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_cuenta: value as TipoCuenta || undefined }))}
+                      onValueChange={(value) => {
+                        const finalValue = value === '--NONE--' ? undefined : value;
+                        setFormData(prev => ({ ...prev, tipo_cuenta: finalValue as TipoCuenta | undefined }))
+                      }}
                     >
                       <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
                         <SelectValue placeholder="Seleccionar tipo (opcional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#121212] border-gray-800">
-                        <SelectItem value="" className="text-white hover:bg-gray-800">Sin especificar</SelectItem>
+                        <SelectItem value="--NONE--" className="text-white hover:bg-gray-800">Sin especificar</SelectItem>
                         {Object.entries(TIPO_CUENTA_LABELS).map(([key, label]) => (
                           <SelectItem key={key} value={key} className="text-white hover:bg-gray-800">
                             {label}
@@ -396,13 +399,16 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                     <Label className="text-gray-300">Moneda</Label>
                     <Select 
                       value={formData.moneda_cuenta || ''} 
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, moneda_cuenta: value as Moneda || undefined }))}
+                      onValueChange={(value) => {
+                        const finalValue = value === '--NONE--' ? undefined : value;
+                        setFormData(prev => ({ ...prev, moneda_cuenta: finalValue as Moneda | undefined }))
+                      }}
                     >
                       <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
                         <SelectValue placeholder="Seleccionar moneda (opcional)" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#121212] border-gray-800">
-                        <SelectItem value="" className="text-white hover:bg-gray-800">Sin especificar</SelectItem>
+                        <SelectItem value="--NONE--" className="text-white hover:bg-gray-800">Sin especificar</SelectItem>
                         {Object.entries(MONEDA_LABELS).map(([key, { label, symbol }]) => (
                           <SelectItem key={key} value={key} className="text-white hover:bg-gray-800">
                             {symbol} {label}
