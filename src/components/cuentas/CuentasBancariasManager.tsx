@@ -69,9 +69,9 @@ interface CuentasBancariasManagerProps {
 }
 
 interface FichaRucOption {
-  id: number; // Corregido: INTEGER
+  id: number;
   ruc: string;
-  nombre_empresa: string; // Cambiado de razon_social a nombre_empresa
+  nombre_empresa: string;
 }
 
 const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({ 
@@ -86,7 +86,6 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
   const [fichasRuc, setFichasRuc] = useState<FichaRucOption[]>([]);
   const [searchRuc, setSearchRuc] = useState('');
 
-  // Form state - ahora con ficha_ruc_id como number
   const [formData, setFormData] = useState<CuentaBancariaInsert>({
     documento_id: documentoId,
     ficha_ruc_id: undefined,
@@ -94,7 +93,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
     tipo_cuenta: undefined,
     moneda_cuenta: undefined,
     numero_cuenta: '',
-    codigo_cci: '',
+    codigo_cuenta_interbancaria: '',
     titular_cuenta: '',
     estado_cuenta: 'Activa',
     es_principal: false,
@@ -125,7 +124,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
       setFichasRuc(data.map(ficha => ({
         id: ficha.id,
         ruc: ficha.ruc,
-        nombre_empresa: ficha.nombre_empresa // Cambiado de razon_social a nombre_empresa
+        nombre_empresa: ficha.nombre_empresa
       })));
     } catch (error) {
       console.error('Error cargando fichas RUC:', error);
@@ -136,12 +135,11 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
     e.preventDefault();
     
     try {
-      // Limpiar campos vacíos para enviar undefined en lugar de strings vacíos
       const cleanFormData = {
         ...formData,
         ficha_ruc_id: formData.ficha_ruc_id || undefined,
         nombre_banco: formData.nombre_banco?.trim() || undefined,
-        codigo_cci: formData.codigo_cci?.trim() || undefined,
+        codigo_cuenta_interbancaria: formData.codigo_cuenta_interbancaria?.trim() || undefined,
         titular_cuenta: formData.titular_cuenta?.trim() || undefined,
         notas: formData.notas?.trim() || undefined,
       };
@@ -171,7 +169,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
       tipo_cuenta: cuenta.tipo_cuenta,
       moneda_cuenta: cuenta.moneda_cuenta,
       numero_cuenta: cuenta.numero_cuenta,
-      codigo_cci: cuenta.codigo_cci || '',
+      codigo_cuenta_interbancaria: cuenta.codigo_cuenta_interbancaria || '',
       titular_cuenta: cuenta.titular_cuenta || '',
       estado_cuenta: cuenta.estado_cuenta,
       es_principal: cuenta.es_principal,
@@ -204,7 +202,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
   const handleAssociateRuc = async (cuentaId: string, fichaRucId: string) => {
     try {
-      const fichaRucIdNumber = parseInt(fichaRucId); // Convertir a number
+      const fichaRucIdNumber = parseInt(fichaRucId);
       await CuentaBancariaService.associateWithFichaRuc(cuentaId, fichaRucIdNumber);
       showSuccess('Cuenta asociada con ficha RUC');
       await loadCuentas();
@@ -222,7 +220,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
       tipo_cuenta: undefined,
       moneda_cuenta: undefined,
       numero_cuenta: '',
-      codigo_cci: '',
+      codigo_cuenta_interbancaria: '',
       titular_cuenta: '',
       estado_cuenta: 'Activa',
       es_principal: false,
@@ -259,26 +257,8 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
     );
   };
 
-  const getTipoCuentaBadge = (tipo?: TipoCuenta) => {
-    if (!tipo) return <Badge className="bg-gray-800 text-gray-300 border border-gray-700">No especificado</Badge>;
-    
-    const variants = {
-      'Corriente': 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-      'Ahorros': 'bg-green-500/10 text-green-400 border border-green-500/20',
-      'Plazo Fijo': 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-      'CTS': 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
-      'Otros': 'bg-gray-800 text-gray-300 border border-gray-700',
-    };
-
-    return (
-      <Badge className={variants[tipo]}>
-        {TIPO_CUENTA_LABELS[tipo]}
-      </Badge>
-    );
-  };
-
   const getMonedaBadge = (moneda?: Moneda) => {
-    if (!moneda) return <Badge className="bg-gray-800 text-gray-300 border border-gray-700">No especificada</Badge>;
+    if (!moneda) return null;
     
     const variants = {
       'PEN': 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
@@ -288,7 +268,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
     return (
       <Badge className={variants[moneda]}>
-        {MONEDA_LABELS[moneda].symbol} {MONEDA_LABELS[moneda].label}
+        {MONEDA_LABELS[moneda].symbol}
       </Badge>
     );
   };
@@ -312,7 +292,6 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Building2 className="h-5 w-5 text-[#00FF80]" />
@@ -340,7 +319,6 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
               </DialogHeader>
               
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Selección de Ficha RUC */}
                 <div>
                   <Label className="text-gray-300">Empresa (Ficha RUC)</Label>
                   <div className="space-y-2">
@@ -355,7 +333,6 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                       onValueChange={(value) => {
                         const fichaRucId = value ? parseInt(value) : undefined;
                         setFormData(prev => ({ ...prev, ficha_ruc_id: fichaRucId }));
-                        // Auto-completar titular si se selecciona una ficha RUC
                         if (fichaRucId) {
                           const selectedFicha = fichasRuc.find(f => f.id === fichaRucId);
                           if (selectedFicha && !formData.titular_cuenta) {
@@ -470,8 +447,8 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                   <div>
                     <Label className="text-gray-300">Código CCI</Label>
                     <Input
-                      value={formData.codigo_cci}
-                      onChange={(e) => setFormData(prev => ({ ...prev, codigo_cci: e.target.value }))}
+                      value={formData.codigo_cuenta_interbancaria}
+                      onChange={(e) => setFormData(prev => ({ ...prev, codigo_cuenta_interbancaria: e.target.value }))}
                       placeholder="Ej: 00211012345678901234"
                       className="bg-gray-900/50 border-gray-700 text-white"
                     />
@@ -534,7 +511,6 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
         )}
       </div>
 
-      {/* Lista de cuentas */}
       {cuentas.length === 0 ? (
         <Card className="bg-[#121212] border border-gray-800">
           <CardContent className="p-6">
@@ -551,12 +527,20 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
             <Card key={cuenta.id} className="bg-[#121212] border border-gray-800 hover:border-[#00FF80]/30 transition-all">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1 space-y-3">
-                    {/* Header con banco y badges */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <Building2 className="h-5 w-5 text-[#00FF80]" />
-                        <h4 className="font-semibold text-white">{cuenta.nombre_banco || 'Banco no especificado'}</h4>
+                  <div className="flex-1 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center space-x-3">
+                          <Building2 className="h-5 w-5 text-[#00FF80]" />
+                          <h4 className="font-semibold text-white">{cuenta.nombre_banco || 'Banco no especificado'}</h4>
+                          {getMonedaBadge(cuenta.moneda_cuenta)}
+                        </div>
+                        <p className="text-sm text-gray-400 ml-8 mt-1">
+                          {cuenta.tipo_cuenta ? TIPO_CUENTA_LABELS[cuenta.tipo_cuenta] : 'Tipo de cuenta no especificado'}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end space-y-2">
+                        {getEstadoBadge(cuenta.estado_cuenta)}
                         {cuenta.es_principal && (
                           <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
                             <Star className="h-3 w-3 mr-1" />
@@ -564,55 +548,31 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                           </Badge>
                         )}
                       </div>
-                      {getEstadoBadge(cuenta.estado_cuenta)}
                     </div>
 
-                    {/* Información de la empresa (Ficha RUC) */}
                     {cuenta.ficha_ruc ? (
                       <div className="bg-gray-900/30 p-3 rounded-lg border border-gray-700">
                         <div className="flex items-center space-x-2 mb-2">
                           <Building className="h-4 w-4 text-[#00FF80]" />
                           <span className="text-sm font-medium text-[#00FF80]">Empresa Asociada</span>
-                          <Badge className="bg-[#00FF80]/10 text-[#00FF80] border border-[#00FF80]/20">
-                            <Link2 className="h-3 w-3 mr-1" />
-                            Vinculada
-                          </Badge>
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div>
                             <span className="text-gray-400">RUC:</span>
                             <span className="ml-2 text-white font-mono">{cuenta.ficha_ruc.ruc}</span>
                           </div>
-                          <div>
-                            <span className="text-gray-400">Estado:</span>
-                            <span className="ml-2 text-white">{cuenta.ficha_ruc.estado_contribuyente}</span>
-                          </div>
                           <div className="col-span-2">
                             <span className="text-gray-400">Empresa:</span>
                             <p className="mt-1 text-white font-medium">{cuenta.ficha_ruc.nombre_empresa}</p>
                           </div>
-                          {cuenta.ficha_ruc.actividad_empresa && (
-                            <div className="col-span-2">
-                              <span className="text-gray-400">Actividad:</span>
-                              <p className="mt-1 text-white text-sm">{cuenta.ficha_ruc.actividad_empresa}</p>
-                            </div>
-                          )}
-                          {cuenta.ficha_ruc.domicilio_fiscal && (
-                            <div className="col-span-2 flex items-center space-x-1">
-                              <MapPin className="h-3 w-3 text-gray-400" />
-                              <span className="text-gray-400 text-xs">
-                                {cuenta.ficha_ruc.domicilio_fiscal}
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-gray-900/20 p-3 rounded-lg border border-gray-800 border-dashed">
-                        <div className="flex items-center space-x-2 text-gray-400">
-                          <Unlink className="h-4 w-4" />
-                          <span className="text-sm">Sin empresa asociada</span>
-                          {!readonly && (
+                      !readonly && (
+                        <div className="bg-gray-900/20 p-3 rounded-lg border border-gray-800 border-dashed">
+                          <div className="flex items-center space-x-2 text-gray-400">
+                            <Unlink className="h-4 w-4" />
+                            <span className="text-sm">Sin empresa asociada</span>
                             <Select onValueChange={(value) => handleAssociateRuc(cuenta.id, value)}>
                               <SelectTrigger className="ml-auto w-40 h-6 text-xs bg-gray-800 border-gray-700">
                                 <SelectValue placeholder="Asociar..." />
@@ -628,29 +588,16 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                                 ))}
                               </SelectContent>
                             </Select>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      )
                     )}
 
-                    {/* Información de la cuenta */}
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-400">Tipo:</span>
-                        <div className="ml-2 inline-block">{getTipoCuentaBadge(cuenta.tipo_cuenta)}</div>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Moneda:</span>
-                        <div className="ml-2 inline-block">{getMonedaBadge(cuenta.moneda_cuenta)}</div>
-                      </div>
-                    </div>
-
-                    {/* Números de cuenta */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 bg-gray-900/30 p-3 rounded-lg border border-gray-700">
                       <div className="flex items-center space-x-2">
                         <CreditCard className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-400 text-sm">Cuenta:</span>
-                        <code className="bg-gray-900/50 px-2 py-1 rounded text-[#00FF80] text-sm font-mono">
+                        <span className="text-gray-400 text-sm w-12">Cuenta:</span>
+                        <code className="flex-1 bg-transparent text-[#00FF80] text-sm font-mono">
                           {maskNumber(cuenta.numero_cuenta, showNumbers[cuenta.id])}
                         </code>
                         <Button
@@ -663,37 +610,25 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
                         </Button>
                       </div>
                       
-                      {cuenta.codigo_cci && (
+                      {cuenta.codigo_cuenta_interbancaria && (
                         <div className="flex items-center space-x-2">
                           <Hash className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-400 text-sm">CCI:</span>
-                          <code className="bg-gray-900/50 px-2 py-1 rounded text-[#00FF80] text-sm font-mono">
-                            {maskNumber(cuenta.codigo_cci, showNumbers[cuenta.id])}
+                          <span className="text-gray-400 text-sm w-12">CCI:</span>
+                          <code className="flex-1 bg-transparent text-[#00FF80] text-sm font-mono">
+                            {maskNumber(cuenta.codigo_cuenta_interbancaria, showNumbers[cuenta.id])}
                           </code>
                         </div>
                       )}
                     </div>
 
-                    {/* Titular */}
                     {cuenta.titular_cuenta && (
                       <div className="text-sm">
                         <span className="text-gray-400">Titular:</span>
                         <span className="ml-2 text-white">{cuenta.titular_cuenta}</span>
                       </div>
                     )}
-
-                    {/* Notas */}
-                    {cuenta.notas && (
-                      <div className="text-sm">
-                        <span className="text-gray-400">Notas:</span>
-                        <p className="mt-1 text-gray-300 bg-gray-900/30 p-2 rounded text-xs">
-                          {cuenta.notas}
-                        </p>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Acciones */}
                   {!readonly && (
                     <div className="flex flex-col space-y-2 ml-4">
                       {!cuenta.es_principal && (
