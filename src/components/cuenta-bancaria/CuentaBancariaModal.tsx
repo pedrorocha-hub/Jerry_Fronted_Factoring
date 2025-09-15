@@ -63,7 +63,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
   };
 
   const handleSelectChange = (field: keyof CuentaBancariaUpdate, value: string) => {
-    const finalValue = (value === '--NONE--' || value === '') ? undefined : value;
+    const finalValue = (value === '--NONE--' || value === '') ? null : value;
     setFormData(prev => ({
       ...prev,
       [field]: finalValue
