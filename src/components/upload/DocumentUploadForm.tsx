@@ -416,19 +416,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
             </span>
           </div>
         </div>
-
-        {/* Ayuda para selección de tipo */}
-        <div className="bg-gray-900/30 border border-gray-700 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-300 mb-2">💡 Ayuda para seleccionar el tipo correcto:</h4>
-          <div className="text-xs text-gray-400 space-y-1">
-            <div><strong>Ficha RUC:</strong> Para documentos oficiales de SUNAT con datos de la empresa</div>
-            <div><strong>Cuenta Bancaria:</strong> Para archivos como "Cta. Cte.pdf", estados de cuenta, información bancaria</div>
-            <div><strong>Representante Legal:</strong> Para poderes notariales, documentos de representación</div>
-            <div><strong>Vigencia de Poderes:</strong> Para documentos de vigencia de poderes notariales</div>
-            <div><strong>Factura a Negociar:</strong> Para facturas pendientes de cobro</div>
-            <div><strong>Reporte Tributario:</strong> Para estados financieros, balances, reportes contables</div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
