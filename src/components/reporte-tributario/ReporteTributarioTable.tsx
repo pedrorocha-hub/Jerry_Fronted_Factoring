@@ -56,7 +56,7 @@ const ReporteTributarioTable: React.FC<ReporteTributarioTableProps> = ({
 
   // Función helper para obtener el año del reporte
   const getYear = (reporte: ReporteTributarioWithFicha) => {
-    return reporte.anio_reporte || reporte.ano_reporte || reporte.year || null;
+    return reporte.año_reporte || reporte.anio_reporte || reporte.ano_reporte || reporte.year || null;
   };
 
   // Función helper para obtener ingresos

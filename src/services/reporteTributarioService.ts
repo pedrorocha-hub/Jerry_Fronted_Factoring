@@ -63,8 +63,8 @@ export class ReporteTributarioService {
 
     // Ordenar reportes y extraer años/último reporte
     Object.values(grouped).forEach(empresa => {
-      empresa.reportes.sort((a, b) => (b.anio_reporte || 0) - (a.anio_reporte || 0));
-      empresa.años = empresa.reportes.map(r => r.anio_reporte).sort((a, b) => (b || 0) - (a || 0));
+      empresa.reportes.sort((a, b) => (b.año_reporte || 0) - (a.año_reporte || 0));
+      empresa.años = empresa.reportes.map(r => r.año_reporte).sort((a, b) => (b || 0) - (a || 0));
       if (empresa.reportes[0]?.created_at) {
         empresa.ultimoReporte = new Date(empresa.reportes[0].created_at).toLocaleDateString('es-ES');
       }

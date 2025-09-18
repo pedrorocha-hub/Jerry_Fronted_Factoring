@@ -1,8 +1,8 @@
 export interface ReporteTributario {
   id: number;
   ruc?: string;
-  // Hacer todos los campos opcionales hasta que sepamos la estructura real
-  anio_reporte?: number;
+  // Corregido para usar 'año_reporte' como en la base de datos
+  año_reporte?: number;
   ano_reporte?: number; // Por si usa 'ano' en lugar de 'anio'
   year?: number; // Por si usa 'year'
   ingresos_netos?: number;

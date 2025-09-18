@@ -36,7 +36,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
   useEffect(() => {
     if (reporte) {
       setFormData({
-        anio_reporte: reporte.anio_reporte,
+        año_reporte: reporte.año_reporte,
         ingresos_netos: reporte.ingresos_netos || 0,
         costo_ventas: reporte.costo_ventas || 0,
         gastos_operativos: reporte.gastos_operativos || 0,
@@ -143,7 +143,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
                   {mode === 'view' ? 'Ver' : 'Editar'} Reporte Tributario
                 </span>
                 <div className="text-sm text-gray-500">
-                  {reporte.ficha_ruc?.nombre_empresa} - {reporte.anio_reporte}
+                  {reporte.ficha_ruc?.nombre_empresa} - {reporte.año_reporte}
                 </div>
               </div>
             </div>
@@ -192,18 +192,18 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="anio_reporte">Año del Reporte</Label>
+              <Label htmlFor="año_reporte">Año del Reporte</Label>
               {mode === 'view' ? (
                 <div className="mt-1 p-3 bg-gray-50 rounded-md flex items-center">
                   <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="font-medium">{reporte.anio_reporte}</span>
+                  <span className="font-medium">{reporte.año_reporte}</span>
                 </div>
               ) : (
                 <Input
-                  id="anio_reporte"
+                  id="año_reporte"
                   type="number"
-                  value={formData.anio_reporte || ''}
-                  onChange={(e) => handleInputChange('anio_reporte', parseInt(e.target.value) || 0)}
+                  value={formData.año_reporte || ''}
+                  onChange={(e) => handleInputChange('año_reporte', parseInt(e.target.value) || 0)}
                   placeholder="2024"
                 />
               )}
