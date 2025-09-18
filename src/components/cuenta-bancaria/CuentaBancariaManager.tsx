@@ -118,11 +118,16 @@ const CuentaBancariaManager: React.FC<CuentaBancariaManagerProps> = ({ ruc }) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const dataToSubmit = { ...formData, documento_id: 'N/A' }; // Placeholder
       if (editingCuenta) {
-        await CuentaBancariaService.update(editingCuenta.id, dataToSubmit);
+        // For updates, we only send the fields from the form.
+        // We exclude 'ruc' as it's an identifier and shouldn't be changed here.
+        const { ruc, ...updateData } = formData;
+        await CuentaBancariaService.update(editingCuenta.id, updateData);
         showSuccess('Cuenta actualizada');
       } else {
+        // For creation, we send all form data.
+        // 'documento_id' is nullable, so we can set it to null as a default.
+        const dataToSubmit = { ...formData, documento_id: null };
         await CuentaBancariaService.create(dataToSubmit);
         showSuccess('Cuenta creada');
       }
