@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User, Users } from 'lucide-react';
+import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User, Users, CreditCard } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import { FichaRuc, FichaRucUpdate } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import AccionistaManager from './AccionistaManager';
+import CuentaBancariaManager from '../cuenta-bancaria/CuentaBancariaManager';
 
 interface FichaRucModalProps {
   ficha: FichaRuc | null;
@@ -149,7 +150,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="general" className="w-full pt-4">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-900/50">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-900/50">
             <TabsTrigger value="general" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
               <Building2 className="h-4 w-4 mr-2" />
               Información General
@@ -157,6 +158,10 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
             <TabsTrigger value="accionistas" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
               <Users className="h-4 w-4 mr-2" />
               Accionistas
+            </TabsTrigger>
+            <TabsTrigger value="cuentas" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Cuentas Bancarias
             </TabsTrigger>
           </TabsList>
           
@@ -332,6 +337,10 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
           <TabsContent value="accionistas" className="py-6">
             <AccionistaManager ruc={ficha.ruc} />
+          </TabsContent>
+
+          <TabsContent value="cuentas" className="py-6">
+            <CuentaBancariaManager ruc={ficha.ruc} />
           </TabsContent>
         </Tabs>
 

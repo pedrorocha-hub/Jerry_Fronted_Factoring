@@ -41,6 +41,18 @@ export class CuentaBancariaService {
     return data;
   }
 
+  // Obtener todas las cuentas asociadas a un RUC
+  static async getByRuc(ruc: string): Promise<CuentaBancariaWithFicha[]> {
+    const { data, error } = await supabase
+      .from('cuentas_bancarias')
+      .select(`*`)
+      .eq('ruc', ruc)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   // Obtener todas las cuentas asociadas a un documento
   static async getByDocumentoId(documentoId: string): Promise<CuentaBancariaWithFicha[]> {
     const { data, error } = await supabase
@@ -111,15 +123,12 @@ export class CuentaBancariaService {
 
     const { data: monedaStats } = await supabase
       .from('cuentas_bancarias')
-      .select('moneda_cuenta, moneda_cuenta_2');
+      .select('moneda_cuenta');
 
     const monedaDistribution: { [key: string]: number } = {};
     monedaStats?.forEach(item => {
       if (item.moneda_cuenta) {
         monedaDistribution[item.moneda_cuenta] = (monedaDistribution[item.moneda_cuenta] || 0) + 1;
-      }
-      if (item.moneda_cuenta_2) {
-        monedaDistribution[item.moneda_cuenta_2] = (monedaDistribution[item.moneda_cuenta_2] || 0) + 1;
       }
     });
 
@@ -127,8 +136,8 @@ export class CuentaBancariaService {
       total: totalCount || 0,
       thisMonth: thisMonthCount || 0,
       monedaDistribution,
-      activeCounts: 0, // Campo obsoleto, se mantiene por compatibilidad temporal
-      inactiveCounts: 0 // Campo obsoleto
+      activeCounts: 0,
+      inactiveCounts: 0
     };
   }
 }

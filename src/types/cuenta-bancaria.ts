@@ -10,11 +10,6 @@ export interface CuentaBancaria {
   titular_cuenta?: string;
   created_at: string;
   updated_at: string;
-  
-  numero_cuenta_2?: string;
-  codigo_cuenta_interbancaria_2?: string;
-  tipo_cuenta_2?: TipoCuenta;
-  moneda_cuenta_2?: Moneda;
 
   ficha_ruc?: {
     id: number;
@@ -35,10 +30,6 @@ export interface CuentaBancariaInsert {
   codigo_cuenta_interbancaria?: string;
   moneda_cuenta?: Moneda;
   titular_cuenta?: string;
-  numero_cuenta_2?: string;
-  codigo_cuenta_interbancaria_2?: string;
-  tipo_cuenta_2?: TipoCuenta;
-  moneda_cuenta_2?: Moneda;
 }
 
 export interface CuentaBancariaUpdate {
@@ -49,10 +40,6 @@ export interface CuentaBancariaUpdate {
   codigo_cuenta_interbancaria?: string;
   moneda_cuenta?: Moneda;
   titular_cuenta?: string;
-  numero_cuenta_2?: string;
-  codigo_cuenta_interbancaria_2?: string;
-  tipo_cuenta_2?: TipoCuenta;
-  moneda_cuenta_2?: Moneda;
 }
 
 export const TIPO_CUENTA_LABELS: Record<TipoCuenta, string> = {
