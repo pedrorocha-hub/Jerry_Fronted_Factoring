@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User, Users, CreditCard } from 'lucide-react';
+import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User, Users, Briefcase } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import { FichaRuc, FichaRucUpdate } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import AccionistaManager from './AccionistaManager';
-import CuentaBancariaManager from '../cuenta-bancaria/CuentaBancariaManager';
+import GerenciaManager from '../gerencia/GerenciaManager';
 
 interface FichaRucModalProps {
   ficha: FichaRuc | null;
@@ -159,9 +159,9 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
               <Users className="h-4 w-4 mr-2" />
               Accionistas
             </TabsTrigger>
-            <TabsTrigger value="cuentas" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Cuentas Bancarias
+            <TabsTrigger value="gerencia" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
+              <Briefcase className="h-4 w-4 mr-2" />
+              Gerencia
             </TabsTrigger>
           </TabsList>
           
@@ -339,8 +339,8 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
             <AccionistaManager ruc={ficha.ruc} />
           </TabsContent>
 
-          <TabsContent value="cuentas" className="py-6">
-            <CuentaBancariaManager ruc={ficha.ruc} />
+          <TabsContent value="gerencia" className="py-6">
+            <GerenciaManager ruc={ficha.ruc} />
           </TabsContent>
         </Tabs>
 
