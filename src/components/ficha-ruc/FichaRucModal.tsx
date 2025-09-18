@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User } from 'lucide-react';
+import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,9 +18,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FichaRuc, FichaRucUpdate } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import AccionistaManager from './AccionistaManager';
 
 interface FichaRucModalProps {
   ficha: FichaRuc | null;
@@ -104,7 +106,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#121212] border border-gray-800 text-white">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-[#121212] border border-gray-800 text-white">
         <DialogHeader className="border-b border-gray-800 pb-4">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -146,173 +148,192 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-6">
-          {/* Información Básica */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center text-white">
-              <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-              Información Básica
-            </h3>
+        <Tabs defaultValue="general" className="w-full pt-4">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-900/50">
+            <TabsTrigger value="general" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
+              <Building2 className="h-4 w-4 mr-2" />
+              Información General
+            </TabsTrigger>
+            <TabsTrigger value="accionistas" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
+              <Users className="h-4 w-4 mr-2" />
+              Accionistas
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="general" className="py-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Información Básica */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center text-white">
+                  <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                  Información Básica
+                </h3>
 
-            <div>
-              <Label htmlFor="nombre_empresa" className="text-gray-300">Nombre de la Empresa *</Label>
-              {mode === 'view' ? (
-                <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
-                  <span className="font-medium text-white">{ficha.nombre_empresa}</span>
-                </div>
-              ) : (
-                <Input
-                  id="nombre_empresa"
-                  value={formData.nombre_empresa || ''}
-                  onChange={(e) => handleInputChange('nombre_empresa', e.target.value)}
-                  placeholder="Nombre completo de la empresa"
-                  className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
-                />
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="ruc" className="text-gray-300">RUC *</Label>
-              {mode === 'view' ? (
-                <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
-                  <span className="font-mono font-medium text-white">{ficha.ruc}</span>
-                </div>
-              ) : (
-                <Input
-                  id="ruc"
-                  value={formData.ruc || ''}
-                  onChange={(e) => handleInputChange('ruc', e.target.value)}
-                  placeholder="20123456789"
-                  maxLength={11}
-                  className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50 font-mono"
-                />
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="actividad_empresa" className="text-gray-300">Actividad Empresarial</Label>
-              {mode === 'view' ? (
-                <div className="mt-1 p-3 bg-gray-900/50 rounded-md min-h-[80px] border border-gray-800">
-                  <span className="text-white">{ficha.actividad_empresa || 'No especificada'}</span>
-                </div>
-              ) : (
-                <Textarea
-                  id="actividad_empresa"
-                  value={formData.actividad_empresa || ''}
-                  onChange={(e) => handleInputChange('actividad_empresa', e.target.value)}
-                  placeholder="Descripción de la actividad económica principal"
-                  rows={3}
-                  className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
-                />
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="estado_contribuyente" className="text-gray-300">Estado del Contribuyente</Label>
-              {mode === 'view' ? (
-                <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
-                  {getEstadoBadge(ficha.estado_contribuyente)}
-                </div>
-              ) : (
-                <Select
-                  value={formData.estado_contribuyente || ''}
-                  onValueChange={(value) => handleInputChange('estado_contribuyente', value)}
-                >
-                  <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white focus:border-[#00FF80]/50">
-                    <SelectValue placeholder="Seleccionar estado" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#121212] border-gray-800">
-                    <SelectItem value="Activo" className="text-white hover:bg-gray-800">Activo</SelectItem>
-                    <SelectItem value="Inactivo" className="text-white hover:bg-gray-800">Inactivo</SelectItem>
-                    <SelectItem value="Suspendido" className="text-white hover:bg-gray-800">Suspendido</SelectItem>
-                    <SelectItem value="Baja de Oficio" className="text-white hover:bg-gray-800">Baja de Oficio</SelectItem>
-                    <SelectItem value="Baja Provisional" className="text-white hover:bg-gray-800">Baja Provisional</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          </div>
-
-          {/* Información Adicional */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center text-white">
-              <MapPin className="h-5 w-5 mr-2 text-[#00FF80]" />
-              Información Adicional
-            </h3>
-
-            <div>
-              <Label htmlFor="fecha_inicio_actividades" className="text-gray-300">Fecha de Inicio de Actividades</Label>
-              {mode === 'view' ? (
-                <div className="mt-1 p-3 bg-gray-900/50 rounded-md flex items-center border border-gray-800">
-                  <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="text-white">
-                    {ficha.fecha_inicio_actividades 
-                      ? new Date(ficha.fecha_inicio_actividades).toLocaleDateString('es-ES')
-                      : 'No especificada'
-                    }
-                  </span>
-                </div>
-              ) : (
-                <Input
-                  id="fecha_inicio_actividades"
-                  type="date"
-                  value={formData.fecha_inicio_actividades || ''}
-                  onChange={(e) => handleInputChange('fecha_inicio_actividades', e.target.value)}
-                  className="bg-gray-900/50 border-gray-700 text-white focus:border-[#00FF80]/50"
-                />
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="domicilio_fiscal" className="text-gray-300">Domicilio Fiscal</Label>
-              {mode === 'view' ? (
-                <div className="mt-1 p-3 bg-gray-900/50 rounded-md min-h-[80px] border border-gray-800">
-                  <span className="text-white">{ficha.domicilio_fiscal || 'No especificado'}</span>
-                </div>
-              ) : (
-                <Textarea
-                  id="domicilio_fiscal"
-                  value={formData.domicilio_fiscal || ''}
-                  onChange={(e) => handleInputChange('domicilio_fiscal', e.target.value)}
-                  placeholder="Dirección completa del domicilio fiscal"
-                  rows={3}
-                  className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
-                />
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="nombre_representante_legal" className="text-gray-300">Representante Legal</Label>
-              {mode === 'view' ? (
-                <div className="mt-1 p-3 bg-gray-900/50 rounded-md flex items-center border border-gray-800">
-                  <User className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="text-white">{ficha.nombre_representante_legal || 'No especificado'}</span>
-                </div>
-              ) : (
-                <Input
-                  id="nombre_representante_legal"
-                  value={formData.nombre_representante_legal || ''}
-                  onChange={(e) => handleInputChange('nombre_representante_legal', e.target.value)}
-                  placeholder="Nombre completo del representante legal"
-                  className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
-                />
-              )}
-            </div>
-
-            {/* Información de Auditoría */}
-            <div className="pt-4 border-t border-gray-800">
-              <h4 className="text-sm font-medium text-gray-300 mb-2">Información de Registro</h4>
-              <div className="text-xs text-gray-500 space-y-1">
                 <div>
-                  <strong>Creado:</strong> {new Date(ficha.created_at).toLocaleString('es-ES')}
+                  <Label htmlFor="nombre_empresa" className="text-gray-300">Nombre de la Empresa *</Label>
+                  {mode === 'view' ? (
+                    <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
+                      <span className="font-medium text-white">{ficha.nombre_empresa}</span>
+                    </div>
+                  ) : (
+                    <Input
+                      id="nombre_empresa"
+                      value={formData.nombre_empresa || ''}
+                      onChange={(e) => handleInputChange('nombre_empresa', e.target.value)}
+                      placeholder="Nombre completo de la empresa"
+                      className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
+                    />
+                  )}
                 </div>
+
                 <div>
-                  <strong>Actualizado:</strong> {new Date(ficha.updated_at).toLocaleString('es-ES')}
+                  <Label htmlFor="ruc" className="text-gray-300">RUC *</Label>
+                  {mode === 'view' ? (
+                    <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
+                      <span className="font-mono font-medium text-white">{ficha.ruc}</span>
+                    </div>
+                  ) : (
+                    <Input
+                      id="ruc"
+                      value={formData.ruc || ''}
+                      onChange={(e) => handleInputChange('ruc', e.target.value)}
+                      placeholder="20123456789"
+                      maxLength={11}
+                      className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50 font-mono"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="actividad_empresa" className="text-gray-300">Actividad Empresarial</Label>
+                  {mode === 'view' ? (
+                    <div className="mt-1 p-3 bg-gray-900/50 rounded-md min-h-[80px] border border-gray-800">
+                      <span className="text-white">{ficha.actividad_empresa || 'No especificada'}</span>
+                    </div>
+                  ) : (
+                    <Textarea
+                      id="actividad_empresa"
+                      value={formData.actividad_empresa || ''}
+                      onChange={(e) => handleInputChange('actividad_empresa', e.target.value)}
+                      placeholder="Descripción de la actividad económica principal"
+                      rows={3}
+                      className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="estado_contribuyente" className="text-gray-300">Estado del Contribuyente</Label>
+                  {mode === 'view' ? (
+                    <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
+                      {getEstadoBadge(ficha.estado_contribuyente)}
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.estado_contribuyente || ''}
+                      onValueChange={(value) => handleInputChange('estado_contribuyente', value)}
+                    >
+                      <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white focus:border-[#00FF80]/50">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#121212] border-gray-800">
+                        <SelectItem value="Activo" className="text-white hover:bg-gray-800">Activo</SelectItem>
+                        <SelectItem value="Inactivo" className="text-white hover:bg-gray-800">Inactivo</SelectItem>
+                        <SelectItem value="Suspendido" className="text-white hover:bg-gray-800">Suspendido</SelectItem>
+                        <SelectItem value="Baja de Oficio" className="text-white hover:bg-gray-800">Baja de Oficio</SelectItem>
+                        <SelectItem value="Baja Provisional" className="text-white hover:bg-gray-800">Baja Provisional</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </div>
+
+              {/* Información Adicional */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold flex items-center text-white">
+                  <MapPin className="h-5 w-5 mr-2 text-[#00FF80]" />
+                  Información Adicional
+                </h3>
+
+                <div>
+                  <Label htmlFor="fecha_inicio_actividades" className="text-gray-300">Fecha de Inicio de Actividades</Label>
+                  {mode === 'view' ? (
+                    <div className="mt-1 p-3 bg-gray-900/50 rounded-md flex items-center border border-gray-800">
+                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                      <span className="text-white">
+                        {ficha.fecha_inicio_actividades 
+                          ? new Date(ficha.fecha_inicio_actividades).toLocaleDateString('es-ES')
+                          : 'No especificada'
+                        }
+                      </span>
+                    </div>
+                  ) : (
+                    <Input
+                      id="fecha_inicio_actividades"
+                      type="date"
+                      value={formData.fecha_inicio_actividades || ''}
+                      onChange={(e) => handleInputChange('fecha_inicio_actividades', e.target.value)}
+                      className="bg-gray-900/50 border-gray-700 text-white focus:border-[#00FF80]/50"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="domicilio_fiscal" className="text-gray-300">Domicilio Fiscal</Label>
+                  {mode === 'view' ? (
+                    <div className="mt-1 p-3 bg-gray-900/50 rounded-md min-h-[80px] border border-gray-800">
+                      <span className="text-white">{ficha.domicilio_fiscal || 'No especificado'}</span>
+                    </div>
+                  ) : (
+                    <Textarea
+                      id="domicilio_fiscal"
+                      value={formData.domicilio_fiscal || ''}
+                      onChange={(e) => handleInputChange('domicilio_fiscal', e.target.value)}
+                      placeholder="Dirección completa del domicilio fiscal"
+                      rows={3}
+                      className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="nombre_representante_legal" className="text-gray-300">Representante Legal</Label>
+                  {mode === 'view' ? (
+                    <div className="mt-1 p-3 bg-gray-900/50 rounded-md flex items-center border border-gray-800">
+                      <User className="h-4 w-4 mr-2 text-gray-400" />
+                      <span className="text-white">{ficha.nombre_representante_legal || 'No especificado'}</span>
+                    </div>
+                  ) : (
+                    <Input
+                      id="nombre_representante_legal"
+                      value={formData.nombre_representante_legal || ''}
+                      onChange={(e) => handleInputChange('nombre_representante_legal', e.target.value)}
+                      placeholder="Nombre completo del representante legal"
+                      className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
+                    />
+                  )}
+                </div>
+
+                {/* Información de Auditoría */}
+                <div className="pt-4 border-t border-gray-800">
+                  <h4 className="text-sm font-medium text-gray-300 mb-2">Información de Registro</h4>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <div>
+                      <strong>Creado:</strong> {new Date(ficha.created_at).toLocaleString('es-ES')}
+                    </div>
+                    <div>
+                      <strong>Actualizado:</strong> {new Date(ficha.updated_at).toLocaleString('es-ES')}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="accionistas" className="py-6">
+            <AccionistaManager ruc={ficha.ruc} />
+          </TabsContent>
+        </Tabs>
 
         {/* Botones de Acción */}
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-800">
