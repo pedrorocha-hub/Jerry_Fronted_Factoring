@@ -1,6 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ReporteTributario, ReporteTributarioInsert, ReporteTributarioUpdate, ReporteTributarioWithFicha } from '@/types/reporte-tributario';
 
+export interface ReporteTributarioPorEmpresa {
+  ruc: string;
+  nombre_empresa: string;
+  ficha_ruc_id: number;
+  reportes: ReporteTributarioWithFicha[];
+  años: (number | undefined)[];
+  ultimoReporte: string;
+}
+
 export class ReporteTributarioService {
   // Obtener todos los reportes tributarios
   static async getAll(): Promise<ReporteTributarioWithFicha[]> {
@@ -27,6 +36,41 @@ export class ReporteTributarioService {
       console.error('Error in ReporteTributarioService.getAll:', error);
       throw error;
     }
+  }
+
+  // NUEVA FUNCIÓN: Obtener todos los reportes agrupados por empresa
+  static async getAllGroupedByEmpresa(): Promise<ReporteTributarioPorEmpresa[]> {
+    const reportes = await this.getAll();
+    
+    const grouped = reportes.reduce((acc, reporte) => {
+      const ruc = reporte.ruc;
+      if (!ruc || !reporte.ficha_ruc) return acc;
+
+      if (!acc[ruc]) {
+        acc[ruc] = {
+          ruc: ruc,
+          nombre_empresa: reporte.ficha_ruc.nombre_empresa,
+          ficha_ruc_id: reporte.ficha_ruc.id,
+          reportes: [],
+          años: [],
+          ultimoReporte: 'N/A'
+        };
+      }
+      
+      acc[ruc].reportes.push(reporte);
+      return acc;
+    }, {} as Record<string, ReporteTributarioPorEmpresa>);
+
+    // Ordenar reportes y extraer años/último reporte
+    Object.values(grouped).forEach(empresa => {
+      empresa.reportes.sort((a, b) => (b.anio_reporte || 0) - (a.anio_reporte || 0));
+      empresa.años = empresa.reportes.map(r => r.anio_reporte).sort((a, b) => (b || 0) - (a || 0));
+      if (empresa.reportes[0]?.created_at) {
+        empresa.ultimoReporte = new Date(empresa.reportes[0].created_at).toLocaleDateString('es-ES');
+      }
+    });
+
+    return Object.values(grouped).sort((a, b) => a.nombre_empresa.localeCompare(b.nombre_empresa));
   }
 
   // Obtener reporte tributario por ID
