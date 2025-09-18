@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Building2, CreditCard, Hash } from 'lucide-react';
+import { Plus, Edit, Trash2, Building2, CreditCard, Hash, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -39,6 +39,7 @@ import {
 } from '@/types/cuenta-bancaria';
 import { CuentaBancariaService } from '@/services/cuentaBancariaService';
 import { showSuccess, showError } from '@/utils/toast';
+import { Badge } from '@/components/ui/badge';
 
 interface CuentaBancariaManagerProps {
   ruc: string;
@@ -49,6 +50,7 @@ const CuentaBancariaManager: React.FC<CuentaBancariaManagerProps> = ({ ruc }) =>
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCuenta, setEditingCuenta] = useState<CuentaBancaria | null>(null);
+  const [showNumbers, setShowNumbers] = useState<Record<string, boolean>>({});
   const [formData, setFormData] = useState<Omit<CuentaBancariaInsert, 'documento_id'>>({
     ruc,
     banco: '',
@@ -116,7 +118,7 @@ const CuentaBancariaManager: React.FC<CuentaBancariaManagerProps> = ({ ruc }) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const dataToSubmit = { ...formData, documento_id: cuentas[0]?.documento_id || 'N/A' }; // Placeholder for documento_id
+      const dataToSubmit = { ...formData, documento_id: 'N/A' }; // Placeholder
       if (editingCuenta) {
         await CuentaBancariaService.update(editingCuenta.id, dataToSubmit);
         showSuccess('Cuenta actualizada');
@@ -131,8 +133,26 @@ const CuentaBancariaManager: React.FC<CuentaBancariaManagerProps> = ({ ruc }) =>
     }
   };
 
+  const toggleShowNumber = (cuentaId: string) => {
+    setShowNumbers(prev => ({ ...prev, [cuentaId]: !prev[cuentaId] }));
+  };
+
+  const maskNumber = (number: string, show: boolean) => {
+    if (show || !number) return number;
+    return number.replace(/\d(?=\d{4})/g, '*');
+  };
+
+  const groupedCuentas = cuentas.reduce((acc, cuenta) => {
+    const bankName = cuenta.banco || 'Sin Banco Especificado';
+    if (!acc[bankName]) {
+      acc[bankName] = [];
+    }
+    acc[bankName].push(cuenta);
+    return acc;
+  }, {} as Record<string, CuentaBancaria[]>);
+
   if (loading) {
-    return <div className="text-center py-8">Cargando cuentas...</div>;
+    return <div className="text-center py-8 text-gray-400">Cargando cuentas...</div>;
   }
 
   return (
@@ -151,9 +171,7 @@ const CuentaBancariaManager: React.FC<CuentaBancariaManagerProps> = ({ ruc }) =>
           </DialogTrigger>
           <DialogContent className="bg-[#121212] border border-gray-800 max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white">
-                {editingCuenta ? 'Editar Cuenta' : 'Nueva Cuenta'}
-              </DialogTitle>
+              <DialogTitle className="text-white">{editingCuenta ? 'Editar Cuenta' : 'Nueva Cuenta'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Form fields here */}
@@ -205,47 +223,73 @@ const CuentaBancariaManager: React.FC<CuentaBancariaManagerProps> = ({ ruc }) =>
           </DialogContent>
         </Dialog>
       </div>
-      <Card className="bg-[#121212] border border-gray-800">
-        <CardContent className="p-0">
-          {/* Table of accounts */}
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-800 hover:bg-gray-900/50">
-                <TableHead className="text-gray-300">Banco</TableHead>
-                <TableHead className="text-gray-300">Número Cuenta</TableHead>
-                <TableHead className="text-gray-300">Moneda</TableHead>
-                <TableHead className="text-right text-gray-300">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {cuentas.length === 0 ? (
-                <TableRow><TableCell colSpan={4} className="text-center py-8 text-gray-400">No hay cuentas registradas.</TableCell></TableRow>
-              ) : (
-                cuentas.map(c => (
-                  <TableRow key={c.id} className="border-gray-800">
-                    <TableCell className="text-white">{c.banco}</TableCell>
-                    <TableCell className="font-mono text-white">{c.numero_cuenta}</TableCell>
-                    <TableCell className="text-white">{c.moneda_cuenta}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(c)} className="text-gray-400 hover:text-[#00FF80]"><Edit className="h-4 w-4" /></Button>
+
+      {Object.keys(groupedCuentas).length === 0 ? (
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardContent className="text-center py-12 text-gray-400">
+            <Building2 className="h-12 w-12 mx-auto text-gray-600 mb-4" />
+            No hay cuentas bancarias registradas para esta empresa.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(groupedCuentas).map(([banco, cuentasDelBanco]) => (
+            <Card key={banco} className="bg-[#1a1a1a] border border-gray-800">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center text-white">
+                  <Building2 className="h-5 w-5 mr-3 text-[#00FF80]" />
+                  {banco}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {cuentasDelBanco.map(cuenta => (
+                  <div key={cuenta.id} className="p-3 border border-gray-700 rounded-lg bg-gray-900/50 flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center space-x-3">
+                        <Badge variant="outline" className="border-blue-500/30 text-blue-300">{cuenta.tipo_cuenta ? TIPO_CUENTA_LABELS[cuenta.tipo_cuenta] : 'N/A'}</Badge>
+                        <Badge variant="outline" className="border-green-500/30 text-green-300">{cuenta.moneda_cuenta ? MONEDA_LABELS[cuenta.moneda_cuenta].symbol : 'N/A'}</Badge>
+                        <span className="text-sm text-gray-400">Titular: {cuenta.titular_cuenta || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <CreditCard className="h-4 w-4 text-gray-400" />
+                        <span className="text-gray-400 text-sm w-12">Cuenta:</span>
+                        <code className="flex-1 bg-transparent text-white text-sm font-mono">{maskNumber(cuenta.numero_cuenta || '', showNumbers[cuenta.id])}</code>
+                      </div>
+                      {cuenta.codigo_cuenta_interbancaria && (
+                        <div className="flex items-center space-x-2">
+                          <Hash className="h-4 w-4 text-gray-400" />
+                          <span className="text-gray-400 text-sm w-12">CCI:</span>
+                          <code className="flex-1 bg-transparent text-white text-sm font-mono">{maskNumber(cuenta.codigo_cuenta_interbancaria, showNumbers[cuenta.id])}</code>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center ml-4">
+                      <Button variant="ghost" size="icon" onClick={() => toggleShowNumber(cuenta.id)} className="text-gray-400 hover:text-white h-8 w-8">
+                        {showNumbers[cuenta.id] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(cuenta)} className="text-gray-400 hover:text-white h-8 w-8">
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       <AlertDialog>
-                        <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-400"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-red-500 h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+                        </AlertDialogTrigger>
                         <AlertDialogContent className="bg-[#121212] border border-gray-800">
                           <AlertDialogHeader><AlertDialogTitle className="text-white">¿Eliminar cuenta?</AlertDialogTitle><AlertDialogDescription className="text-gray-400">Esta acción no se puede deshacer.</AlertDialogDescription></AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(c.id)} className="bg-red-600 hover:bg-red-700 text-white">Eliminar</AlertDialogAction>
+                            <AlertDialogAction onClick={() => handleDelete(cuenta.id)} className="bg-red-600 hover:bg-red-700 text-white">Eliminar</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

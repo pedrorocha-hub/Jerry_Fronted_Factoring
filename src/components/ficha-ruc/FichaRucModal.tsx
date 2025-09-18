@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User, Users, Briefcase } from 'lucide-react';
+import { X, Save, Eye, Edit, Building2, Calendar, MapPin, User, Users, Briefcase, CreditCard } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import AccionistaManager from './AccionistaManager';
 import GerenciaManager from '../gerencia/GerenciaManager';
+import CuentaBancariaManager from '../cuenta-bancaria/CuentaBancariaManager';
 
 interface FichaRucModalProps {
   ficha: FichaRuc | null;
@@ -150,10 +151,14 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="general" className="w-full pt-4">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-900/50">
+          <TabsList className="grid w-full grid-cols-4 bg-gray-900/50">
             <TabsTrigger value="general" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
               <Building2 className="h-4 w-4 mr-2" />
               Información General
+            </TabsTrigger>
+            <TabsTrigger value="cuentas" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Cuentas Bancarias
             </TabsTrigger>
             <TabsTrigger value="accionistas" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
               <Users className="h-4 w-4 mr-2" />
@@ -333,6 +338,10 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="cuentas" className="py-6">
+            <CuentaBancariaManager ruc={ficha.ruc} />
           </TabsContent>
 
           <TabsContent value="accionistas" className="py-6">
