@@ -21,12 +21,12 @@ export class FichaRucService {
     }
   }
 
-  // Obtener ficha RUC por ID
+  // Obtener ficha RUC por ID, incluyendo sus accionistas
   static async getById(id: number): Promise<FichaRuc | null> {
     try {
       const { data, error } = await supabase
         .from('ficha_ruc')
-        .select('*')
+        .select('*, accionistas(*)')
         .eq('id', id)
         .single();
 
@@ -46,7 +46,7 @@ export class FichaRucService {
     try {
       const { data, error } = await supabase
         .from('ficha_ruc')
-        .select('*')
+        .select('*, accionistas(*)')
         .eq('ruc', ruc)
         .single();
 
