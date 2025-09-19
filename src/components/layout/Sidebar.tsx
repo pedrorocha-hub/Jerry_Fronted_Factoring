@@ -30,9 +30,7 @@ const Sidebar: React.FC = () => {
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-[#00FF80]/10 rounded-lg border border-[#00FF80]/20">
-            <Brain className="h-8 w-8 text-[#00FF80]" />
-          </div>
+          <img src="/logo.png" alt="DocuMind AI Logo" className="h-10 w-10" />
           <div>
             <h1 className="text-xl font-bold text-white">DocuMind AI</h1>
             <p className="text-xs text-gray-400">Análisis Inteligente</p>
