@@ -32,7 +32,7 @@ const Sidebar: React.FC = () => {
         <div className="flex items-center space-x-3">
           <img src="https://img.freepik.com/premium-vector/upgrade-button_579710-53.jpg" alt="DocuMind AI Logo" className="h-10 w-10" />
           <div>
-            <h1 className="text-xl font-bold text-white">DocuMind AI</h1>
+            <h1 className="text-xl font-bold text-white">Upgrade AI</h1>
             <p className="text-xs text-gray-400">Análisis Inteligente</p>
           </div>
         </div>
