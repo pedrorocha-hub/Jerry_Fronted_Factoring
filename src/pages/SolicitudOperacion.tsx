@@ -17,7 +17,11 @@ import { showSuccess, showError } from '@/utils/toast';
 interface CompanyData {
   ruc: string;
   razon_social: string;
-  sector: string;
+  sector: string | null;
+  descripcion_ciiu_rev3: string | null;
+  ranking_2024: number | null;
+  facturado_2024_soles_maximo: number | null;
+  facturado_2023_soles_maximo: string | null; // Es TEXT en la DB
 }
 
 const SolicitudOperacion = () => {
@@ -61,13 +65,13 @@ const SolicitudOperacion = () => {
     setLoading(true);
     setError(null);
     setSearchedCompany(null);
-    setSelectedOperacion(null); // Clear any existing edit
+    setSelectedOperacion(null);
     resetForm();
 
     try {
       const { data, error } = await supabase
         .from('top_10k')
-        .select('ruc, razon_social, sector')
+        .select('ruc, razon_social, sector, descripcion_ciiu_rev3, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
         .eq('ruc', rucInput)
         .single();
       if (error && error.code !== 'PGRST116') throw error;
@@ -100,11 +104,9 @@ const SolicitudOperacion = () => {
     setSaving(true);
     try {
       if (selectedOperacion) {
-        // Update existing operation
         await OperacionesRiesgoService.update(selectedOperacion.id, { ruc: searchedCompany.ruc, ...formData });
         showSuccess('Solicitud de operación actualizada exitosamente.');
       } else {
-        // Create new operation
         await OperacionesRiesgoService.create({ ruc: searchedCompany.ruc, ...formData });
         showSuccess('Solicitud de operación guardada exitosamente.');
       }
@@ -120,18 +122,21 @@ const SolicitudOperacion = () => {
   const handleEdit = (op: OperacionRiesgo) => {
     setSelectedOperacion(op);
     setRucInput(op.ruc);
-    setSearchedCompany({ ruc: op.ruc, razon_social: 'Cargando...', sector: 'Cargando...' }); // Placeholder
+    setSearchedCompany({
+      ruc: op.ruc, razon_social: 'Cargando...', sector: 'Cargando...',
+      descripcion_ciiu_rev3: 'Cargando...', ranking_2024: null,
+      facturado_2024_soles_maximo: null, facturado_2023_soles_maximo: null
+    });
     setFormData({
       producto: op.producto || '', proveedor: op.proveedor || '', lp_vigente_gve: op.lp_vigente_gve || '',
       riesgo_aprobado: op.riesgo_aprobado || '', propuesta_comercial: op.propuesta_comercial || '',
       exposicion_total: op.exposicion_total || '', direccion: op.direccion || '', visita: op.visita || '',
       telefono_contacto: op.telefono_contacto || '',
     });
-    // Fetch company details for the selected operation
-    supabase.from('top_10k').select('ruc, razon_social, sector').eq('ruc', op.ruc).single().then(({ data }) => {
+    supabase.from('top_10k').select('ruc, razon_social, sector, descripcion_ciiu_rev3, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo').eq('ruc', op.ruc).single().then(({ data }) => {
       if (data) setSearchedCompany(data as CompanyData);
     });
-    window.scrollTo(0, 0); // Scroll to top to see the form
+    window.scrollTo(0, 0);
   };
 
   const handleDelete = async (id: string) => {
@@ -152,6 +157,18 @@ const SolicitudOperacion = () => {
     setSelectedOperacion(null);
     resetForm();
     setError(null);
+  };
+
+  const formatCurrency = (amount: number | string | null | undefined) => {
+    if (amount === null || amount === undefined) return 'N/A';
+    const num = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount;
+    if (isNaN(num)) return 'N/A';
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency: 'PEN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
   };
 
   return (
@@ -195,10 +212,14 @@ const SolicitudOperacion = () => {
             <div className="space-y-6">
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader><CardTitle className="flex items-center justify-between text-white"><div className="flex items-center"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Información del Deudor</div><Badge className="bg-green-500/10 text-green-400 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />TOP 10K</Badge></CardTitle></CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{searchedCompany.ruc}</p></div>
-                  <div><Label className="text-gray-400">Razón Social / Giro</Label><p className="text-white">{searchedCompany.razon_social}</p></div>
-                  <div><Label className="text-gray-400">Sector</Label><p className="text-white">{searchedCompany.sector}</p></div>
+                  <div className="lg:col-span-2"><Label className="text-gray-400">Razón Social</Label><p className="text-white">{searchedCompany.razon_social}</p></div>
+                  <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{searchedCompany.ranking_2024 || 'N/A'}</p></div>
+                  <div><Label className="text-gray-400">Sector</Label><p className="text-white">{searchedCompany.sector || 'N/A'}</p></div>
+                  <div className="lg:col-span-3"><Label className="text-gray-400">Descripción CIIU</Label><p className="text-white text-sm">{searchedCompany.descripcion_ciiu_rev3 || 'N/A'}</p></div>
+                  <div className="md:col-span-2 lg:col-span-2"><Label className="text-gray-400">Facturado 2024 (Máx Soles)</Label><p className="font-mono text-white">{formatCurrency(searchedCompany.facturado_2024_soles_maximo)}</p></div>
+                  <div className="md:col-span-2 lg:col-span-2"><Label className="text-gray-400">Facturado 2023 (Máx Soles)</Label><p className="font-mono text-white">{formatCurrency(searchedCompany.facturado_2023_soles_maximo)}</p></div>
                 </CardContent>
               </Card>
               <Card className="bg-[#121212] border border-gray-800">
