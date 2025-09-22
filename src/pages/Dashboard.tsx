@@ -425,16 +425,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-[#00FF80]/50"
-                  onClick={() => window.location.href = '/upload'}
-                >
-                  <FileText className="h-6 w-6" />
-                  <span className="text-xs">Subir PDFs</span>
-                </Button>
-                
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-blue-500/50"
