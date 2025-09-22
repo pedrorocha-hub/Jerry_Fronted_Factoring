@@ -15,3 +15,4 @@ export interface OperacionRiesgo {
 }
 
 export type OperacionRiesgoInsert = Omit<OperacionRiesgo, 'id' | 'created_at' | 'updated_at'>;
+export type OperacionRiesgoUpdate = Partial<OperacionRiesgoInsert>;
