@@ -11,6 +11,7 @@ import CuentaBancaria from '@/pages/CuentaBancaria';
 import VigenciaPoderes from '@/pages/VigenciaPoderes';
 import FacturaNegociar from '@/pages/FacturaNegociar';
 import ReporteTributario from '@/pages/ReporteTributario';
+import SolicitudOperacion from '@/pages/SolicitudOperacion';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/vigencia-poderes" element={<VigenciaPoderes />} />
           <Route path="/factura-negociar" element={<FacturaNegociar />} />
           <Route path="/reporte-tributario" element={<ReporteTributario />} />
+          <Route path="/solicitud-operacion" element={<SolicitudOperacion />} />
         </Routes>
         
         {/* Toast notifications with dark theme using Sonner */}
