@@ -416,25 +416,24 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          {/* Quick Actions */}
+          {/* Documentos Section */}
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-[#00FF80]" />
-                Acciones Rápidas
+                <FileText className="h-5 w-5 mr-2 text-[#00FF80]" />
+                Documentos
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-blue-500/50"
                   onClick={() => window.location.href = '/ficha-ruc'}
                 >
                   <Building2 className="h-6 w-6" />
-                  <span className="text-xs">Ver Fichas RUC</span>
+                  <span className="text-xs">Fichas RUC</span>
                 </Button>
-                
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-purple-500/50"
@@ -443,23 +442,37 @@ const Dashboard = () => {
                   <Users className="h-6 w-6" />
                   <span className="text-xs">Representantes</span>
                 </Button>
-                
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-green-500/50"
+                  onClick={() => window.location.href = '/cuenta-bancaria'}
+                >
+                  <CreditCard className="h-6 w-6" />
+                  <span className="text-xs">Cuentas Bancarias</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-orange-500/50"
+                  onClick={() => window.location.href = '/vigencia-poderes'}
+                >
+                  <Scale className="h-6 w-6" />
+                  <span className="text-xs">Vigencia Poderes</span>
+                </Button>
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-yellow-500/50"
                   onClick={() => window.location.href = '/factura-negociar'}
                 >
                   <Receipt className="h-6 w-6" />
-                  <span className="text-xs">Ver Facturas</span>
+                  <span className="text-xs">Facturas</span>
                 </Button>
-
                 <Button 
                   variant="outline" 
-                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-teal-500/50"
-                  onClick={() => window.location.href = '/solicitud-operacion'}
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-cyan-500/50"
+                  onClick={() => window.location.href = '/reporte-tributario'}
                 >
-                  <ClipboardEdit className="h-6 w-6" />
-                  <span className="text-xs">Solicitud Operación</span>
+                  <FileBarChart className="h-6 w-6" />
+                  <span className="text-xs">Reportes Tributarios</span>
                 </Button>
               </div>
             </CardContent>
