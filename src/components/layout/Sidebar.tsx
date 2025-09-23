@@ -17,12 +17,6 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
-    { to: '/ficha-ruc', icon: Building2, label: 'Fichas RUC' },
-    { to: '/representante-legal', icon: Users, label: 'Representantes' },
-    { to: '/cuenta-bancaria', icon: CreditCard, label: 'Cuentas Bancarias' },
-    { to: '/vigencia-poderes', icon: Scale, label: 'Vigencia Poderes' },
-    { to: '/factura-negociar', icon: Receipt, label: 'Facturas' },
-    { to: '/reporte-tributario', icon: FileBarChart, label: 'Reportes Tributarios' },
   ];
 
   return (
