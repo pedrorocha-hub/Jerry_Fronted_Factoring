@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Rib, RibInsert } from '@/types/rib';
+import { Rib, RibInsert, RibUpdate } from '@/types/rib';
 
 export class RibService {
   static async create(ribData: RibInsert): Promise<Rib> {
@@ -27,5 +27,32 @@ export class RibService {
       throw new Error(`Error fetching Ribs: ${error.message}`);
     }
     return data || [];
+  }
+
+  static async update(id: string, ribData: RibUpdate): Promise<Rib> {
+    const { data, error } = await supabase
+      .from('ribs')
+      .update({ ...ribData, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating Rib:', error);
+      throw new Error(`Error updating Rib: ${error.message}`);
+    }
+    return data;
+  }
+
+  static async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('ribs')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting Rib:', error);
+      throw new Error(`Error deleting Rib: ${error.message}`);
+    }
   }
 }

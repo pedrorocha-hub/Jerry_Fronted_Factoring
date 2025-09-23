@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,10 +26,11 @@ interface Top10kData {
 const RibPage = () => {
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
+  const [editingRib, setEditingRib] = useState<Rib | null>(null);
   const [ribFormData, setRibFormData] = useState({
     status: 'draft' as 'draft' | 'completed' | 'in_review',
     direccion: '',
@@ -52,7 +53,14 @@ const RibPage = () => {
     loadRibs();
   }, []);
 
-  const resetForm = () => {
+  const resetStateAndForm = () => {
+    setRucInput('');
+    setSearching(false);
+    setSaving(false);
+    setError(null);
+    setSearchedFicha(null);
+    setTop10kData(null);
+    setEditingRib(null);
     setRibFormData({
       status: 'draft',
       direccion: '',
@@ -82,8 +90,8 @@ const RibPage = () => {
     }
   };
 
-  const handleSearch = async () => {
-    if (!rucInput || rucInput.length !== 11) {
+  const handleSearch = async (rucToSearch: string) => {
+    if (!rucToSearch || rucToSearch.length !== 11) {
       setError('Por favor, ingrese un RUC válido de 11 dígitos.');
       return;
     }
@@ -91,18 +99,18 @@ const RibPage = () => {
     setError(null);
     setSearchedFicha(null);
     setTop10kData(null);
-    resetForm();
+    if (!editingRib) resetForm();
 
     try {
-      const fichaData = await FichaRucService.getByRuc(rucInput);
+      const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        showSuccess('Ficha RUC encontrada.');
+        if (!editingRib) showSuccess('Ficha RUC encontrada.');
 
         const { data: topData, error: topError } = await supabase
           .from('top_10k')
           .select('descripcion_ciiu_rev3, sector, ranking_2024')
-          .eq('ruc', rucInput)
+          .eq('ruc', rucToSearch)
           .single();
 
         if (topError && topError.code !== 'PGRST116') throw topError;
@@ -120,25 +128,27 @@ const RibPage = () => {
     }
   };
 
-  const handleCreateRib = async () => {
-    if (!searchedFicha) return;
-    setCreating(true);
+  const handleSaveRib = async () => {
+    const ruc = editingRib?.ruc || searchedFicha?.ruc;
+    if (!ruc) {
+      showError('Debe haber una empresa seleccionada para guardar.');
+      return;
+    }
+    setSaving(true);
     try {
-      await RibService.create({ 
-        ruc: searchedFicha.ruc, 
-        ...ribFormData
-      });
-      showSuccess(`Ficha Rib creada para ${searchedFicha.nombre_empresa}`);
-      setSearchedFicha(null);
-      setTop10kData(null);
-      setRucInput('');
-      setError(null);
-      resetForm();
+      if (editingRib) {
+        await RibService.update(editingRib.id, { ruc, ...ribFormData });
+        showSuccess('Ficha Rib actualizada exitosamente.');
+      } else {
+        await RibService.create({ ruc, ...ribFormData });
+        showSuccess('Ficha Rib creada exitosamente.');
+      }
+      resetStateAndForm();
       await loadRibs();
     } catch (err) {
-      showError('No se pudo crear la ficha Rib.');
+      showError('No se pudo guardar la ficha Rib.');
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   };
 
@@ -148,13 +158,40 @@ const RibPage = () => {
   };
 
   const handleEditRib = (rib: Rib) => {
-    showError('La edición aún no está implementada.');
-    console.log('Edit:', rib);
+    setEditingRib(rib);
+    setRucInput(rib.ruc);
+    setRibFormData({
+      status: rib.status,
+      direccion: rib.direccion || '',
+      visita: rib.visita || '',
+      contacto: rib.contacto || '',
+      comentarios: rib.comentarios || '',
+      fianza: rib.fianza || '',
+      lp: rib.lp || '',
+      producto: rib.producto || '',
+      proveedor: rib.proveedor || '',
+      lp_vigente_gve: rib.lp_vigente_gve || '',
+      riesgo_aprobado: rib.riesgo_aprobado || '',
+      propuesta_comercial: rib.propuesta_comercial || '',
+      exposicion_total: rib.exposicion_total || '',
+    });
+    handleSearch(rib.ruc);
+    window.scrollTo(0, 0);
   };
 
-  const handleDeleteRib = (rib: Rib) => {
-    showError('La eliminación aún no está implementada.');
-    console.log('Delete:', rib);
+  const handleDeleteRib = async (rib: Rib) => {
+    if (window.confirm(`¿Está seguro de eliminar la ficha Rib para el RUC ${rib.ruc}?`)) {
+      try {
+        await RibService.delete(rib.id);
+        showSuccess('Ficha Rib eliminada.');
+        await loadRibs();
+        if (editingRib && editingRib.id === rib.id) {
+          resetStateAndForm();
+        }
+      } catch (err) {
+        showError('No se pudo eliminar la ficha Rib.');
+      }
+    }
   };
 
   return (
@@ -165,7 +202,7 @@ const RibPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center">
                 <FileText className="h-6 w-6 mr-3 text-[#00FF80]" />
-                Crear Ficha Rib
+                {editingRib ? 'Editar Ficha Rib' : 'Crear Ficha Rib'}
               </h1>
               <p className="text-gray-400">Reporte de Inicio Básico de empresa</p>
             </div>
@@ -183,9 +220,10 @@ const RibPage = () => {
                     onChange={(e) => setRucInput(e.target.value)} 
                     maxLength={11} 
                     className="pl-10 bg-gray-900/50 border-gray-700" 
+                    disabled={!!editingRib}
                   />
                 </div>
-                <Button onClick={handleSearch} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                <Button onClick={() => handleSearch(rucInput)} disabled={searching || !!editingRib} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
                   {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                   Buscar Empresa
                 </Button>
@@ -352,10 +390,16 @@ const RibPage = () => {
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-end">
-                  <Button onClick={handleCreateRib} disabled={creating} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-                    {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
-                    Confirmar y Crear Ficha Rib
+                <div className="flex justify-end space-x-4">
+                  {editingRib && (
+                    <Button variant="outline" onClick={resetStateAndForm} className="border-gray-700 text-gray-300">
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Cancelar Edición
+                    </Button>
+                  )}
+                  <Button onClick={handleSaveRib} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                    {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
+                    {editingRib ? 'Actualizar Ficha Rib' : 'Confirmar y Crear Ficha Rib'}
                   </Button>
                 </div>
               </div>
