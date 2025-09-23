@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,8 +30,13 @@ const RibPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
-  const [ribFormData, setRibFormData] = useState<{ status: 'draft' | 'completed' | 'in_review' }>({
-    status: 'draft',
+  const [ribFormData, setRibFormData] = useState({
+    status: 'draft' as 'draft' | 'completed' | 'in_review',
+    direccion: '',
+    visita: '',
+    contacto: '',
+    comentarios: '',
+    fianza: '',
   });
   const [ribs, setRibs] = useState<Rib[]>([]);
   const [loadingRibs, setLoadingRibs] = useState(true);
@@ -39,6 +44,17 @@ const RibPage = () => {
   useEffect(() => {
     loadRibs();
   }, []);
+
+  const resetForm = () => {
+    setRibFormData({
+      status: 'draft',
+      direccion: '',
+      visita: '',
+      contacto: '',
+      comentarios: '',
+      fianza: '',
+    });
+  };
 
   const loadRibs = async () => {
     setLoadingRibs(true);
@@ -61,6 +77,7 @@ const RibPage = () => {
     setError(null);
     setSearchedFicha(null);
     setTop10kData(null);
+    resetForm();
 
     try {
       const fichaData = await FichaRucService.getByRuc(rucInput);
@@ -95,19 +112,25 @@ const RibPage = () => {
     try {
       await RibService.create({ 
         ruc: searchedFicha.ruc, 
-        status: ribFormData.status 
+        ...ribFormData
       });
       showSuccess(`Ficha Rib creada para ${searchedFicha.nombre_empresa}`);
       setSearchedFicha(null);
       setTop10kData(null);
       setRucInput('');
       setError(null);
+      resetForm();
       await loadRibs();
     } catch (err) {
       showError('No se pudo crear la ficha Rib.');
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setRibFormData(prev => ({ ...prev, [id]: value }));
   };
 
   const handleEditRib = (rib: Rib) => {
@@ -217,11 +240,46 @@ const RibPage = () => {
                 </Card>
 
                 <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-white">
+                      <User className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Información del Pagador
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="direccion">Dirección</Label>
+                        <Input id="direccion" value={ribFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="visita">Visita</Label>
+                        <Input id="visita" value={ribFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="contacto">Contacto</Label>
+                        <Input id="contacto" value={ribFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="fianza">Fianza</Label>
+                        <Input id="fianza" value={ribFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="comentarios">Comentarios</Label>
+                      <Textarea id="comentarios" value={ribFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader><CardTitle className="text-white">2. Completar Datos del Rib</CardTitle></CardHeader>
                   <CardContent>
                     <div>
                       <Label htmlFor="status" className="text-gray-400">Estado de la Ficha Rib</Label>
-                      <Select value={ribFormData.status} onValueChange={(value) => setRibFormData({ status: value as 'draft' | 'completed' | 'in_review' })}>
+                      <Select value={ribFormData.status} onValueChange={(value) => setRibFormData(prev => ({ ...prev, status: value as 'draft' | 'completed' | 'in_review' }))}>
                         <SelectTrigger className="bg-gray-900/50 border-gray-700">
                           <SelectValue />
                         </SelectTrigger>
