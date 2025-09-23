@@ -3,10 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { 
   Home, 
   Upload, 
-  ChevronLeft,
   Zap
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const Sidebar: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -17,7 +15,11 @@ const Sidebar: React.FC = () => {
   ];
 
   return (
-    <div className={`relative ${isExpanded ? 'w-64' : 'w-20'} bg-[#121212] border-r border-gray-800 flex flex-col transition-all duration-300 ease-in-out`}>
+    <div 
+      className={`relative ${isExpanded ? 'w-64' : 'w-20'} bg-[#121212] border-r border-gray-800 flex flex-col transition-all duration-300 ease-in-out`}
+      onMouseEnter={() => setIsExpanded(true)}
+      onMouseLeave={() => setIsExpanded(false)}
+    >
       {/* Logo */}
       <div className="p-4 border-b border-gray-800 flex items-center justify-center h-24">
         <div className="flex items-center space-x-3">
@@ -52,7 +54,7 @@ const Sidebar: React.FC = () => {
         </ul>
       </nav>
 
-      {/* Footer & Toggle */}
+      {/* Footer */}
       <div className="p-4 border-t border-gray-800">
         <div className={`flex items-center justify-center transition-all duration-300 ${isExpanded ? 'bg-[#00FF80]/10 border border-[#00FF80]/20' : 'bg-transparent border border-transparent'} rounded-lg p-3`}>
           <Zap className={`h-4 w-4 text-[#00FF80] flex-shrink-0 ${isExpanded && 'animate-pulse'}`} />
@@ -60,13 +62,6 @@ const Sidebar: React.FC = () => {
             <p className="text-sm text-[#00FF80] font-medium whitespace-nowrap">IA Activa</p>
           </div>
         </div>
-        <Button
-          onClick={() => setIsExpanded(!isExpanded)}
-          variant="ghost"
-          className="w-full mt-4 flex items-center justify-center text-gray-400 hover:bg-gray-800 hover:text-white"
-        >
-          <ChevronLeft className={`h-5 w-5 transition-transform duration-300 ${!isExpanded && 'rotate-180'}`} />
-        </Button>
       </div>
     </div>
   );
