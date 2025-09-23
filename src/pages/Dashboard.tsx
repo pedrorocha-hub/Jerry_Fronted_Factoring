@@ -501,7 +501,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-red-500/50"
-                  onClick={() => alert('Página en construcción')}
+                  onClick={() => window.location.href = '/rib'}
                 >
                   <FileSearch className="h-6 w-6" />
                   <span className="text-xs">Rib</span>
