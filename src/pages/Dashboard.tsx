@@ -14,7 +14,9 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  ClipboardEdit
+  ClipboardEdit,
+  ShieldCheck,
+  FileSearch
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -477,6 +479,53 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Análisis de Riesgo Section */}
+          <Card className="bg-[#121212] border border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />
+                Análisis de Riesgo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-teal-500/50"
+                  onClick={() => window.location.href = '/solicitud-operacion'}
+                >
+                  <ClipboardEdit className="h-6 w-6" />
+                  <span className="text-xs">Solicitud de Operación</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-red-500/50"
+                  onClick={() => alert('Página en construcción')}
+                >
+                  <FileSearch className="h-6 w-6" />
+                  <span className="text-xs">Rib</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-indigo-500/50"
+                  onClick={() => alert('Página en construcción')}
+                >
+                  <TrendingUp className="h-6 w-6" />
+                  <span className="text-xs">Comportamiento Crediticio</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-cyan-500/50"
+                  onClick={() => window.location.href = '/reporte-tributario'}
+                >
+                  <FileBarChart className="h-6 w-6" />
+                  <span className="text-xs">Reporte Tributario Deudor</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
     </Layout>
