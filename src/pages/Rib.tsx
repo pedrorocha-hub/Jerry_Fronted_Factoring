@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib } from '@/types/rib';
 import { FichaRucService } from '@/services/fichaRucService';
@@ -22,6 +24,9 @@ const RibPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [ribs, setRibs] = useState<Rib[]>([]);
+  const [ribFormData, setRibFormData] = useState<{ status: 'draft' | 'completed' | 'in_review' }>({
+    status: 'draft',
+  });
 
   useEffect(() => {
     loadRibs();
@@ -66,7 +71,10 @@ const RibPage = () => {
     if (!searchedFicha) return;
     setCreating(true);
     try {
-      await RibService.create({ ruc: searchedFicha.ruc, status: 'draft' });
+      await RibService.create({ 
+        ruc: searchedFicha.ruc, 
+        status: ribFormData.status 
+      });
       showSuccess(`Ficha Rib creada para ${searchedFicha.nombre_empresa}`);
       await loadRibs();
       setView('list');
@@ -125,22 +133,48 @@ const RibPage = () => {
               {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
               {searchedFicha && (
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="flex items-center justify-between text-white"><div className="flex items-center"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de la Empresa</div><Badge className="bg-green-500/10 text-green-400 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />Encontrada</Badge></CardTitle></CardHeader>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{searchedFicha.ruc}</p></div>
-                    <div><Label className="text-gray-400">Razón Social</Label><p className="text-white">{searchedFicha.nombre_empresa}</p></div>
-                    <div><Label className="text-gray-400">Estado</Label><p className="text-white">{searchedFicha.estado_contribuyente}</p></div>
-                    <div><Label className="text-gray-400">Inicio de Actividades</Label><p className="text-white">{searchedFicha.fecha_inicio_actividades ? new Date(searchedFicha.fecha_inicio_actividades).toLocaleDateString() : 'N/A'}</p></div>
-                    <div className="md:col-span-2"><Label className="text-gray-400">Domicilio Fiscal</Label><p className="text-white text-sm">{searchedFicha.domicilio_fiscal}</p></div>
-                  </CardContent>
-                  <div className="p-6 pt-0">
-                    <Button onClick={handleCreateRib} disabled={creating} size="lg" className="w-full bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                <div className="space-y-6">
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="flex items-center justify-between text-white"><div className="flex items-center"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de la Empresa</div><Badge className="bg-green-500/10 text-green-400 border-green-500/20"><CheckCircle className="h-3 w-3 mr-1" />Encontrada</Badge></CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><Label className="text-gray-400">RUC</Label><Input value={searchedFicha.ruc} disabled className="bg-gray-900/50 border-gray-700 font-mono" /></div>
+                        <div><Label className="text-gray-400">Razón Social</Label><Input value={searchedFicha.nombre_empresa} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><Label className="text-gray-400">Estado</Label><Input value={searchedFicha.estado_contribuyente || 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                        <div><Label className="text-gray-400">Inicio de Actividades</Label><Input value={searchedFicha.fecha_inicio_actividades ? new Date(searchedFicha.fecha_inicio_actividades).toLocaleDateString() : 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                      </div>
+                      <div><Label className="text-gray-400">Domicilio Fiscal</Label><Textarea value={searchedFicha.domicilio_fiscal || 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="text-white">2. Datos Adicionales del Rib</CardTitle></CardHeader>
+                    <CardContent>
+                      <div>
+                        <Label htmlFor="status" className="text-gray-400">Estado de la Ficha Rib</Label>
+                        <Select value={ribFormData.status} onValueChange={(value) => setRibFormData({ status: value as 'draft' | 'completed' | 'in_review' })}>
+                          <SelectTrigger className="bg-gray-900/50 border-gray-700">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                            <SelectItem value="draft" className="hover:bg-gray-800">Borrador</SelectItem>
+                            <SelectItem value="in_review" className="hover:bg-gray-800">En Revisión</SelectItem>
+                            <SelectItem value="completed" className="hover:bg-gray-800">Completado</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="flex justify-end">
+                    <Button onClick={handleCreateRib} disabled={creating} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
                       {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
                       Confirmar y Crear Ficha Rib
                     </Button>
                   </div>
-                </Card>
+                </div>
               )}
             </div>
           )}
