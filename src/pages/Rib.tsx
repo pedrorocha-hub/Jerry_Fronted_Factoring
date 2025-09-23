@@ -99,7 +99,6 @@ const RibPage = () => {
     setError(null);
     setSearchedFicha(null);
     setTop10kData(null);
-    if (!editingRib) resetForm();
 
     try {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
