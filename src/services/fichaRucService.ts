@@ -41,21 +41,20 @@ export class FichaRucService {
     }
   }
 
-  // Obtener ficha RUC por RUC
+  // Obtener ficha RUC por RUC (versión corregida y más robusta)
   static async getByRuc(ruc: string): Promise<FichaRuc | null> {
     try {
       const { data, error } = await supabase
         .from('ficha_ruc')
         .select('*')
         .eq('ruc', ruc)
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw new Error(`Error obteniendo ficha RUC por RUC: ${error.message}`);
       }
 
-      return data;
+      return data && data.length > 0 ? data[0] : null;
     } catch (error) {
       console.error('Error en getByRuc:', error);
       throw error;
