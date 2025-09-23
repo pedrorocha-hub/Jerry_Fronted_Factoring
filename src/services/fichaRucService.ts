@@ -46,8 +46,9 @@ export class FichaRucService {
     try {
       const { data, error } = await supabase
         .from('ficha_ruc')
-        .select('*, accionistas(*)')
+        .select('*')
         .eq('ruc', ruc)
+        .limit(1)
         .single();
 
       if (error && error.code !== 'PGRST116') {
