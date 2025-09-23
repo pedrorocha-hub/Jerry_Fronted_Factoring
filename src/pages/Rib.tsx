@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +37,13 @@ const RibPage = () => {
     contacto: '',
     comentarios: '',
     fianza: '',
+    lp: '',
+    producto: '',
+    proveedor: '',
+    lp_vigente_gve: '',
+    riesgo_aprobado: '',
+    propuesta_comercial: '',
+    exposicion_total: '',
   });
   const [ribs, setRibs] = useState<Rib[]>([]);
   const [loadingRibs, setLoadingRibs] = useState(true);
@@ -53,6 +60,13 @@ const RibPage = () => {
       contacto: '',
       comentarios: '',
       fianza: '',
+      lp: '',
+      producto: '',
+      proveedor: '',
+      lp_vigente_gve: '',
+      riesgo_aprobado: '',
+      propuesta_comercial: '',
+      exposicion_total: '',
     });
   };
 
@@ -270,6 +284,51 @@ const RibPage = () => {
                     <div>
                       <Label htmlFor="comentarios">Comentarios</Label>
                       <Textarea id="comentarios" value={ribFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-white">
+                      <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Condiciones Comerciales
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="lp">L/P</Label>
+                        <Input id="lp" value={ribFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="producto">Producto</Label>
+                        <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="proveedor">Proveedor</Label>
+                        <Input id="proveedor" value={ribFormData.proveedor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="lp_vigente_gve">L/P Vigente (GVE)</Label>
+                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
+                        <Input id="riesgo_aprobado" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="propuesta_comercial">Propuesta Comercial</Label>
+                        <Input id="propuesta_comercial" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="exposicion_total">Exposición Total</Label>
+                        <Input id="exposicion_total" value={ribFormData.exposicion_total} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

@@ -9,6 +9,13 @@ export interface Rib {
   contacto?: string | null;
   comentarios?: string | null;
   fianza?: string | null;
+  lp?: string | null;
+  producto?: string | null;
+  proveedor?: string | null;
+  lp_vigente_gve?: string | null;
+  riesgo_aprobado?: string | null;
+  propuesta_comercial?: string | null;
+  exposicion_total?: string | null;
 }
 
 export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;
