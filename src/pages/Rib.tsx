@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,13 @@ import { RibService } from '@/services/ribService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
 import RibTable from '@/components/rib/RibTable';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Top10kData {
+  descripcion_ciiu_rev3: string | null;
+  sector: string | null;
+  ranking_2024: number | null;
+}
 
 const RibPage = () => {
   const [rucInput, setRucInput] = useState('');
@@ -22,6 +29,7 @@ const RibPage = () => {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
+  const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
   const [ribFormData, setRibFormData] = useState<{ status: 'draft' | 'completed' | 'in_review' }>({
     status: 'draft',
   });
@@ -52,19 +60,30 @@ const RibPage = () => {
     setSearching(true);
     setError(null);
     setSearchedFicha(null);
+    setTop10kData(null);
 
     try {
-      const data = await FichaRucService.getByRuc(rucInput);
-      if (data) {
-        setSearchedFicha(data);
+      const fichaData = await FichaRucService.getByRuc(rucInput);
+      if (fichaData) {
+        setSearchedFicha(fichaData);
         showSuccess('Ficha RUC encontrada.');
+
+        const { data: topData, error: topError } = await supabase
+          .from('top_10k')
+          .select('descripcion_ciiu_rev3, sector, ranking_2024')
+          .eq('ruc', rucInput)
+          .single();
+
+        if (topError && topError.code !== 'PGRST116') throw topError;
+        if (topData) setTop10kData(topData);
+
       } else {
         setError('Ficha RUC no encontrada. Asegúrese de que exista antes de crear un Rib.');
         showError('Ficha RUC no encontrada.');
       }
     } catch (err) {
-      setError('Ocurrió un error al buscar la Ficha RUC.');
-      showError('Error al buscar la Ficha RUC.');
+      setError('Ocurrió un error al buscar los datos de la empresa.');
+      showError('Error al buscar los datos.');
     } finally {
       setSearching(false);
     }
@@ -80,6 +99,7 @@ const RibPage = () => {
       });
       showSuccess(`Ficha Rib creada para ${searchedFicha.nombre_empresa}`);
       setSearchedFicha(null);
+      setTop10kData(null);
       setRucInput('');
       setError(null);
       await loadRibs();
@@ -144,7 +164,7 @@ const RibPage = () => {
                     <CardTitle className="flex items-center justify-between text-white">
                       <div className="flex items-center">
                         <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                        Datos de la Empresa
+                        FICHA RUC
                       </div>
                       <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-400">
                         <CheckCircle className="h-3 w-3 mr-1" />
@@ -162,6 +182,37 @@ const RibPage = () => {
                       <div><Label className="text-gray-400">Inicio de Actividades</Label><Input value={searchedFicha.fecha_inicio_actividades ? new Date(searchedFicha.fecha_inicio_actividades).toLocaleDateString() : 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
                     </div>
                     <div><Label className="text-gray-400">Domicilio Fiscal</Label><Textarea value={searchedFicha.domicilio_fiscal || 'N/A'} disabled rows={2} className="bg-gray-900/50 border-gray-700" /></div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-white">
+                      <ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Riesgo Vigente del Deudor
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {top10kData ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label className="text-gray-400">Giro (CIIU)</Label>
+                          <p className="text-white text-sm mt-1">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Sector</Label>
+                          <p className="text-white mt-1">{top10kData.sector || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Ranking 2024</Label>
+                          <p className="font-mono text-white text-lg mt-1">#{top10kData.ranking_2024 || 'N/A'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        <p>No se encontraron datos de riesgo en la base TOP 10K para este RUC.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
