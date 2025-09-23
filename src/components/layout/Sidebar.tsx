@@ -1,47 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   Home, 
   Upload, 
-  Building2, 
-  Users, 
-  CreditCard, 
-  Scale, 
-  Receipt, 
-  FileBarChart,
-  Brain,
+  ChevronLeft,
   Zap
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
   ];
 
   return (
-    <div className="w-64 bg-[#121212] border-r border-gray-800 flex flex-col">
+    <div className={`relative ${isExpanded ? 'w-64' : 'w-20'} bg-[#121212] border-r border-gray-800 flex flex-col transition-all duration-300 ease-in-out`}>
       {/* Logo */}
-      <div className="p-6 border-b border-gray-800">
+      <div className="p-4 border-b border-gray-800 flex items-center justify-center h-24">
         <div className="flex items-center space-x-3">
-          <img src="https://img.freepik.com/premium-vector/upgrade-button_579710-53.jpg" alt="DocuMind AI Logo" className="h-10 w-10" />
-          <div>
-            <h1 className="text-xl font-bold text-white">Upgrade AI</h1>
-            <p className="text-xs text-gray-400">Análisis Inteligente</p>
+          <img src="https://img.freepik.com/premium-vector/upgrade-button_579710-53.jpg" alt="DocuMind AI Logo" className="h-10 w-10 flex-shrink-0" />
+          <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'w-32' : 'w-0'}`}>
+            <h1 className="text-xl font-bold text-white whitespace-nowrap">Upgrade AI</h1>
+            <p className="text-xs text-gray-400 whitespace-nowrap">Análisis Inteligente</p>
           </div>
-        </div>
-      </div>
-
-      {/* AI Status */}
-      <div className="p-4 border-b border-gray-800">
-        <div className="bg-[#00FF80]/10 border border-[#00FF80]/20 rounded-lg p-3">
-          <div className="flex items-center space-x-2">
-            <Zap className="h-4 w-4 text-[#00FF80] animate-pulse" />
-            <span className="text-sm text-[#00FF80] font-medium">IA Activa</span>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Procesando documentos automáticamente
-          </p>
         </div>
       </div>
 
@@ -55,29 +38,34 @@ const Sidebar: React.FC = () => {
                 className={({ isActive }) =>
                   `flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
                     isActive
-                      ? 'bg-[#00FF80]/10 text-[#00FF80] border border-[#00FF80]/20'
+                      ? 'bg-[#00FF80]/10 text-[#00FF80]'
                       : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                  }`
+                  } ${!isExpanded && 'justify-center'}`
                 }
               >
-                <item.icon className="h-5 w-5" />
-                <span className="text-sm font-medium">{item.label}</span>
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                <span className={`text-sm font-medium overflow-hidden transition-all duration-200 whitespace-nowrap ${isExpanded ? 'w-full' : 'w-0'}`}>{item.label}</span>
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
 
-      {/* Footer */}
+      {/* Footer & Toggle */}
       <div className="p-4 border-t border-gray-800">
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            Powered by AI Upgrade
-          </p>
-          <p className="text-xs text-gray-600 mt-1">
-            v1.0.0
-          </p>
+        <div className={`flex items-center justify-center transition-all duration-300 ${isExpanded ? 'bg-[#00FF80]/10 border border-[#00FF80]/20' : 'bg-transparent border border-transparent'} rounded-lg p-3`}>
+          <Zap className={`h-4 w-4 text-[#00FF80] flex-shrink-0 ${isExpanded && 'animate-pulse'}`} />
+          <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'w-full ml-2' : 'w-0'}`}>
+            <p className="text-sm text-[#00FF80] font-medium whitespace-nowrap">IA Activa</p>
+          </div>
         </div>
+        <Button
+          onClick={() => setIsExpanded(!isExpanded)}
+          variant="ghost"
+          className="w-full mt-4 flex items-center justify-center text-gray-400 hover:bg-gray-800 hover:text-white"
+        >
+          <ChevronLeft className={`h-5 w-5 transition-transform duration-300 ${!isExpanded && 'rotate-180'}`} />
+        </Button>
       </div>
     </div>
   );
