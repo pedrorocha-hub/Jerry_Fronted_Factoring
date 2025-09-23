@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,12 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib } from '@/types/rib';
 import { RibService } from '@/services/ribService';
 import { FichaRucService } from '@/services/fichaRucService';
-import { showSuccess, showError } from '@/utils/toast';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import RibTable from '@/components/rib/RibTable';
+import RibPdfTemplate from '@/components/rib/RibPdfTemplate';
 import { supabase } from '@/integrations/supabase/client';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface Top10kData {
   descripcion_ciiu_rev3: string | null;
@@ -48,10 +51,35 @@ const RibPage = () => {
   });
   const [ribs, setRibs] = useState<Rib[]>([]);
   const [loadingRibs, setLoadingRibs] = useState(true);
+  const [pdfData, setPdfData] = useState<{ rib: Rib; ficha: FichaRuc; top10k: Top10kData | null } | null>(null);
+  const pdfTemplateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadRibs();
   }, []);
+
+  useEffect(() => {
+    if (pdfData && pdfTemplateRef.current) {
+      const element = pdfTemplateRef.current;
+      html2canvas(element, { scale: 2 }).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasWidth / canvasHeight;
+        const imgWidth = pdfWidth - 20; // A4 width in mm with margin
+        const imgHeight = imgWidth / ratio;
+        
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+        pdf.save(`RIB_${pdfData.rib.ruc}.pdf`);
+        
+        dismissToast(); // Dismiss loading toast
+        showSuccess('PDF generado exitosamente.');
+        setPdfData(null); // Reset state
+      });
+    }
+  }, [pdfData]);
 
   const resetStateAndForm = () => {
     setRucInput('');
@@ -190,6 +218,31 @@ const RibPage = () => {
       } catch (err) {
         showError('No se pudo eliminar la ficha Rib.');
       }
+    }
+  };
+
+  const handleDownloadRib = async (rib: Rib) => {
+    showLoading('Generando PDF...');
+    try {
+      const [fichaData, top10kDataResult] = await Promise.all([
+        FichaRucService.getByRuc(rib.ruc),
+        supabase.from('top_10k').select('descripcion_ciiu_rev3, sector, ranking_2024').eq('ruc', rib.ruc).single()
+      ]);
+
+      if (!fichaData) {
+        dismissToast();
+        showError('No se pudo encontrar la Ficha RUC para generar el PDF.');
+        return;
+      }
+
+      setPdfData({
+        rib,
+        ficha: fichaData,
+        top10k: top10kDataResult.data
+      });
+    } catch (err) {
+      dismissToast();
+      showError('Error al preparar los datos para el PDF.');
     }
   };
 
@@ -415,12 +468,17 @@ const RibPage = () => {
                   <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
                 </div>
               ) : (
-                <RibTable ribs={ribs} onEdit={handleEditRib} onDelete={handleDeleteRib} />
+                <RibTable ribs={ribs} onEdit={handleEditRib} onDelete={handleDeleteRib} onDownload={handleDownloadRib} />
               )}
             </CardContent>
           </Card>
         </div>
       </div>
+      {pdfData && (
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm' }}>
+          <RibPdfTemplate ref={pdfTemplateRef} data={pdfData} />
+        </div>
+      )}
     </Layout>
   );
 };

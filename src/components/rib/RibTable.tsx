@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Calendar, Edit, Trash2 } from 'lucide-react';
+import { FileText, Calendar, Edit, Trash2, Download } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -16,9 +16,10 @@ interface RibTableProps {
   ribs: Rib[];
   onEdit: (rib: Rib) => void;
   onDelete: (rib: Rib) => void;
+  onDownload: (rib: Rib) => void;
 }
 
-const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete }) => {
+const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload }) => {
   const getStatusBadge = (status: Rib['status']) => {
     switch (status) {
       case 'draft':
@@ -63,10 +64,13 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete }) => {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} className="text-gray-400 hover:text-white">
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} className="text-gray-400 hover:text-white" title="Editar">
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(rib)} className="text-gray-400 hover:text-red-500">
+                  <Button variant="ghost" size="icon" onClick={() => onDownload(rib)} className="text-gray-400 hover:text-white" title="Descargar PDF">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => onDelete(rib)} className="text-gray-400 hover:text-red-500" title="Eliminar">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </TableCell>
