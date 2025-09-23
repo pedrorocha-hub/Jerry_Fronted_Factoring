@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   Zap
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Sidebar: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
