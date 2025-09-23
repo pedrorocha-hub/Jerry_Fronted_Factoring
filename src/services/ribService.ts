@@ -1,0 +1,31 @@
+import { supabase } from '@/integrations/supabase/client';
+import { Rib, RibInsert } from '@/types/rib';
+
+export class RibService {
+  static async create(ribData: RibInsert): Promise<Rib> {
+    const { data, error } = await supabase
+      .from('ribs')
+      .insert(ribData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating Rib:', error);
+      throw new Error(`Error creating Rib: ${error.message}`);
+    }
+    return data;
+  }
+
+  static async getAll(): Promise<Rib[]> {
+    const { data, error } = await supabase
+      .from('ribs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching Ribs:', error);
+      throw new Error(`Error fetching Ribs: ${error.message}`);
+    }
+    return data || [];
+  }
+}
