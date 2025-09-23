@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { FichaRuc } from '@/types/ficha-ruc';
+import { Rib } from '@/types/rib';
 import { RibService } from '@/services/ribService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
+import RibTable from '@/components/rib/RibTable';
 
 const RibPage = () => {
   const [rucInput, setRucInput] = useState('');
@@ -23,6 +25,24 @@ const RibPage = () => {
   const [ribFormData, setRibFormData] = useState<{ status: 'draft' | 'completed' | 'in_review' }>({
     status: 'draft',
   });
+  const [ribs, setRibs] = useState<Rib[]>([]);
+  const [loadingRibs, setLoadingRibs] = useState(true);
+
+  useEffect(() => {
+    loadRibs();
+  }, []);
+
+  const loadRibs = async () => {
+    setLoadingRibs(true);
+    try {
+      const data = await RibService.getAll();
+      setRibs(data);
+    } catch (err) {
+      showError('No se pudieron cargar las fichas Rib existentes.');
+    } finally {
+      setLoadingRibs(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (!rucInput || rucInput.length !== 11) {
@@ -59,15 +79,25 @@ const RibPage = () => {
         status: ribFormData.status 
       });
       showSuccess(`Ficha Rib creada para ${searchedFicha.nombre_empresa}`);
-      // Reset state after creation
       setSearchedFicha(null);
       setRucInput('');
       setError(null);
+      await loadRibs();
     } catch (err) {
       showError('No se pudo crear la ficha Rib.');
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleEditRib = (rib: Rib) => {
+    showError('La edición aún no está implementada.');
+    console.log('Edit:', rib);
+  };
+
+  const handleDeleteRib = (rib: Rib) => {
+    showError('La eliminación aún no está implementada.');
+    console.log('Delete:', rib);
   };
 
   return (
@@ -163,6 +193,21 @@ const RibPage = () => {
               </div>
             )}
           </div>
+
+          <Card className="bg-[#121212] border border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Fichas Rib Creadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingRibs ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                </div>
+              ) : (
+                <RibTable ribs={ribs} onEdit={handleEditRib} onDelete={handleDeleteRib} />
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </Layout>
