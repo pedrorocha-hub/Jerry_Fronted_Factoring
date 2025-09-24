@@ -160,7 +160,7 @@ const RibListPage = () => {
 
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Fichas Rib Creadas</CardTitle>
+              <CardTitle className="text-white">FICHAS RIB CREADAS</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingRibs ? (
