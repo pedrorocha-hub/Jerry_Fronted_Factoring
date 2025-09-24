@@ -23,6 +23,8 @@ export interface Rib {
   moneda_operacion?: string | null;
   resumen_solicitud?: string | null;
   deudor?: string | null;
+  garantias?: string | null;
+  condiciones_desembolso?: string | null;
 }
 
 export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;

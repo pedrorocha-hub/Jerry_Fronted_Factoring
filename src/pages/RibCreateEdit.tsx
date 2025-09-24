@@ -59,6 +59,8 @@ const RibCreateEditPage = () => {
     moneda_operacion: '',
     resumen_solicitud: '',
     deudor: '',
+    garantias: '',
+    condiciones_desembolso: '',
   });
 
   useEffect(() => {
@@ -118,6 +120,8 @@ const RibCreateEditPage = () => {
       moneda_operacion: '',
       resumen_solicitud: '',
       deudor: '',
+      garantias: '',
+      condiciones_desembolso: '',
     });
   };
 
@@ -222,6 +226,8 @@ const RibCreateEditPage = () => {
       moneda_operacion: rib.moneda_operacion || '',
       resumen_solicitud: rib.resumen_solicitud || '',
       deudor: rib.deudor || '',
+      garantias: rib.garantias || '',
+      condiciones_desembolso: rib.condiciones_desembolso || '',
     });
     handleSearch(rib.ruc);
     window.scrollTo(0, 0);
@@ -357,6 +363,63 @@ const RibCreateEditPage = () => {
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
                     <CardTitle className="flex items-center text-white">
+                      <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Riesgo Vigente del Proveedor
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="lp">L/P</Label>
+                        <Input id="lp" value={ribFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="producto">Producto</Label>
+                        <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="deudor">Deudor (es)</Label>
+                      <Input id="deudor" value={ribFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="lp_vigente_gve">L/P Vigente (GVE)</Label>
+                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
+                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="propuesta_comercial">Propuesta Comercial</Label>
+                        <Input id="propuesta_comercial" type="number" step="0.01" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="exposicion_total">Exposición total (Soles)</Label>
+                        <Input id="exposicion_total" value={ribFormData.exposicion_total} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="garantias">Garantías</Label>
+                      <Textarea id="garantias" value={ribFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                    </div>
+                    <div>
+                      <Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label>
+                      <Textarea id="condiciones_desembolso" value={ribFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                    </div>
+                    <div>
+                      <Label htmlFor="comentarios">Comentarios</Label>
+                      <Textarea id="comentarios" value={ribFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-white">
                       <ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />
                       Riesgo Vigente del Deudor
                     </CardTitle>
@@ -423,55 +486,6 @@ const RibCreateEditPage = () => {
                       <div>
                         <Label htmlFor="fianza">Fianza</Label>
                         <Input id="fianza" value={ribFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="comentarios">Comentarios</Label>
-                      <Textarea id="comentarios" value={ribFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-white">
-                      <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      Condiciones Comerciales
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="lp">L/P</Label>
-                        <Input id="lp" value={ribFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                      </div>
-                      <div>
-                        <Label htmlFor="producto">Producto</Label>
-                        <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="deudor">Deudor (es)</Label>
-                      <Input id="deudor" value={ribFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="lp_vigente_gve">L/P Vigente (GVE)</Label>
-                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                      </div>
-                      <div>
-                        <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
-                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="propuesta_comercial">Propuesta Comercial</Label>
-                        <Input id="propuesta_comercial" type="number" step="0.01" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                      </div>
-                      <div>
-                        <Label htmlFor="exposicion_total">Exposición total (Soles)</Label>
-                        <Input id="exposicion_total" value={ribFormData.exposicion_total} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
                       </div>
                     </div>
                   </CardContent>
