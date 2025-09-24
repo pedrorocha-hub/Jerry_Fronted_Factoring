@@ -272,27 +272,44 @@ const RibCreateEditPage = () => {
               <div className="space-y-6">
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-white">
-                      <div className="flex items-center">
-                        <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                        SOLICITUD DE OPERACIÓN
-                      </div>
-                      <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-400">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Encontrada
-                      </Badge>
+                    <CardTitle className="flex items-center text-white">
+                      <FileText className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Solicitud de Operación
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label className="text-gray-400">RUC</Label><Input value={searchedFicha.ruc} disabled className="bg-gray-900/50 border-gray-700 font-mono" /></div>
-                      <div><Label className="text-gray-400">Razón Social</Label><Input value={searchedFicha.nombre_empresa} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="fecha_ficha">Fecha de Ficha</Label>
+                        <Input id="fecha_ficha" type="date" value={ribFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label>
+                        <Input id="orden_servicio" value={ribFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="factura">Factura (Sí/No)</Label>
+                        <Input id="factura" value={ribFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label className="text-gray-400">Estado</Label><Input value={searchedFicha.estado_contribuyente || 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
-                      <div><Label className="text-gray-400">Inicio de Actividades</Label><Input value={searchedFicha.fecha_inicio_actividades ? new Date(searchedFicha.fecha_inicio_actividades).toLocaleDateString() : 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                      <div>
+                        <Label htmlFor="tipo_cambio">Tipo de Cambio</Label>
+                        <Input id="tipo_cambio" type="number" step="0.01" value={ribFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="moneda_operacion">Moneda de Operación</Label>
+                        <Select value={ribFormData.moneda_operacion} onValueChange={(value) => setRibFormData(prev => ({ ...prev, moneda_operacion: value }))}>
+                          <SelectTrigger className="bg-gray-900/50 border-gray-700">
+                            <SelectValue placeholder="Seleccionar moneda" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                            <SelectItem value="Soles" className="hover:bg-gray-800">Soles</SelectItem>
+                            <SelectItem value="Dolares" className="hover:bg-gray-800">Dólares</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div><Label className="text-gray-400">Domicilio Fiscal</Label><Textarea value={searchedFicha.domicilio_fiscal || 'N/A'} disabled rows={2} className="bg-gray-900/50 border-gray-700" /></div>
                   </CardContent>
                 </Card>
 
@@ -416,40 +433,6 @@ const RibCreateEditPage = () => {
                         <Input id="exposicion_total" value={ribFormData.exposicion_total} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
-                    <div className="pt-4 border-t border-gray-800 mt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="fecha_ficha">Fecha de Ficha</Label>
-                          <Input id="fecha_ficha" type="date" value={ribFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                        <div>
-                          <Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label>
-                          <Input id="orden_servicio" value={ribFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                        <div>
-                          <Label htmlFor="factura">Factura (Sí/No)</Label>
-                          <Input id="factura" value={ribFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <div>
-                          <Label htmlFor="tipo_cambio">Tipo de Cambio</Label>
-                          <Input id="tipo_cambio" type="number" step="0.01" value={ribFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                        <div>
-                          <Label htmlFor="moneda_operacion">Moneda de Operación</Label>
-                          <Select value={ribFormData.moneda_operacion} onValueChange={(value) => setRibFormData(prev => ({ ...prev, moneda_operacion: value }))}>
-                            <SelectTrigger className="bg-gray-900/50 border-gray-700">
-                              <SelectValue placeholder="Seleccionar moneda" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                              <SelectItem value="Soles" className="hover:bg-gray-800">Soles</SelectItem>
-                              <SelectItem value="Dolares" className="hover:bg-gray-800">Dólares</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
 
@@ -469,6 +452,32 @@ const RibCreateEditPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-white">
+                      <div className="flex items-center">
+                        <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                        Información de Ficha RUC
+                      </div>
+                      <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-400">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Encontrada
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><Label className="text-gray-400">RUC</Label><Input value={searchedFicha.ruc} disabled className="bg-gray-900/50 border-gray-700 font-mono" /></div>
+                      <div><Label className="text-gray-400">Razón Social</Label><Input value={searchedFicha.nombre_empresa} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><Label className="text-gray-400">Estado</Label><Input value={searchedFicha.estado_contribuyente || 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                      <div><Label className="text-gray-400">Inicio de Actividades</Label><Input value={searchedFicha.fecha_inicio_actividades ? new Date(searchedFicha.fecha_inicio_actividades).toLocaleDateString() : 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                    </div>
+                    <div><Label className="text-gray-400">Domicilio Fiscal</Label><Textarea value={searchedFicha.domicilio_fiscal || 'N/A'} disabled rows={2} className="bg-gray-900/50 border-gray-700" /></div>
                   </CardContent>
                 </Card>
 
