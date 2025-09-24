@@ -18,7 +18,6 @@ import RibList from '@/pages/RibList';
 import RibCreateEdit from '@/pages/RibCreateEdit';
 import Login from '@/pages/Login';
 import UsersPage from '@/pages/Admin/Users';
-import SmokeTestPage from '@/pages/SmokeTest'; // Importar la página de prueba
 
 function App() {
   return (
@@ -29,8 +28,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<SmokeTestPage />} /> {/* Ruta de prueba */}
-              <Route path="/dashboard" element={<Dashboard />} /> {/* Ruta original */}
+              <Route path="/" element={<Dashboard />} />
               <Route path="/upload" element={<Upload />} />
               <Route path="/ficha-ruc" element={<FichaRuc />} />
               <Route path="/representante-legal" element={<RepresentanteLegal />} />
