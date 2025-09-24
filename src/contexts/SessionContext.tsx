@@ -24,39 +24,29 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // onAuthStateChange fires on initial load, sign in, sign out, and token refresh.
+    // It's the single source of truth for the user's auth state.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-
+      
       if (session?.user) {
-        const { data: profileData } = await supabase
+        const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-        setProfile(profileData as Profile);
+        
+        if (error) {
+          console.error('Error fetching profile:', error);
+          setProfile(null);
+        } else {
+          setProfile(profileData as Profile);
+        }
       } else {
         setProfile(null);
       }
+      // Once the session and profile are loaded (or not), we are done loading.
       setLoading(false);
-    };
-
-    fetchSessionAndProfile();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        if (session?.user) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          setProfile(profileData as Profile);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(null);
-      }
     });
 
     return () => {
