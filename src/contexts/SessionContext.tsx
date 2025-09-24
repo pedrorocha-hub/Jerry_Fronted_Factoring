@@ -28,7 +28,6 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [profileError, setProfileError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Watchdog para evitar el spinner infinito si Supabase no responde.
     const watchdog = setTimeout(() => {
       if (status === 'unknown') {
         console.error("Supabase auth state did not resolve in 4 seconds. Forcing to 'guest' state.");
@@ -55,32 +54,22 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      clearTimeout(watchdog); // El listener respondió, desactivamos el watchdog.
+      clearTimeout(watchdog);
       setSession(session);
 
-      switch (event) {
-        case 'INITIAL_SESSION':
-          setStatus(session ? 'authed' : 'guest');
-          if (session?.user) await fetchProfile(session.user);
-          break;
-        case 'SIGNED_IN':
-        case 'TOKEN_REFRESHED':
-        case 'USER_UPDATED':
-          setStatus('authed');
-          if (session?.user) await fetchProfile(session.user);
-          break;
-        case 'SIGNED_OUT':
-          setStatus('guest');
-          setProfile(null);
-          setProfileError(null);
-          break;
-        case 'TOKEN_REFRESH_FAILED':
-          // Si el token no se puede refrescar, la sesión es inválida. Forzamos el cierre.
-          await supabase.auth.signOut();
-          setStatus('guest');
-          setProfile(null);
-          setProfileError(null);
-          break;
+      if (session && session.user) {
+        // Si hay una sesión válida, estamos autenticados.
+        if (status !== 'authed') setStatus('authed');
+        
+        // Si el perfil no está cargado o el usuario cambió, lo cargamos.
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || !profile) {
+          await fetchProfile(session.user);
+        }
+      } else {
+        // Si no hay sesión, estamos como invitados.
+        setStatus('guest');
+        setProfile(null);
+        setProfileError(null);
       }
     });
 
@@ -88,7 +77,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       clearTimeout(watchdog);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [profile, status]); // Añadimos profile y status para re-evaluar si es necesario
 
   const value = {
     session,

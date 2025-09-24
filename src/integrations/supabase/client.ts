@@ -7,4 +7,14 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    // Habilita la renovación automática de tokens en segundo plano.
+    // Esta es la clave para mantener la sesión activa.
+    autoRefreshToken: true,
+    // Guarda la sesión en el localStorage para que persista entre recargas de página.
+    persistSession: true,
+    // Detecta la sesión si el usuario llega desde un enlace de autenticación (ej. OAuth).
+    detectSessionInUrl: true
+  }
+});
