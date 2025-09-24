@@ -13,7 +13,7 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
-    { to: '/rib', icon: FileText, label: 'Fichas Rib' },
+    { to: '/rib', icon: FileText, label: 'Crear Rib' },
   ];
 
   return (
