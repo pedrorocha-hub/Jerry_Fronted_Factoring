@@ -255,7 +255,7 @@ const RibCreateEditPage = () => {
                     <CardTitle className="flex items-center justify-between text-white">
                       <div className="flex items-center">
                         <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                        FICHA RUCA
+                        SOLICITUD DE OPERACIÓN
                       </div>
                       <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-400">
                         <CheckCircle className="h-3 w-3 mr-1" />
