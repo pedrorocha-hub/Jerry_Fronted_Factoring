@@ -23,7 +23,7 @@ const Sidebar: React.FC = () => {
       {/* Logo */}
       <div className="p-4 border-b border-gray-800 flex items-center justify-center h-24">
         <div className="flex items-center space-x-3">
-          <img src="https://img.freepik.com/premium-vector/upgrade-button_579710-53.jpg" alt="DocuMind AI Logo" className="h-10 w-10 flex-shrink-0" />
+          <img src="https://sp-ao.shortpixel.ai/client/to_webp,q_glossy,ret_img,w_750,h_375/https://www.psypost.org/wp-content/uploads/2021/03/brain-activity-connections-750x375.jpg" alt="Upgrade AI Logo" className="h-10 w-10 flex-shrink-0 rounded-md object-cover" />
           <div className={`overflow-hidden transition-all duration-200 ${isExpanded ? 'w-32' : 'w-0'}`}>
             <h1 className="text-xl font-bold text-white whitespace-nowrap">Upgrade AI</h1>
             <p className="text-xs text-gray-400 whitespace-nowrap">Análisis Inteligente</p>
