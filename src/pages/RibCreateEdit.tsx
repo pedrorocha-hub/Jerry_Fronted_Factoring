@@ -81,6 +81,14 @@ const RibCreateEditPage = () => {
     }
   }, [id, navigate]);
 
+  useEffect(() => {
+    const riesgo = parseFloat(ribFormData.riesgo_aprobado) || 0;
+    const propuesta = parseFloat(ribFormData.propuesta_comercial) || 0;
+    const total = riesgo + propuesta;
+    const formattedTotal = total % 1 === 0 ? total.toString() : total.toFixed(2);
+    setRibFormData(prev => ({ ...prev, exposicion_total: formattedTotal }));
+  }, [ribFormData.riesgo_aprobado, ribFormData.propuesta_comercial]);
+
   const resetStateAndForm = () => {
     setRucInput('');
     setSearching(false);
@@ -453,17 +461,17 @@ const RibCreateEditPage = () => {
                       </div>
                       <div>
                         <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
-                        <Input id="riesgo_aprobado" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="propuesta_comercial">Propuesta Comercial</Label>
-                        <Input id="propuesta_comercial" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        <Input id="propuesta_comercial" type="number" step="0.01" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
-                        <Label htmlFor="exposicion_total">Exposición Total</Label>
-                        <Input id="exposicion_total" value={ribFormData.exposicion_total} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        <Label htmlFor="exposicion_total">Exposición total (Soles)</Label>
+                        <Input id="exposicion_total" value={ribFormData.exposicion_total} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
                       </div>
                     </div>
                   </CardContent>
