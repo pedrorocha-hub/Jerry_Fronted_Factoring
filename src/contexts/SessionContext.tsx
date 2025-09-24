@@ -14,6 +14,7 @@ interface SessionContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  authError: Error | null;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -22,12 +23,12 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // onAuthStateChange fires on initial load, sign in, sign out, and token refresh.
-    // It's the single source of truth for the user's auth state.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
+      setAuthError(null);
       
       if (session?.user) {
         const { data: profileData, error } = await supabase
@@ -37,15 +38,15 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           .single();
         
         if (error) {
-          console.error('Error fetching profile:', error);
+          console.error('Critical Error Fetching Profile:', error);
           setProfile(null);
+          setAuthError(new Error(`No se pudo cargar el perfil del usuario. Es posible que no tenga los permisos necesarios. Error: ${error.message}`));
         } else {
           setProfile(profileData as Profile);
         }
       } else {
         setProfile(null);
       }
-      // Once the session and profile are loaded (or not), we are done loading.
       setLoading(false);
     });
 
@@ -59,6 +60,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     user: session?.user ?? null,
     profile,
     loading,
+    authError,
   };
 
   return (
