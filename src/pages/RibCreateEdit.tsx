@@ -425,7 +425,7 @@ const RibCreateEditPage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center text-white">
                       <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      RIESGO VIGENTE PROVEEDOR
+                      Riesgo vigente del proveedor
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
