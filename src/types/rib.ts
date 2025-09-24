@@ -16,6 +16,11 @@ export interface Rib {
   riesgo_aprobado?: string | null;
   propuesta_comercial?: string | null;
   exposicion_total?: string | null;
+  fecha_ficha?: string | null;
+  orden_servicio?: string | null;
+  factura?: string | null;
+  tipo_cambio?: number | null;
+  moneda_operacion?: string | null;
 }
 
 export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;

@@ -50,6 +50,11 @@ const RibCreateEditPage = () => {
     riesgo_aprobado: '',
     propuesta_comercial: '',
     exposicion_total: '',
+    fecha_ficha: '',
+    orden_servicio: '',
+    factura: '',
+    tipo_cambio: '',
+    moneda_operacion: '',
   });
 
   useEffect(() => {
@@ -94,6 +99,11 @@ const RibCreateEditPage = () => {
       riesgo_aprobado: '',
       propuesta_comercial: '',
       exposicion_total: '',
+      fecha_ficha: '',
+      orden_servicio: '',
+      factura: '',
+      tipo_cambio: '',
+      moneda_operacion: '',
     });
   };
 
@@ -142,11 +152,16 @@ const RibCreateEditPage = () => {
     }
     setSaving(true);
     try {
+      const dataToSave = {
+        ...ribFormData,
+        tipo_cambio: ribFormData.tipo_cambio ? parseFloat(ribFormData.tipo_cambio) : null,
+      };
+
       if (editingRib) {
-        await RibService.update(editingRib.id, { ruc, ...ribFormData });
+        await RibService.update(editingRib.id, { ruc, ...dataToSave });
         showSuccess('Ficha Rib actualizada exitosamente.');
       } else {
-        await RibService.create({ ruc, ...ribFormData });
+        await RibService.create({ ruc, ...dataToSave });
         showSuccess('Ficha Rib creada exitosamente.');
       }
       navigate('/rib');
@@ -179,6 +194,11 @@ const RibCreateEditPage = () => {
       riesgo_aprobado: rib.riesgo_aprobado || '',
       propuesta_comercial: rib.propuesta_comercial || '',
       exposicion_total: rib.exposicion_total || '',
+      fecha_ficha: rib.fecha_ficha || '',
+      orden_servicio: rib.orden_servicio || '',
+      factura: rib.factura || '',
+      tipo_cambio: rib.tipo_cambio?.toString() || '',
+      moneda_operacion: rib.moneda_operacion || '',
     });
     handleSearch(rib.ruc);
     window.scrollTo(0, 0);
@@ -394,6 +414,40 @@ const RibCreateEditPage = () => {
                       <div>
                         <Label htmlFor="exposicion_total">Exposición Total</Label>
                         <Input id="exposicion_total" value={ribFormData.exposicion_total} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t border-gray-800 mt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <Label htmlFor="fecha_ficha">Fecha de Ficha</Label>
+                          <Input id="fecha_ficha" type="date" value={ribFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        </div>
+                        <div>
+                          <Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label>
+                          <Input id="orden_servicio" value={ribFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        </div>
+                        <div>
+                          <Label htmlFor="factura">Factura (Sí/No)</Label>
+                          <Input id="factura" value={ribFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <Label htmlFor="tipo_cambio">Tipo de Cambio</Label>
+                          <Input id="tipo_cambio" type="number" step="0.01" value={ribFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        </div>
+                        <div>
+                          <Label htmlFor="moneda_operacion">Moneda de Operación</Label>
+                          <Select value={ribFormData.moneda_operacion} onValueChange={(value) => setRibFormData(prev => ({ ...prev, moneda_operacion: value }))}>
+                            <SelectTrigger className="bg-gray-900/50 border-gray-700">
+                              <SelectValue placeholder="Seleccionar moneda" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                              <SelectItem value="Soles" className="hover:bg-gray-800">Soles</SelectItem>
+                              <SelectItem value="Dolares" className="hover:bg-gray-800">Dólares</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
