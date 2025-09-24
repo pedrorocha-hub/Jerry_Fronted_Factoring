@@ -1,9 +1,20 @@
 import React from 'react';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useSession } from '@/contexts/SessionContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Header: React.FC = () => {
+  const { user, profile, signOut } = useSession();
+
   return (
     <header className="bg-[#121212] border-b border-gray-800 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -20,7 +31,6 @@ const Header: React.FC = () => {
 
         {/* Right side actions */}
         <div className="flex items-center space-x-4">
-          {/* Notifications */}
           <Button
             variant="ghost"
             size="sm"
@@ -28,6 +38,29 @@ const Header: React.FC = () => {
           >
             <Bell className="h-5 w-5" />
           </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center text-white">
+                  {user?.email?.charAt(0).toUpperCase()}
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-[#121212] border-gray-800 text-white" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.email}</p>
+                  <p className="text-xs leading-none text-gray-400">{profile?.role}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-gray-800" />
+              <DropdownMenuItem onClick={signOut} className="cursor-pointer hover:bg-gray-800">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Cerrar sesión</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
