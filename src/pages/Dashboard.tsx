@@ -480,12 +480,12 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Análisis de Riesgo Section */}
+          {/* Creación del RIB */}
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />
-                Análisis de Riesgo
+                Creación del RIB
               </CardTitle>
             </CardHeader>
             <CardContent>
