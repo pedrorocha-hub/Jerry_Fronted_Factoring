@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Building2, FileText, Users, Calendar, RefreshCw } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import FichaRucTable from '@/components/ficha-ruc/FichaRucTable';
@@ -11,6 +12,7 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
 const FichaRucPage = () => {
+  const navigate = useNavigate();
   const [fichas, setFichas] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -294,7 +296,7 @@ const FichaRucPage = () => {
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={() => window.location.href = '/upload'}
+                    onClick={() => navigate('/upload')}
                     className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
                   >
                     Ir a Subir PDFs

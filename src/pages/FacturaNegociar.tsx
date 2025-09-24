@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Receipt, DollarSign, Calendar, RefreshCw, TrendingUp, AlertCircle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import FacturaNegociarTable from '@/components/factura-negociar/FacturaNegociarTable';
@@ -11,6 +12,7 @@ import { FacturaNegociarService } from '@/services/facturaNegociarService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
 const FacturaNegociarPage = () => {
+  const navigate = useNavigate();
   const [facturas, setFacturas] = useState<FacturaNegociarWithFicha[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +117,7 @@ const FacturaNegociarPage = () => {
       // Crear algunas facturas de prueba
       const testFacturas = [
         {
-          ficha_ruc_id: 1, // Assuming there's at least one ficha_ruc
+          ruc: '20123456789',
           numero_factura: 'F001-00000123',
           fecha_emision: '2024-01-15',
           fecha_vencimiento: '2024-02-15',
@@ -125,7 +127,7 @@ const FacturaNegociarPage = () => {
           estado_negociacion: 'Pendiente'
         },
         {
-          ficha_ruc_id: 1,
+          ruc: '20123456789',
           numero_factura: 'F001-00000124',
           fecha_emision: '2024-01-20',
           fecha_vencimiento: '2024-02-20',
@@ -137,7 +139,7 @@ const FacturaNegociarPage = () => {
           monto_negociado: 8000.00
         },
         {
-          ficha_ruc_id: 1,
+          ruc: '20123456789',
           numero_factura: 'F001-00000125',
           fecha_emision: '2023-12-10',
           fecha_vencimiento: '2024-01-10',
@@ -149,7 +151,7 @@ const FacturaNegociarPage = () => {
       ];
 
       for (const facturaData of testFacturas) {
-        await FacturaNegociarService.create(facturaData);
+        await FacturaNegociarService.create(facturaData as any);
       }
 
       dismissToast(loadingToast);
@@ -360,7 +362,7 @@ const FacturaNegociarPage = () => {
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={() => window.location.href = '/upload'}
+                    onClick={() => navigate('/upload')}
                     className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
                   >
                     Ir a Subir PDFs

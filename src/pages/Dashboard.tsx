@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
   Building2, 
@@ -33,6 +34,7 @@ import { FacturaNegociarService } from '@/services/facturaNegociarService';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     documentos: { total: 0, procesados: 0, pendientes: 0, errores: 0 },
     fichasRuc: { total: 0, activas: 0, inactivas: 0 },
@@ -43,7 +45,7 @@ const Dashboard = () => {
     reportes: { total: 0, thisYear: 0, lastYear: 0 }
   });
 
-  const [recentActivity, setRecentActivity] = useState([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -142,7 +144,7 @@ const Dashboard = () => {
     }
   };
 
-  const getActivityIcon = (type) => {
+  const getActivityIcon = (type: string) => {
     switch (type) {
       case 'ficha_ruc':
         return <Building2 className="h-4 w-4 text-[#00FF80]" />;
@@ -157,7 +159,7 @@ const Dashboard = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
         return <span className="px-2 py-1 text-xs bg-[#00FF80]/10 text-[#00FF80] rounded-full border border-[#00FF80]/20">✨ Procesado por IA</span>;
@@ -205,7 +207,7 @@ const Dashboard = () => {
               </div>
               <Button 
                 className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium"
-                onClick={() => window.location.href = '/upload'}
+                onClick={() => navigate('/upload')}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Subir Documentos
@@ -431,7 +433,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-blue-500/50"
-                  onClick={() => window.location.href = '/ficha-ruc'}
+                  onClick={() => navigate('/ficha-ruc')}
                 >
                   <Building2 className="h-6 w-6" />
                   <span className="text-xs">Fichas RUC</span>
@@ -439,7 +441,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-purple-500/50"
-                  onClick={() => window.location.href = '/representante-legal'}
+                  onClick={() => navigate('/representante-legal')}
                 >
                   <Users className="h-6 w-6" />
                   <span className="text-xs">Representantes</span>
@@ -447,7 +449,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-green-500/50"
-                  onClick={() => window.location.href = '/cuenta-bancaria'}
+                  onClick={() => navigate('/cuenta-bancaria')}
                 >
                   <CreditCard className="h-6 w-6" />
                   <span className="text-xs">Cuentas Bancarias</span>
@@ -455,7 +457,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-orange-500/50"
-                  onClick={() => window.location.href = '/vigencia-poderes'}
+                  onClick={() => navigate('/vigencia-poderes')}
                 >
                   <Scale className="h-6 w-6" />
                   <span className="text-xs">Vigencia Poderes</span>
@@ -463,7 +465,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-yellow-500/50"
-                  onClick={() => window.location.href = '/factura-negociar'}
+                  onClick={() => navigate('/factura-negociar')}
                 >
                   <Receipt className="h-6 w-6" />
                   <span className="text-xs">Facturas</span>
@@ -471,7 +473,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-cyan-500/50"
-                  onClick={() => window.location.href = '/reporte-tributario'}
+                  onClick={() => navigate('/reporte-tributario')}
                 >
                   <FileBarChart className="h-6 w-6" />
                   <span className="text-xs">Reportes Tributarios</span>
@@ -493,7 +495,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-pink-500/50"
-                  onClick={() => window.location.href = '/rib'}
+                  onClick={() => navigate('/rib')}
                 >
                   <FileText className="h-6 w-6" />
                   <span className="text-xs">Rib</span>
@@ -509,7 +511,7 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-cyan-500/50"
-                  onClick={() => window.location.href = '/reporte-tributario'}
+                  onClick={() => navigate('/reporte-tributario')}
                 >
                   <FileBarChart className="h-6 w-6" />
                   <span className="text-xs">Reporte Tributario Deudor</span>
