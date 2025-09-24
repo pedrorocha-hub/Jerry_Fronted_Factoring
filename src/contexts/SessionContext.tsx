@@ -41,9 +41,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        setLoading(true);
         await fetchProfile(session.user.id);
-        setLoading(false);
       } else {
         setProfile(null);
       }

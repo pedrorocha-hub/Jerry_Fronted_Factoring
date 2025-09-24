@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useSession } from '@/contexts/SessionContext';
-import Layout from '@/components/layout/Layout';
 
 const ProtectedRoute: React.FC = () => {
   const { session, loading } = useSession();
@@ -18,11 +17,7 @@ const ProtectedRoute: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  return (
-    <Layout>
-      <Outlet />
-    </Layout>
-  );
+  return <Outlet />;
 };
 
 export default ProtectedRoute;
