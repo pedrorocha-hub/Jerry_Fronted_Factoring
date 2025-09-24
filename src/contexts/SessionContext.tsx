@@ -6,6 +6,8 @@ export interface Profile {
   id: string;
   role: 'ADMINISTRADOR' | 'COMERCIAL';
   updated_at: string;
+  first_name: string | null;
+  last_name: string | null;
 }
 
 interface SessionContextType {
@@ -29,11 +31,10 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
-      setLoading(false); // <-- Se establece loading en false aquí, sin esperar el perfil
-
       if (session?.user) {
-        await fetchProfile(session.user.id); // El perfil se carga después
+        await fetchProfile(session.user.id);
       }
+      setLoading(false);
     };
 
     getInitialSession();
