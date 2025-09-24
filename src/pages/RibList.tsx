@@ -148,7 +148,7 @@ const RibListPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center">
                 <FileText className="h-6 w-6 mr-3 text-[#00FF80]" />
-                Fichas Rib
+                FICHAS RIB
               </h1>
               <p className="text-gray-400">Reportes de Inicio Básico de empresa</p>
             </div>
