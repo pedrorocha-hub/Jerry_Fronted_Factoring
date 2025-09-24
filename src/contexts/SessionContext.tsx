@@ -9,7 +9,7 @@ interface Profile {
   role: 'Administrador' | 'Comercial';
 }
 
-type AuthStatus = 'unknown' | 'authed' | 'guest' | 'error';
+type AuthStatus = 'unknown' | 'authed' | 'guest';
 
 interface SessionContextType {
   session: Session | null;
@@ -28,16 +28,23 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [profileError, setProfileError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Watchdog para evitar el spinner infinito si Supabase no responde.
+    const watchdog = setTimeout(() => {
+      if (status === 'unknown') {
+        console.error("Supabase auth state did not resolve in 4 seconds. Forcing to 'guest' state.");
+        setStatus('guest');
+      }
+    }, 4000);
+
     const fetchProfile = async (user: User) => {
       try {
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (profileError) throw profileError;
-        
+        if (error) throw error;
         setProfile(profileData as Profile);
         setProfileError(null);
       } catch (error) {
@@ -47,34 +54,38 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
       }
     };
 
-    // Check initial session state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        setStatus('authed');
-        fetchProfile(session.user);
-      } else {
-        setStatus('guest');
-      }
-    });
-
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      clearTimeout(watchdog); // El listener respondió, desactivamos el watchdog.
       setSession(session);
-      
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        setStatus('authed');
-        if (session?.user) {
-          await fetchProfile(session.user);
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setStatus('guest');
-        setProfile(null);
-        setProfileError(null);
+
+      switch (event) {
+        case 'INITIAL_SESSION':
+          setStatus(session ? 'authed' : 'guest');
+          if (session?.user) await fetchProfile(session.user);
+          break;
+        case 'SIGNED_IN':
+        case 'TOKEN_REFRESHED':
+        case 'USER_UPDATED':
+          setStatus('authed');
+          if (session?.user) await fetchProfile(session.user);
+          break;
+        case 'SIGNED_OUT':
+          setStatus('guest');
+          setProfile(null);
+          setProfileError(null);
+          break;
+        case 'TOKEN_REFRESH_FAILED':
+          // Si el token no se puede refrescar, la sesión es inválida. Forzamos el cierre.
+          await supabase.auth.signOut();
+          setStatus('guest');
+          setProfile(null);
+          setProfileError(null);
+          break;
       }
     });
 
     return () => {
+      clearTimeout(watchdog);
       subscription.unsubscribe();
     };
   }, []);

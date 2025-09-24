@@ -17,7 +17,7 @@ const ProtectedRoute = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Si status es 'authed' o 'error' (en caso de error de perfil, aún permitimos el acceso)
+  // Si status es 'authed', permitimos el acceso incluso si hay un error de perfil.
   return <Outlet />;
 };
 
