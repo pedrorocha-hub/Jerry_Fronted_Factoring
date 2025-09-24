@@ -15,7 +15,8 @@ import {
   CheckCircle,
   AlertCircle,
   ClipboardEdit,
-  ShieldCheck
+  ShieldCheck,
+  List
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -500,10 +501,10 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-teal-500/50"
-                  onClick={() => window.location.href = '/solicitud-operacion'}
+                  onClick={() => window.location.href = '/top-10k'}
                 >
-                  <ClipboardEdit className="h-6 w-6" />
-                  <span className="text-xs">Solicitud de Operación</span>
+                  <List className="h-6 w-6" />
+                  <span className="text-xs">Top 10k</span>
                 </Button>
                 <Button 
                   variant="outline" 
