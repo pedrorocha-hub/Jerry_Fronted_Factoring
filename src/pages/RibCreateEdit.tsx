@@ -152,9 +152,10 @@ const RibCreateEditPage = () => {
     }
     setSaving(true);
     try {
+      const parsedTipoCambio = parseFloat(ribFormData.tipo_cambio);
       const dataToSave = {
         ...ribFormData,
-        tipo_cambio: ribFormData.tipo_cambio ? parseFloat(ribFormData.tipo_cambio) : null,
+        tipo_cambio: isNaN(parsedTipoCambio) ? null : parsedTipoCambio,
       };
 
       if (editingRib) {
@@ -166,7 +167,9 @@ const RibCreateEditPage = () => {
       }
       navigate('/rib');
     } catch (err) {
-      showError('No se pudo guardar la ficha Rib.');
+      const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido.';
+      showError(`No se pudo guardar la ficha Rib: ${errorMessage}`);
+      console.error("Save error:", err);
     } finally {
       setSaving(false);
     }
