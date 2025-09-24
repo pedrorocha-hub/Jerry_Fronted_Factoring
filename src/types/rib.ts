@@ -21,6 +21,7 @@ export interface Rib {
   factura?: string | null;
   tipo_cambio?: number | null;
   moneda_operacion?: string | null;
+  resumen_solicitud?: string | null;
 }
 
 export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;

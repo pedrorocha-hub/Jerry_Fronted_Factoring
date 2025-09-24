@@ -57,6 +57,7 @@ const RibCreateEditPage = () => {
     factura: '',
     tipo_cambio: '',
     moneda_operacion: '',
+    resumen_solicitud: '',
   });
 
   useEffect(() => {
@@ -106,6 +107,7 @@ const RibCreateEditPage = () => {
       factura: '',
       tipo_cambio: '',
       moneda_operacion: '',
+      resumen_solicitud: '',
     });
   };
 
@@ -208,6 +210,7 @@ const RibCreateEditPage = () => {
       factura: rib.factura || '',
       tipo_cambio: rib.tipo_cambio?.toString() || '',
       moneda_operacion: rib.moneda_operacion || '',
+      resumen_solicitud: rib.resumen_solicitud || '',
     });
     handleSearch(rib.ruc);
     window.scrollTo(0, 0);
@@ -332,6 +335,10 @@ const RibCreateEditPage = () => {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="resumen_solicitud">Resumen de solicitud</Label>
+                      <Textarea id="resumen_solicitud" value={ribFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                     </div>
                   </CardContent>
                 </Card>
