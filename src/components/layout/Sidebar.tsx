@@ -3,7 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { 
   Home, 
   Upload, 
-  Zap
+  Zap,
+  FileText
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -12,6 +13,7 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
+    { to: '/rib', icon: FileText, label: 'Fichas Rib' },
   ];
 
   return (
