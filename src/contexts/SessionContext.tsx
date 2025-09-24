@@ -24,43 +24,38 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setLoading(true);
+    const fetchSessionAndProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
 
       if (session?.user) {
-        const { data: profileData, error } = await supabase
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
-        
-        if (error) {
-          console.error('Error fetching profile:', error);
-        } else {
-          setProfile(profileData as Profile);
-        }
+        setProfile(profileData as Profile);
       } else {
         setProfile(null);
       }
       setLoading(false);
-    });
+    };
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    fetchSessionAndProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data, error }) => {
-            if (!error) setProfile(data as Profile);
-            setLoading(false);
-          });
-      } else {
-        setLoading(false);
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session?.user) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          setProfile(profileData as Profile);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setProfile(null);
       }
     });
 
@@ -78,7 +73,7 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
 
   return (
     <SessionContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </SessionContext.Provider>
   );
 };
