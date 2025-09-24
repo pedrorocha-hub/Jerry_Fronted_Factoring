@@ -26,70 +26,53 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
   const [authError, setAuthError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchSessionAndProfile = async () => {
-      setLoading(true);
-      setAuthError(null);
-
+    const fetchProfile = async (user: User) => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        
-        setSession(session);
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-        if (session?.user) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profileError) {
-            throw new Error(`Error al cargar el perfil: ${profileError.message}`);
-          }
-          setProfile(profileData as Profile);
-        } else {
-          setProfile(null);
+        if (profileError) {
+          throw new Error(`Error al cargar el perfil: ${profileError.message}. Es posible que no tengas permisos para ver tu propio perfil.`);
         }
+        
+        setProfile(profileData as Profile);
+        setAuthError(null);
       } catch (error) {
-        console.error("Auth Error:", error);
+        console.error("Error fetching profile:", error);
         setAuthError(error as Error);
         setProfile(null);
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchSessionAndProfile();
+    const initializeSession = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        setAuthError(sessionError);
+      } else {
+        setSession(session);
+        if (session?.user) {
+          await fetchProfile(session.user);
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`Auth event: ${event}`);
       setSession(session);
-      setAuthError(null);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         if (session?.user) {
-          setLoading(true);
-          try {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (profileError) {
-              throw new Error(`Error al refrescar el perfil: ${profileError.message}`);
-            }
-            setProfile(profileData as Profile);
-          } catch (error) {
-            console.error("Auth Error on change:", error);
-            setAuthError(error as Error);
-            setProfile(null);
-          } finally {
-            setLoading(false);
-          }
+          await fetchProfile(session.user);
         }
       } else if (event === 'SIGNED_OUT') {
         setProfile(null);
+        setAuthError(null);
       }
     });
 
