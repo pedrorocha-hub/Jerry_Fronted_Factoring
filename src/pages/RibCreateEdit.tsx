@@ -347,7 +347,7 @@ const RibCreateEditPage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center text-white">
                       <ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      Riesgo Vigente del Deudor
+                      RIESGO VIGENTE PROVEEDOR
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
