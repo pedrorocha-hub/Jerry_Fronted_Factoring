@@ -12,7 +12,8 @@ import VigenciaPoderes from '@/pages/VigenciaPoderes';
 import FacturaNegociar from '@/pages/FacturaNegociar';
 import ReporteTributario from '@/pages/ReporteTributario';
 import SolicitudOperacion from '@/pages/SolicitudOperacion';
-import RibPage from '@/pages/Rib';
+import RibList from '@/pages/RibList';
+import RibCreateEdit from '@/pages/RibCreateEdit';
 
 function App() {
   return (
@@ -28,7 +29,9 @@ function App() {
           <Route path="/factura-negociar" element={<FacturaNegociar />} />
           <Route path="/reporte-tributario" element={<ReporteTributario />} />
           <Route path="/solicitud-operacion" element={<SolicitudOperacion />} />
-          <Route path="/rib" element={<RibPage />} />
+          <Route path="/rib" element={<RibList />} />
+          <Route path="/rib/new" element={<RibCreateEdit />} />
+          <Route path="/rib/edit/:id" element={<RibCreateEdit />} />
         </Routes>
         
         {/* Toast notifications with dark theme using Sonner */}

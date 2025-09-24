@@ -29,6 +29,24 @@ export class RibService {
     return data || [];
   }
 
+  static async getById(id: string): Promise<Rib | null> {
+    const { data, error } = await supabase
+      .from('ribs')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching Rib by ID:', error);
+      // Don't throw if not found, just return null
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error(`Error fetching Rib by ID: ${error.message}`);
+    }
+    return data;
+  }
+
   static async update(id: string, ribData: RibUpdate): Promise<Rib> {
     const { data, error } = await supabase
       .from('ribs')
