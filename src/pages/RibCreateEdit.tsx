@@ -25,6 +25,8 @@ interface Top10kData {
   facturado_2023_soles_maximo: string | null;
 }
 
+const getTodayDate = () => new Date().toISOString().split('T')[0];
+
 const RibCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -50,7 +52,7 @@ const RibCreateEditPage = () => {
     riesgo_aprobado: '',
     propuesta_comercial: '',
     exposicion_total: '',
-    fecha_ficha: '',
+    fecha_ficha: getTodayDate(),
     orden_servicio: '',
     factura: '',
     tipo_cambio: '',
@@ -99,7 +101,7 @@ const RibCreateEditPage = () => {
       riesgo_aprobado: '',
       propuesta_comercial: '',
       exposicion_total: '',
-      fecha_ficha: '',
+      fecha_ficha: getTodayDate(),
       orden_servicio: '',
       factura: '',
       tipo_cambio: '',
@@ -121,6 +123,10 @@ const RibCreateEditPage = () => {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
+        setRibFormData(prev => ({
+            ...prev,
+            proveedor: fichaData.nombre_empresa,
+        }));
         if (!editingRib) showSuccess('Ficha RUC encontrada.');
 
         const { data: topData, error: topError } = await supabase
@@ -197,7 +203,7 @@ const RibCreateEditPage = () => {
       riesgo_aprobado: rib.riesgo_aprobado || '',
       propuesta_comercial: rib.propuesta_comercial || '',
       exposicion_total: rib.exposicion_total || '',
-      fecha_ficha: rib.fecha_ficha || '',
+      fecha_ficha: rib.fecha_ficha || getTodayDate(),
       orden_servicio: rib.orden_servicio || '',
       factura: rib.factura || '',
       tipo_cambio: rib.tipo_cambio?.toString() || '',
@@ -283,9 +289,23 @@ const RibCreateEditPage = () => {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="fecha_ficha">Fecha de Ficha</Label>
+                        <Label htmlFor="fecha_ficha">Fecha del día</Label>
                         <Input id="fecha_ficha" type="date" value={ribFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
+                      <div>
+                        <Label htmlFor="proveedor">Proveedor</Label>
+                        <Input id="proveedor" value={searchedFicha?.nombre_empresa || ''} disabled className="bg-gray-900/50 border-gray-700" />
+                      </div>
+                      <div>
+                        <Label htmlFor="ruc">Número de RUC</Label>
+                        <Input id="ruc" value={searchedFicha?.ruc || ''} disabled className="bg-gray-900/50 border-gray-700 font-mono" />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="actividad">Actividad</Label>
+                      <Input id="actividad" value={searchedFicha?.actividad_empresa || ''} disabled className="bg-gray-900/50 border-gray-700" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label>
                         <Input id="orden_servicio" value={ribFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
@@ -301,7 +321,7 @@ const RibCreateEditPage = () => {
                         <Input id="tipo_cambio" type="number" step="0.01" value={ribFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
-                        <Label htmlFor="moneda_operacion">Moneda de Operación</Label>
+                        <Label htmlFor="moneda_operacion">Moneda de la Operación</Label>
                         <Select value={ribFormData.moneda_operacion} onValueChange={(value) => setRibFormData(prev => ({ ...prev, moneda_operacion: value }))}>
                           <SelectTrigger className="bg-gray-900/50 border-gray-700">
                             <SelectValue placeholder="Seleccionar moneda" />
@@ -402,7 +422,7 @@ const RibCreateEditPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="lp">L/P</Label>
                         <Input id="lp" value={ribFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
@@ -410,10 +430,6 @@ const RibCreateEditPage = () => {
                       <div>
                         <Label htmlFor="producto">Producto</Label>
                         <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                      </div>
-                      <div>
-                        <Label htmlFor="proveedor">Proveedor</Label>
-                        <Input id="proveedor" value={ribFormData.proveedor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
