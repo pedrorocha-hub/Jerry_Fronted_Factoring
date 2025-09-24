@@ -16,6 +16,7 @@ import { RibService } from '@/services/ribService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useSession } from '@/contexts/SessionContext';
 
 interface Top10kData {
   descripcion_ciiu_rev3: string | null;
@@ -30,6 +31,8 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
 const RibCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useSession();
+  const isComercial = profile?.role === 'Comercial';
 
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -84,12 +87,13 @@ const RibCreateEditPage = () => {
   }, [id, navigate]);
 
   useEffect(() => {
+    if (isComercial) return; // No auto-calcular si es comercial para que el admin pueda ajustar
     const riesgo = parseFloat(ribFormData.riesgo_aprobado) || 0;
     const propuesta = parseFloat(ribFormData.propuesta_comercial) || 0;
     const total = riesgo + propuesta;
     const formattedTotal = total % 1 === 0 ? total.toString() : total.toFixed(2);
     setRibFormData(prev => ({ ...prev, exposicion_total: formattedTotal }));
-  }, [ribFormData.riesgo_aprobado, ribFormData.propuesta_comercial]);
+  }, [ribFormData.riesgo_aprobado, ribFormData.propuesta_comercial, isComercial]);
 
   const resetStateAndForm = () => {
     setRucInput('');
@@ -385,11 +389,11 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="lp_vigente_gve">L/P Vigente (GVE)</Label>
-                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isComercial} />
                       </div>
                       <div>
                         <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
-                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isComercial} />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
