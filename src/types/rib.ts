@@ -22,6 +22,7 @@ export interface Rib {
   tipo_cambio?: number | null;
   moneda_operacion?: string | null;
   resumen_solicitud?: string | null;
+  deudor?: string | null;
 }
 
 export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;

@@ -58,6 +58,7 @@ const RibCreateEditPage = () => {
     tipo_cambio: '',
     moneda_operacion: '',
     resumen_solicitud: '',
+    deudor: '',
   });
 
   useEffect(() => {
@@ -108,6 +109,7 @@ const RibCreateEditPage = () => {
       tipo_cambio: '',
       moneda_operacion: '',
       resumen_solicitud: '',
+      deudor: '',
     });
   };
 
@@ -211,6 +213,7 @@ const RibCreateEditPage = () => {
       tipo_cambio: rib.tipo_cambio?.toString() || '',
       moneda_operacion: rib.moneda_operacion || '',
       resumen_solicitud: rib.resumen_solicitud || '',
+      deudor: rib.deudor || '',
     });
     handleSearch(rib.ruc);
     window.scrollTo(0, 0);
@@ -347,7 +350,7 @@ const RibCreateEditPage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center text-white">
                       <ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      RIESGO VIGENTE PROVEEDOR
+                      Riesgo Vigente del Deudor
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -425,7 +428,7 @@ const RibCreateEditPage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center text-white">
                       <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      RIESGO VIGENTE PROVEEDOR
+                      Condiciones Comerciales
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -438,6 +441,10 @@ const RibCreateEditPage = () => {
                         <Label htmlFor="producto">Producto</Label>
                         <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="deudor">Deudor (es)</Label>
+                      <Input id="deudor" value={ribFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
