@@ -12,8 +12,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Rib } from '@/types/rib';
 
+// Define an extended type for Ribs that includes the company name
+interface RibWithCompanyName extends Rib {
+  nombre_empresa?: string;
+}
+
 interface RibTableProps {
-  ribs: Rib[];
+  ribs: RibWithCompanyName[];
   onEdit: (rib: Rib) => void;
   onDelete: (rib: Rib) => void;
   onDownload: (rib: Rib) => void;
@@ -38,7 +43,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
       <Table>
         <TableHeader>
           <TableRow className="border-gray-800 hover:bg-gray-900/50">
-            <TableHead className="text-gray-300">RUC</TableHead>
+            <TableHead className="text-gray-300">Empresa</TableHead>
             <TableHead className="text-gray-300">Estado</TableHead>
             <TableHead className="text-gray-300">Fecha de Creación</TableHead>
             <TableHead className="text-right text-gray-300">Acciones</TableHead>
@@ -55,7 +60,10 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
           ) : (
             ribs.map((rib) => (
               <TableRow key={rib.id} className="border-gray-800">
-                <TableCell className="font-mono text-white">{rib.ruc}</TableCell>
+                <TableCell>
+                  <div className="font-mono text-white">{rib.ruc}</div>
+                  <div className="text-xs text-gray-400">{rib.nombre_empresa}</div>
+                </TableCell>
                 <TableCell>{getStatusBadge(rib.status)}</TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2 text-sm text-gray-400">

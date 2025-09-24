@@ -21,9 +21,15 @@ interface Top10kData {
   ranking_2024: number | null;
 }
 
+// Define an extended type for Ribs that includes the company name
+interface RibWithCompanyName extends Rib {
+  nombre_empresa?: string;
+}
+
 const RibListPage = () => {
   const navigate = useNavigate();
-  const [ribs, setRibs] = useState<Rib[]>([]);
+  // Use the new extended type for the state
+  const [ribs, setRibs] = useState<RibWithCompanyName[]>([]);
   const [loadingRibs, setLoadingRibs] = useState(true);
   const [pdfData, setPdfData] = useState<{ rib: Rib; ficha: FichaRuc; top10k: Top10kData | null } | null>(null);
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
@@ -58,8 +64,34 @@ const RibListPage = () => {
   const loadRibs = async () => {
     setLoadingRibs(true);
     try {
-      const data = await RibService.getAll();
-      setRibs(data);
+      const ribData = await RibService.getAll();
+      
+      if (ribData && ribData.length > 0) {
+        // Get unique RUCs to fetch company names
+        const rucs = [...new Set(ribData.map(r => r.ruc))];
+        
+        // Fetch corresponding FichaRuc data
+        const { data: fichasData, error: fichasError } = await supabase
+          .from('ficha_ruc')
+          .select('ruc, nombre_empresa')
+          .in('ruc', rucs);
+
+        if (fichasError) throw fichasError;
+
+        // Create a map for easy lookup
+        const rucToNameMap = new Map(fichasData.map(f => [f.ruc, f.nombre_empresa]));
+
+        // Enrich the Rib data with the company name
+        const enrichedRibs = ribData.map(rib => ({
+          ...rib,
+          nombre_empresa: rucToNameMap.get(rib.ruc) || 'Razón Social no encontrada'
+        }));
+        
+        setRibs(enrichedRibs);
+      } else {
+        setRibs([]);
+      }
+
     } catch (err) {
       showError('No se pudieron cargar las fichas Rib existentes.');
     } finally {
