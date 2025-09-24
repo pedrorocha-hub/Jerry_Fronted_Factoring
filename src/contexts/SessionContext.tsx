@@ -9,12 +9,14 @@ interface Profile {
   role: 'Administrador' | 'Comercial';
 }
 
+type AuthStatus = 'unknown' | 'authed' | 'guest' | 'error';
+
 interface SessionContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  loading: boolean;
-  authError: Error | null;
+  status: AuthStatus;
+  profileError: Error | null;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -22,8 +24,8 @@ const SessionContext = createContext<SessionContextType | undefined>(undefined);
 export const SessionContextProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<Error | null>(null);
+  const [status, setStatus] = useState<AuthStatus>('unknown');
+  const [profileError, setProfileError] = useState<Error | null>(null);
 
   useEffect(() => {
     const fetchProfile = async (user: User) => {
@@ -34,45 +36,41 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
           .eq('id', user.id)
           .single();
 
-        if (profileError) {
-          throw new Error(`Error al cargar el perfil: ${profileError.message}. Es posible que no tengas permisos para ver tu propio perfil.`);
-        }
+        if (profileError) throw profileError;
         
         setProfile(profileData as Profile);
-        setAuthError(null);
+        setProfileError(null);
       } catch (error) {
         console.error("Error fetching profile:", error);
-        setAuthError(error as Error);
+        setProfileError(error as Error);
         setProfile(null);
       }
     };
 
-    const initializeSession = async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        setAuthError(sessionError);
+    // Check initial session state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        setStatus('authed');
+        fetchProfile(session.user);
       } else {
-        setSession(session);
-        if (session?.user) {
-          await fetchProfile(session.user);
-        }
+        setStatus('guest');
       }
-      setLoading(false);
-    };
+    });
 
-    initializeSession();
-
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        setStatus('authed');
         if (session?.user) {
           await fetchProfile(session.user);
         }
       } else if (event === 'SIGNED_OUT') {
+        setStatus('guest');
         setProfile(null);
-        setAuthError(null);
+        setProfileError(null);
       }
     });
 
@@ -85,8 +83,8 @@ export const SessionContextProvider = ({ children }: { children: ReactNode }) =>
     session,
     user: session?.user ?? null,
     profile,
-    loading,
-    authError,
+    status,
+    profileError,
   };
 
   return (

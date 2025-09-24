@@ -14,10 +14,20 @@ import { useSession } from '@/contexts/SessionContext';
 import { supabase } from '@/integrations/supabase/client';
 
 const Header: React.FC = () => {
-  const { profile } = useSession();
+  const { profile, user } = useSession();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+  };
+
+  const getDisplayName = () => {
+    if (profile) {
+      return `${profile.first_name} ${profile.last_name}`;
+    }
+    if (user) {
+      return user.email;
+    }
+    return 'Mi Cuenta';
   };
 
   return (
@@ -62,7 +72,7 @@ const Header: React.FC = () => {
               className="w-56 bg-[#121212] border-gray-800"
             >
               <DropdownMenuLabel className="text-white">
-                {profile ? `${profile.first_name} ${profile.last_name}` : 'Mi Cuenta'}
+                {getDisplayName()}
                 {profile && <p className="text-xs text-gray-400 font-normal">{profile.role}</p>}
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-gray-800" />

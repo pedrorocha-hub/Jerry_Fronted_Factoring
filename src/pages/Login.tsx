@@ -7,13 +7,13 @@ import { useSession } from '@/contexts/SessionContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { session } = useSession();
+  const { status } = useSession();
 
   useEffect(() => {
-    if (session) {
+    if (status === 'authed') {
       navigate('/');
     }
-  }, [session, navigate]);
+  }, [status, navigate]);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center">
