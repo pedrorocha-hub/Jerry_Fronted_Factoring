@@ -1,15 +1,7 @@
 import React from 'react';
-import { Bell, Search, User, Settings } from 'lucide-react';
+import { Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 const Header: React.FC = () => {
   return (
@@ -36,33 +28,6 @@ const Header: React.FC = () => {
           >
             <Bell className="h-5 w-5" />
           </Button>
-
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-gray-400 hover:text-white hover:bg-gray-800"
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="end" 
-              className="w-56 bg-[#121212] border-gray-800"
-            >
-              <DropdownMenuLabel className="text-white">Mi Cuenta</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-gray-800" />
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Configuración</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white">
-                <span>Cerrar Sesión</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>

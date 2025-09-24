@@ -22,17 +22,9 @@ export class DispatchService {
 
   static async dispatchDocument(documentData: DispatchDocumentRequest): Promise<DispatchDocumentResponse> {
     try {
-      // Get current session for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-
-      // Add authorization header if user is authenticated
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
 
       const response = await fetch(this.EDGE_FUNCTION_URL, {
         method: 'POST',
