@@ -29,10 +29,11 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false); // <-- Se establece loading en false aquí, sin esperar el perfil
+
       if (session?.user) {
-        await fetchProfile(session.user.id);
+        await fetchProfile(session.user.id); // El perfil se carga después
       }
-      setLoading(false);
     };
 
     getInitialSession();
