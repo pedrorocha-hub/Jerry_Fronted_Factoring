@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Eye } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,6 @@ import { RibService } from '@/services/ribService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useSession } from '@/contexts/SessionContext';
 
 interface Top10kData {
   descripcion_ciiu_rev3: string | null;
@@ -31,9 +30,6 @@ const getTodayDate = () => new Date().toISOString().split('T')[0];
 const RibCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { profile } = useSession();
-  const isComercial = profile?.role === 'Comercial';
-  const isReadOnly = isComercial && !!id; // Solo lectura si es comercial y está editando
 
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -88,13 +84,12 @@ const RibCreateEditPage = () => {
   }, [id, navigate]);
 
   useEffect(() => {
-    if (isComercial) return; // No auto-calcular si es comercial para que el admin pueda ajustar
     const riesgo = parseFloat(ribFormData.riesgo_aprobado) || 0;
     const propuesta = parseFloat(ribFormData.propuesta_comercial) || 0;
     const total = riesgo + propuesta;
     const formattedTotal = total % 1 === 0 ? total.toString() : total.toFixed(2);
     setRibFormData(prev => ({ ...prev, exposicion_total: formattedTotal }));
-  }, [ribFormData.riesgo_aprobado, ribFormData.propuesta_comercial, isComercial]);
+  }, [ribFormData.riesgo_aprobado, ribFormData.propuesta_comercial]);
 
   const resetStateAndForm = () => {
     setRucInput('');
@@ -278,15 +273,6 @@ const RibCreateEditPage = () => {
             </div>
           </div>
 
-          {isReadOnly && (
-            <Alert className="bg-yellow-500/10 border-yellow-500/20 text-yellow-300">
-              <Eye className="h-4 w-4" />
-              <AlertDescription>
-                Estás en modo de solo lectura. No tienes permisos para editar esta ficha.
-              </AlertDescription>
-            </Alert>
-          )}
-
           <div className="space-y-6">
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader><CardTitle className="text-white">1. Buscar Empresa por RUC</CardTitle></CardHeader>
@@ -324,7 +310,7 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="fecha_ficha">Fecha del día</Label>
-                        <Input id="fecha_ficha" type="date" value={ribFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="fecha_ficha" type="date" value={ribFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="proveedor">Proveedor</Label>
@@ -342,21 +328,21 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label>
-                        <Input id="orden_servicio" value={ribFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="orden_servicio" value={ribFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="factura">Factura (Sí/No)</Label>
-                        <Input id="factura" value={ribFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="factura" value={ribFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="tipo_cambio">Tipo de Cambio</Label>
-                        <Input id="tipo_cambio" type="number" step="0.01" value={ribFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="tipo_cambio" type="number" step="0.01" value={ribFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="moneda_operacion">Moneda de la Operación</Label>
-                        <Select value={ribFormData.moneda_operacion} onValueChange={(value) => setRibFormData(prev => ({ ...prev, moneda_operacion: value }))} disabled={isReadOnly}>
+                        <Select value={ribFormData.moneda_operacion} onValueChange={(value) => setRibFormData(prev => ({ ...prev, moneda_operacion: value }))}>
                           <SelectTrigger className="bg-gray-900/50 border-gray-700">
                             <SelectValue placeholder="Seleccionar moneda" />
                           </SelectTrigger>
@@ -369,7 +355,7 @@ const RibCreateEditPage = () => {
                     </div>
                     <div>
                       <Label htmlFor="resumen_solicitud">Resumen de solicitud</Label>
-                      <Textarea id="resumen_solicitud" value={ribFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                      <Textarea id="resumen_solicitud" value={ribFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                     </div>
                   </CardContent>
                 </Card>
@@ -385,31 +371,31 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="lp">L/P</Label>
-                        <Input id="lp" value={ribFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="lp" value={ribFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="producto">Producto</Label>
-                        <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
                     <div>
                       <Label htmlFor="deudor">Deudor (es)</Label>
-                      <Input id="deudor" value={ribFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                      <Input id="deudor" value={ribFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="lp_vigente_gve">L/P Vigente (GVE)</Label>
-                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isComercial} />
+                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
-                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isComercial} />
+                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="propuesta_comercial">Propuesta Comercial</Label>
-                        <Input id="propuesta_comercial" type="number" step="0.01" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="propuesta_comercial" type="number" step="0.01" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="exposicion_total">Exposición total (Soles)</Label>
@@ -418,15 +404,15 @@ const RibCreateEditPage = () => {
                     </div>
                     <div>
                       <Label htmlFor="garantias">Garantías</Label>
-                      <Textarea id="garantias" value={ribFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                      <Textarea id="garantias" value={ribFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                     </div>
                     <div>
                       <Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label>
-                      <Textarea id="condiciones_desembolso" value={ribFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                      <Textarea id="condiciones_desembolso" value={ribFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                     </div>
                     <div>
                       <Label htmlFor="comentarios">Comentarios</Label>
-                      <Textarea id="comentarios" value={ribFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                      <Textarea id="comentarios" value={ribFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                     </div>
                   </CardContent>
                 </Card>
@@ -485,21 +471,21 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="direccion">Dirección</Label>
-                        <Input id="direccion" value={ribFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="direccion" value={ribFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="visita">Visita</Label>
-                        <Input id="visita" value={ribFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="visita" value={ribFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="contacto">Contacto</Label>
-                        <Input id="contacto" value={ribFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="contacto" value={ribFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                       <div>
                         <Label htmlFor="fianza">Fianza</Label>
-                        <Input id="fianza" value={ribFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={isReadOnly} />
+                        <Input id="fianza" value={ribFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
                       </div>
                     </div>
                   </CardContent>
@@ -510,7 +496,7 @@ const RibCreateEditPage = () => {
                   <CardContent>
                     <div>
                       <Label htmlFor="status" className="text-gray-400">Estado de la Ficha Rib</Label>
-                      <Select value={ribFormData.status} onValueChange={(value) => setRibFormData(prev => ({ ...prev, status: value as 'draft' | 'completed' | 'in_review' }))} disabled={isReadOnly}>
+                      <Select value={ribFormData.status} onValueChange={(value) => setRibFormData(prev => ({ ...prev, status: value as 'draft' | 'completed' | 'in_review' }))}>
                         <SelectTrigger className="bg-gray-900/50 border-gray-700">
                           <SelectValue />
                         </SelectTrigger>
@@ -555,12 +541,10 @@ const RibCreateEditPage = () => {
                     <XCircle className="h-4 w-4 mr-2" />
                     Cancelar
                   </Button>
-                  {!isReadOnly && (
-                    <Button onClick={handleSaveRib} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-                      {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
-                      {id ? 'Actualizar Ficha Rib' : 'Confirmar y Crear Ficha Rib'}
-                    </Button>
-                  )}
+                  <Button onClick={handleSaveRib} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                    {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
+                    {id ? 'Actualizar Ficha Rib' : 'Confirmar y Crear Ficha Rib'}
+                  </Button>
                 </div>
               </div>
             )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, User, Settings, LogOut } from 'lucide-react';
+import { Bell, Search, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,26 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useSession } from '@/contexts/SessionContext';
-import { supabase } from '@/integrations/supabase/client';
 
 const Header: React.FC = () => {
-  const { profile, user } = useSession();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const getDisplayName = () => {
-    if (profile) {
-      return `${profile.first_name} ${profile.last_name}`;
-    }
-    if (user) {
-      return user.email;
-    }
-    return 'Mi Cuenta';
-  };
-
   return (
     <header className="bg-[#121212] border-b border-gray-800 px-6 py-4">
       <div className="flex items-center justify-between">
@@ -61,30 +43,22 @@ const Header: React.FC = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center space-x-2 text-gray-400 hover:text-white hover:bg-gray-800"
+                className="text-gray-400 hover:text-white hover:bg-gray-800"
               >
                 <User className="h-5 w-5" />
-                {profile && <span className="text-sm">{profile.first_name}</span>}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align="end" 
               className="w-56 bg-[#121212] border-gray-800"
             >
-              <DropdownMenuLabel className="text-white">
-                {getDisplayName()}
-                {profile && <p className="text-xs text-gray-400 font-normal">{profile.role}</p>}
-              </DropdownMenuLabel>
+              <DropdownMenuLabel className="text-white">Mi Cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-gray-800" />
-              <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white cursor-pointer">
+              <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Configuración</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="text-gray-300 hover:bg-gray-800 hover:text-white cursor-pointer"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
+              <DropdownMenuItem className="text-gray-300 hover:bg-gray-800 hover:text-white">
                 <span>Cerrar Sesión</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

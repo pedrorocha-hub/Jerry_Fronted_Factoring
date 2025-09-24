@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, Users, Building2, Calendar, RefreshCw, UserCheck, UserX } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import RepresentanteLegalTable from '@/components/representante-legal/RepresentanteLegalTable';
@@ -13,7 +12,6 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
 const RepresentanteLegalPage = () => {
-  const navigate = useNavigate();
   const [representantes, setRepresentantes] = useState<RepresentanteLegalWithFicha[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,40 +124,50 @@ const RepresentanteLegalPage = () => {
     try {
       // Primero verificar si existe al menos una ficha RUC
       const fichasRuc = await FichaRucService.getAll();
-      let rucToUse = '20123456789';
+      let fichaRucId = null;
 
-      if (fichasRuc.length === 0) {
+      if (fichasRuc.length > 0) {
+        fichaRucId = fichasRuc[0].id;
+      } else {
         // Crear una ficha RUC de prueba primero
-        await FichaRucService.create({
+        const nuevaFicha = await FichaRucService.create({
           nombre_empresa: 'EMPRESA DE PRUEBA S.A.C.',
-          ruc: rucToUse,
+          ruc: '20123456789',
           actividad_empresa: 'Actividad de prueba',
           estado_contribuyente: 'Activo'
         });
-      } else {
-        rucToUse = fichasRuc[0].ruc;
+        fichaRucId = nuevaFicha.id;
       }
 
       // Crear representantes legales de prueba
       const testRepresentantes = [
         {
-          ruc: rucToUse,
           nombre_completo: 'JUAN CARLOS EJEMPLO LOPEZ',
           numero_documento_identidad: '12345678',
           cargo: 'Gerente General',
           vigencia_poderes: 'Vigente hasta 2025',
           estado_civil: 'Casado',
           domicilio: 'AV. EJEMPLO 123, LIMA, LIMA, PERU',
+          ficha_ruc_id: fichaRucId
         },
         {
-          ruc: rucToUse,
           nombre_completo: 'MARIA ELENA SERVICIOS GARCIA',
           numero_documento_identidad: '87654321',
           cargo: 'Administradora',
           vigencia_poderes: 'Vigente hasta 2024',
           estado_civil: 'Soltera',
           domicilio: 'JR. COMERCIO 456, AREQUIPA, AREQUIPA, PERU',
+          ficha_ruc_id: fichaRucId
         },
+        {
+          nombre_completo: 'CARLOS ALBERTO CONSTRUCTOR RUIZ',
+          numero_documento_identidad: '11223344',
+          cargo: 'Representante Legal',
+          vigencia_poderes: 'Vigente hasta 2026',
+          estado_civil: 'Divorciado',
+          domicilio: 'AV. CONSTRUCCION 789, TRUJILLO, LA LIBERTAD, PERU',
+          ficha_ruc_id: fichaRucId
+        }
       ];
 
       for (const representanteData of testRepresentantes) {
@@ -357,7 +365,7 @@ const RepresentanteLegalPage = () => {
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={() => navigate('/upload')}
+                    onClick={() => window.location.href = '/upload'}
                     className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
                   >
                     Ir a Subir PDFs
