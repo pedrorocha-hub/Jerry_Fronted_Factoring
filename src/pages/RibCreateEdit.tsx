@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -192,12 +192,21 @@ const RibCreateEditPage = () => {
       <div className="min-h-screen bg-black">
         <div className="space-y-6 p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center">
-                <FileText className="h-6 w-6 mr-3 text-[#00FF80]" />
-                {id ? 'Editar Ficha Rib' : 'Crear Ficha Rib'}
-              </h1>
-              <p className="text-gray-400">Reporte de Inicio Básico de empresa</p>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={() => navigate('/rib')}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-white flex items-center">
+                  {id ? 'Editar Ficha Rib' : 'Crear Ficha Rib'}
+                </h1>
+                <p className="text-gray-400">Reporte de Inicio Básico de empresa</p>
+              </div>
             </div>
           </div>
 
