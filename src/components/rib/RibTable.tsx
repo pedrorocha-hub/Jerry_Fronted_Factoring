@@ -73,7 +73,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
           <TableHeader>
             <TableRow className="border-gray-800 hover:bg-gray-900/50">
               <TableHead className="text-gray-300">Empresa</TableHead>
-              <TableHead className="text-gray-300">Creado por</TableHead>
+              <TableHead className="text-gray-300">Ejecutivo</TableHead>
               <TableHead className="text-gray-300">Estado</TableHead>
               <TableHead className="text-right text-gray-300">Acciones</TableHead>
             </TableRow>
