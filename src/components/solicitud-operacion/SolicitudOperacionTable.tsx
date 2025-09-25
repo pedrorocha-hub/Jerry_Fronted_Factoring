@@ -21,36 +21,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Rib } from '@/types/rib';
+import { SolicitudOperacion } from '@/types/solicitud-operacion';
 import { useSession } from '@/contexts/SessionContext';
 
-// This interface must match the one in RibListPage.tsx
-interface RibWithDetails extends Rib {
+interface SolicitudOperacionWithDetails extends SolicitudOperacion {
   nombre_empresa?: string;
   creator_name?: string;
 }
 
-interface RibTableProps {
-  ribs: RibWithDetails[];
-  onEdit: (rib: Rib) => void;
-  onDelete: (rib: Rib) => void;
-  onDownload: (rib: Rib) => void;
+interface SolicitudOperacionTableProps {
+  solicitudes: SolicitudOperacionWithDetails[];
+  onEdit: (solicitud: SolicitudOperacion) => void;
+  onDelete: (solicitud: SolicitudOperacion) => void;
+  onDownload: (solicitud: SolicitudOperacion) => void;
 }
 
-const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload }) => {
+const SolicitudOperacionTable: React.FC<SolicitudOperacionTableProps> = ({ solicitudes, onEdit, onDelete, onDownload }) => {
   const { isAdmin } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [ribToDownload, setRibToDownload] = useState<Rib | null>(null);
+  const [solicitudToDownload, setSolicitudToDownload] = useState<SolicitudOperacion | null>(null);
   const itemsPerPage = 10;
 
-  const filteredRibs = (ribs || []).filter(rib =>
-    rib.ruc.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rib.nombre_empresa?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSolicitudes = (solicitudes || []).filter(solicitud =>
+    solicitud.ruc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    solicitud.nombre_empresa?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filteredRibs.length / itemsPerPage);
-  const paginatedRibs = filteredRibs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredSolicitudes.length / itemsPerPage);
+  const paginatedSolicitudes = filteredSolicitudes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
@@ -90,42 +89,42 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedRibs.length > 0 ? (
-              paginatedRibs.map((rib) => (
-                <TableRow key={rib.id} className="border-gray-800 hover:bg-gray-900/50 transition-colors">
+            {paginatedSolicitudes.length > 0 ? (
+              paginatedSolicitudes.map((solicitud) => (
+                <TableRow key={solicitud.id} className="border-gray-800 hover:bg-gray-900/50 transition-colors">
                   <TableCell>
                     <div className="flex flex-col">
-                      <code className="font-mono text-sm text-white bg-gray-900/50 px-2 py-1 rounded w-fit">{rib.ruc}</code>
-                      <span className="text-xs text-gray-400 mt-1 max-w-[250px] truncate" title={rib.nombre_empresa}>
-                        {rib.nombre_empresa}
+                      <code className="font-mono text-sm text-white bg-gray-900/50 px-2 py-1 rounded w-fit">{solicitud.ruc}</code>
+                      <span className="text-xs text-gray-400 mt-1 max-w-[250px] truncate" title={solicitud.nombre_empresa}>
+                        {solicitud.nombre_empresa}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-sm text-gray-300">{rib.creator_name}</span>
+                      <span className="text-sm text-gray-300">{solicitud.creator_name}</span>
                       <span className="text-xs text-gray-400">
-                        {rib.created_at ? new Date(rib.created_at).toLocaleDateString() : 'N/A'}
+                        {solicitud.created_at ? new Date(solicitud.created_at).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(rib.status)}</TableCell>
+                  <TableCell>{getStatusBadge(solicitud.status)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => setRibToDownload(rib)} title="Descargar PDF" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="icon" onClick={() => setSolicitudToDownload(solicitud)} title="Descargar PDF" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
                         <Download className="h-4 w-4" />
                       </Button>
                       {isAdmin ? (
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} title="Editar" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(solicitud)} title="Editar" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
                           <Edit className="h-4 w-4" />
                         </Button>
                       ) : (
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} title="Ver Detalles" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(solicitud)} title="Ver Detalles" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
                           <Eye className="h-4 w-4" />
                         </Button>
                       )}
                       {isAdmin && (
-                        <Button variant="ghost" size="icon" onClick={() => onDelete(rib)} title="Eliminar" className="text-gray-400 hover:text-red-400 hover:bg-red-500/10">
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(solicitud)} title="Eliminar" className="text-gray-400 hover:text-red-400 hover:bg-red-500/10">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
@@ -136,7 +135,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center py-8 text-gray-400">
-                  No se encontraron fichas RIB.
+                  No se encontraron solicitudes de operación.
                 </TableCell>
               </TableRow>
             )}
@@ -170,20 +169,20 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
         </div>
       )}
 
-      <AlertDialog open={!!ribToDownload} onOpenChange={(open) => !open && setRibToDownload(null)}>
+      <AlertDialog open={!!solicitudToDownload} onOpenChange={(open) => !open && setSolicitudToDownload(null)}>
         <AlertDialogContent className="bg-[#121212] border border-gray-800">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Confirmar Descarga</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              ¿Está seguro de que desea generar y descargar el PDF para la ficha RIB de la empresa con RUC {ribToDownload?.ruc}?
+              ¿Está seguro de que desea generar y descargar el PDF para la solicitud de la empresa con RUC {solicitudToDownload?.ruc}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => {
-                if (ribToDownload) {
-                  onDownload(ribToDownload);
+                if (solicitudToDownload) {
+                  onDownload(solicitudToDownload);
                 }
               }} 
               className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
@@ -197,4 +196,4 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
   );
 };
 
-export default RibTable;
+export default SolicitudOperacionTable;

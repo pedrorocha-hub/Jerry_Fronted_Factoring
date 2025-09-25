@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { Rib } from '@/types/rib';
+import { SolicitudOperacion } from '@/types/solicitud-operacion';
 import { FichaRuc } from '@/types/ficha-ruc';
 
 interface Top10kData {
@@ -8,16 +8,16 @@ interface Top10kData {
   ranking_2024: number | null;
 }
 
-interface RibPdfTemplateProps {
+interface SolicitudOperacionPdfTemplateProps {
   data: {
-    rib: Rib;
+    solicitudOperacion: SolicitudOperacion;
     ficha: FichaRuc;
     top10k: Top10kData | null;
   };
 }
 
-const RibPdfTemplate = forwardRef<HTMLDivElement, RibPdfTemplateProps>(({ data }, ref) => {
-  const { rib, ficha, top10k } = data;
+const SolicitudOperacionPdfTemplate = forwardRef<HTMLDivElement, SolicitudOperacionPdfTemplateProps>(({ data }, ref) => {
+  const { solicitudOperacion, ficha, top10k } = data;
 
   const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <h2 style={{ fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #00FF80', paddingBottom: '4px', marginBottom: '12px', color: '#1a1a1a' }}>
@@ -35,7 +35,7 @@ const RibPdfTemplate = forwardRef<HTMLDivElement, RibPdfTemplateProps>(({ data }
   return (
     <div ref={ref} style={{ padding: '20px', backgroundColor: 'white', color: 'black', fontFamily: 'Arial, sans-serif', width: '210mm' }}>
       <header style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#000', margin: 0 }}>Reporte de Inicio Básico (RIB)</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#000', margin: 0 }}>Solicitud de Operación</h1>
         <p style={{ fontSize: '14px', color: '#555', margin: '4px 0 0' }}>{ficha.nombre_empresa}</p>
         <p style={{ fontSize: '14px', color: '#555', margin: '4px 0 0' }}>RUC: {ficha.ruc}</p>
       </header>
@@ -59,22 +59,22 @@ const RibPdfTemplate = forwardRef<HTMLDivElement, RibPdfTemplateProps>(({ data }
 
       <section style={{ marginBottom: '20px' }}>
         <SectionTitle>Información del Pagador</SectionTitle>
-        <InfoRow label="Dirección" value={rib.direccion} />
-        <InfoRow label="Visita" value={rib.visita} />
-        <InfoRow label="Contacto" value={rib.contacto} />
-        <InfoRow label="Fianza" value={rib.fianza} />
-        <InfoRow label="Comentarios" value={rib.comentarios} />
+        <InfoRow label="Dirección" value={solicitudOperacion.direccion} />
+        <InfoRow label="Visita" value={solicitudOperacion.visita} />
+        <InfoRow label="Contacto" value={solicitudOperacion.contacto} />
+        <InfoRow label="Fianza" value={solicitudOperacion.fianza} />
+        <InfoRow label="Comentarios" value={solicitudOperacion.comentarios} />
       </section>
 
       <section>
         <SectionTitle>Condiciones Comerciales</SectionTitle>
-        <InfoRow label="L/P" value={rib.lp} />
-        <InfoRow label="Producto" value={rib.producto} />
-        <InfoRow label="Proveedor" value={rib.proveedor} />
-        <InfoRow label="L/P Vigente (GVE)" value={rib.lp_vigente_gve} />
-        <InfoRow label="Riesgo Aprobado" value={rib.riesgo_aprobado} />
-        <InfoRow label="Propuesta Comercial" value={rib.propuesta_comercial} />
-        <InfoRow label="Exposición Total" value={rib.exposicion_total} />
+        <InfoRow label="L/P" value={solicitudOperacion.lp} />
+        <InfoRow label="Producto" value={solicitudOperacion.producto} />
+        <InfoRow label="Proveedor" value={solicitudOperacion.proveedor} />
+        <InfoRow label="L/P Vigente (GVE)" value={solicitudOperacion.lp_vigente_gve} />
+        <InfoRow label="Riesgo Aprobado" value={solicitudOperacion.riesgo_aprobado} />
+        <InfoRow label="Propuesta Comercial" value={solicitudOperacion.propuesta_comercial} />
+        <InfoRow label="Exposición Total" value={solicitudOperacion.exposicion_total} />
       </section>
 
       <footer style={{ marginTop: '30px', paddingTop: '10px', borderTop: '1px solid #eee', textAlign: 'center', fontSize: '10px', color: '#888' }}>
@@ -85,4 +85,4 @@ const RibPdfTemplate = forwardRef<HTMLDivElement, RibPdfTemplateProps>(({ data }
   );
 });
 
-export default RibPdfTemplate;
+export default SolicitudOperacionPdfTemplate;

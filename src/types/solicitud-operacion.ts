@@ -1,4 +1,4 @@
-export interface Rib {
+export interface SolicitudOperacion {
   id: string;
   ruc: string;
   status: 'draft' | 'in_review' | 'completed';
@@ -28,5 +28,5 @@ export interface Rib {
   condiciones_desembolso?: string | null;
 }
 
-export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;
-export type RibUpdate = Partial<RibInsert>;
+export type SolicitudOperacionInsert = Omit<SolicitudOperacion, 'id' | 'created_at' | 'updated_at'>;
+export type SolicitudOperacionUpdate = Partial<SolicitudOperacionInsert>;

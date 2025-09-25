@@ -14,8 +14,8 @@ import VigenciaPoderes from '@/pages/VigenciaPoderes';
 import FacturaNegociar from '@/pages/FacturaNegociar';
 import ReporteTributario from '@/pages/ReporteTributario';
 import SolicitudOperacion from '@/pages/SolicitudOperacion';
-import RibList from '@/pages/RibList';
-import RibCreateEdit from '@/pages/RibCreateEdit';
+import SolicitudOperacionList from '@/pages/SolicitudOperacionList';
+import SolicitudOperacionCreateEdit from '@/pages/SolicitudOperacionCreateEdit';
 import Login from '@/pages/Login';
 import UsersPage from '@/pages/Admin/Users';
 
@@ -37,9 +37,9 @@ function App() {
               <Route path="/factura-negociar" element={<FacturaNegociar />} />
               <Route path="/reporte-tributario" element={<ReporteTributario />} />
               <Route path="/solicitud-operacion" element={<SolicitudOperacion />} />
-              <Route path="/rib" element={<RibList />} />
-              <Route path="/rib/new" element={<RibCreateEdit />} />
-              <Route path="/rib/edit/:id" element={<RibCreateEdit />} />
+              <Route path="/solicitudes-operacion" element={<SolicitudOperacionList />} />
+              <Route path="/solicitudes-operacion/new" element={<SolicitudOperacionCreateEdit />} />
+              <Route path="/solicitudes-operacion/edit/:id" element={<SolicitudOperacionCreateEdit />} />
               <Route path="/admin/users" element={<UsersPage />} />
             </Route>
           </Routes>

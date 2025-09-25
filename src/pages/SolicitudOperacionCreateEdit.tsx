@@ -11,8 +11,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { FichaRuc } from '@/types/ficha-ruc';
-import { Rib } from '@/types/rib';
-import { RibService } from '@/services/ribService';
+import { SolicitudOperacion } from '@/types/solicitud-operacion';
+import { SolicitudOperacionService } from '@/services/solicitudOperacionService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,7 +33,7 @@ interface CreatorInfo {
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
-const RibCreateEditPage = () => {
+const SolicitudOperacionCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useSession();
@@ -44,9 +44,9 @@ const RibCreateEditPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
-  const [editingRib, setEditingRib] = useState<Rib | null>(null);
+  const [editingSolicitud, setEditingSolicitud] = useState<SolicitudOperacion | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
-  const [ribFormData, setRibFormData] = useState({
+  const [solicitudFormData, setSolicitudFormData] = useState({
     status: 'draft' as 'draft' | 'completed' | 'in_review',
     direccion: '',
     visita: '',
@@ -73,14 +73,14 @@ const RibCreateEditPage = () => {
 
   useEffect(() => {
     if (id) {
-      const loadRibForEdit = async () => {
+      const loadSolicitudForEdit = async () => {
         try {
-          const ribData = await RibService.getById(id);
-          if (ribData) {
-            handleEditRib(ribData);
-            if (ribData.user_id) {
+          const solicitudData = await SolicitudOperacionService.getById(id);
+          if (solicitudData) {
+            handleEditSolicitud(solicitudData);
+            if (solicitudData.user_id) {
               const { data: creatorData, error: creatorError } = await supabase
-                .rpc('get_user_details', { user_id_input: ribData.user_id })
+                .rpc('get_user_details', { user_id_input: solicitudData.user_id })
                 .single();
 
               if (creatorError) {
@@ -94,25 +94,25 @@ const RibCreateEditPage = () => {
               }
             }
           } else {
-            showError('No se encontró la ficha Rib para editar.');
-            navigate('/rib');
+            showError('No se encontró la solicitud para editar.');
+            navigate('/solicitudes-operacion');
           }
         } catch (err) {
-          showError('Error al cargar la ficha Rib para editar.');
-          navigate('/rib');
+          showError('Error al cargar la solicitud para editar.');
+          navigate('/solicitudes-operacion');
         }
       };
-      loadRibForEdit();
+      loadSolicitudForEdit();
     }
   }, [id, navigate]);
 
   useEffect(() => {
-    const riesgo = parseFloat(ribFormData.riesgo_aprobado) || 0;
-    const propuesta = parseFloat(ribFormData.propuesta_comercial) || 0;
+    const riesgo = parseFloat(solicitudFormData.riesgo_aprobado) || 0;
+    const propuesta = parseFloat(solicitudFormData.propuesta_comercial) || 0;
     const total = riesgo + propuesta;
     const formattedTotal = total % 1 === 0 ? total.toString() : total.toFixed(2);
-    setRibFormData(prev => ({ ...prev, exposicion_total: formattedTotal }));
-  }, [ribFormData.riesgo_aprobado, ribFormData.propuesta_comercial]);
+    setSolicitudFormData(prev => ({ ...prev, exposicion_total: formattedTotal }));
+  }, [solicitudFormData.riesgo_aprobado, solicitudFormData.propuesta_comercial]);
 
   const resetStateAndForm = () => {
     setRucInput('');
@@ -121,9 +121,9 @@ const RibCreateEditPage = () => {
     setError(null);
     setSearchedFicha(null);
     setTop10kData(null);
-    setEditingRib(null);
+    setEditingSolicitud(null);
     setCreatorInfo(null);
-    setRibFormData({
+    setSolicitudFormData({
       status: 'draft',
       direccion: '',
       visita: '',
@@ -163,11 +163,11 @@ const RibCreateEditPage = () => {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        setRibFormData(prev => ({
+        setSolicitudFormData(prev => ({
             ...prev,
             proveedor: fichaData.nombre_empresa,
         }));
-        if (!editingRib) showSuccess('Ficha RUC encontrada.');
+        if (!editingSolicitud) showSuccess('Ficha RUC encontrada.');
 
         const { data: topData, error: topError } = await supabase
           .from('top_10k')
@@ -179,7 +179,7 @@ const RibCreateEditPage = () => {
         if (topData) setTop10kData(topData);
 
       } else {
-        setError('Ficha RUC no encontrada. Asegúrese de que exista antes de crear un Rib.');
+        setError('Ficha RUC no encontrada. Asegúrese de que exista antes de crear una solicitud.');
         showError('Ficha RUC no encontrada.');
       }
     } catch (err) {
@@ -190,35 +190,35 @@ const RibCreateEditPage = () => {
     }
   };
 
-  const handleSaveRib = async () => {
+  const handleSave = async () => {
     if (!isAdmin) {
-      showError('No tienes permisos para guardar la ficha Rib.');
+      showError('No tienes permisos para guardar la solicitud.');
       return;
     }
-    const ruc = editingRib?.ruc || searchedFicha?.ruc;
+    const ruc = editingSolicitud?.ruc || searchedFicha?.ruc;
     if (!ruc) {
       showError('Debe haber una empresa seleccionada para guardar.');
       return;
     }
     setSaving(true);
     try {
-      const parsedTipoCambio = parseFloat(ribFormData.tipo_cambio);
+      const parsedTipoCambio = parseFloat(solicitudFormData.tipo_cambio);
       const dataToSave = {
-        ...ribFormData,
+        ...solicitudFormData,
         tipo_cambio: isNaN(parsedTipoCambio) ? null : parsedTipoCambio,
       };
 
-      if (editingRib) {
-        await RibService.update(editingRib.id, { ruc, ...dataToSave });
-        showSuccess('Ficha Rib actualizada exitosamente.');
+      if (editingSolicitud) {
+        await SolicitudOperacionService.update(editingSolicitud.id, { ruc, ...dataToSave });
+        showSuccess('Solicitud actualizada exitosamente.');
       } else {
-        await RibService.create({ ruc, ...dataToSave });
-        showSuccess('Ficha Rib creada exitosamente.');
+        await SolicitudOperacionService.create({ ruc, ...dataToSave });
+        showSuccess('Solicitud creada exitosamente.');
       }
-      navigate('/rib');
+      navigate('/solicitudes-operacion');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido.';
-      showError(`No se pudo guardar la ficha Rib: ${errorMessage}`);
+      showError(`No se pudo guardar la solicitud: ${errorMessage}`);
       console.error("Save error:", err);
     } finally {
       setSaving(false);
@@ -227,43 +227,43 @@ const RibCreateEditPage = () => {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    setRibFormData(prev => ({ ...prev, [id]: value }));
+    setSolicitudFormData(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleEditRib = (rib: Rib) => {
-    setEditingRib(rib);
-    setRucInput(rib.ruc);
-    setRibFormData({
-      status: rib.status,
-      direccion: rib.direccion || '',
-      visita: rib.visita || '',
-      contacto: rib.contacto || '',
-      comentarios: rib.comentarios || '',
-      fianza: rib.fianza || '',
-      lp: rib.lp || '',
-      producto: rib.producto || '',
-      proveedor: rib.proveedor || '',
-      lp_vigente_gve: rib.lp_vigente_gve || '',
-      riesgo_aprobado: rib.riesgo_aprobado || '',
-      propuesta_comercial: rib.propuesta_comercial || '',
-      exposicion_total: rib.exposicion_total || '',
-      fecha_ficha: rib.fecha_ficha || getTodayDate(),
-      orden_servicio: rib.orden_servicio || '',
-      factura: rib.factura || '',
-      tipo_cambio: rib.tipo_cambio?.toString() || '',
-      moneda_operacion: rib.moneda_operacion || '',
-      resumen_solicitud: rib.resumen_solicitud || '',
-      deudor: rib.deudor || '',
-      garantias: rib.garantias || '',
-      condiciones_desembolso: rib.condiciones_desembolso || '',
+  const handleEditSolicitud = (solicitud: SolicitudOperacion) => {
+    setEditingSolicitud(solicitud);
+    setRucInput(solicitud.ruc);
+    setSolicitudFormData({
+      status: solicitud.status,
+      direccion: solicitud.direccion || '',
+      visita: solicitud.visita || '',
+      contacto: solicitud.contacto || '',
+      comentarios: solicitud.comentarios || '',
+      fianza: solicitud.fianza || '',
+      lp: solicitud.lp || '',
+      producto: solicitud.producto || '',
+      proveedor: solicitud.proveedor || '',
+      lp_vigente_gve: solicitud.lp_vigente_gve || '',
+      riesgo_aprobado: solicitud.riesgo_aprobado || '',
+      propuesta_comercial: solicitud.propuesta_comercial || '',
+      exposicion_total: solicitud.exposicion_total || '',
+      fecha_ficha: solicitud.fecha_ficha || getTodayDate(),
+      orden_servicio: solicitud.orden_servicio || '',
+      factura: solicitud.factura || '',
+      tipo_cambio: solicitud.tipo_cambio?.toString() || '',
+      moneda_operacion: solicitud.moneda_operacion || '',
+      resumen_solicitud: solicitud.resumen_solicitud || '',
+      deudor: solicitud.deudor || '',
+      garantias: solicitud.garantias || '',
+      condiciones_desembolso: solicitud.condiciones_desembolso || '',
     });
-    handleSearch(rib.ruc);
+    handleSearch(solicitud.ruc);
     window.scrollTo(0, 0);
   };
 
   const handleCancel = () => {
     resetStateAndForm();
-    navigate('/rib');
+    navigate('/solicitudes-operacion');
   };
 
   const formatCurrency = (amount: number | string | null | undefined) => {
@@ -287,14 +287,14 @@ const RibCreateEditPage = () => {
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={() => navigate('/rib')}
+                onClick={() => navigate('/solicitudes-operacion')}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-white flex items-center">
-                  {id ? (isAdmin ? 'Editar Ficha Rib' : 'Ver Ficha Rib') : 'Crear Ficha Rib'}
+                  {id ? (isAdmin ? 'Editar Solicitud de Operación' : 'Ver Solicitud de Operación') : 'Crear Solicitud de Operación'}
                 </h1>
                 <p className="text-gray-400">Reporte de Inicio Básico de empresa</p>
               </div>
@@ -338,7 +338,7 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="fecha_ficha">Fecha del día</Label>
-                        <Input id="fecha_ficha" type="date" value={ribFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="proveedor">Proveedor</Label>
@@ -356,21 +356,21 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label>
-                        <Input id="orden_servicio" value={ribFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="orden_servicio" value={solicitudFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="factura">Factura (Sí/No)</Label>
-                        <Input id="factura" value={ribFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="factura" value={solicitudFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="tipo_cambio">Tipo de Cambio</Label>
-                        <Input id="tipo_cambio" type="number" step="0.01" value={ribFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="tipo_cambio" type="number" step="0.01" value={solicitudFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="moneda_operacion">Moneda de la Operación</Label>
-                        <Select value={ribFormData.moneda_operacion} onValueChange={(value) => setRibFormData(prev => ({ ...prev, moneda_operacion: value }))} disabled={!isAdmin}>
+                        <Select value={solicitudFormData.moneda_operacion} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, moneda_operacion: value }))} disabled={!isAdmin}>
                           <SelectTrigger className="bg-gray-900/50 border-gray-700">
                             <SelectValue placeholder="Seleccionar moneda" />
                           </SelectTrigger>
@@ -383,7 +383,7 @@ const RibCreateEditPage = () => {
                     </div>
                     <div>
                       <Label htmlFor="resumen_solicitud">Resumen de solicitud</Label>
-                      <Textarea id="resumen_solicitud" value={ribFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      <Textarea id="resumen_solicitud" value={solicitudFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                     </div>
                   </CardContent>
                 </Card>
@@ -399,48 +399,48 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="lp">L/P</Label>
-                        <Input id="lp" value={ribFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="lp" value={solicitudFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="producto">Producto</Label>
-                        <Input id="producto" value={ribFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="producto" value={solicitudFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                     </div>
                     <div>
                       <Label htmlFor="deudor">Deudor (es)</Label>
-                      <Input id="deudor" value={ribFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      <Input id="deudor" value={solicitudFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="lp_vigente_gve">L/P Vigente (GVE)</Label>
-                        <Input id="lp_vigente_gve" value={ribFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="lp_vigente_gve" value={solicitudFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
-                        <Input id="riesgo_aprobado" type="number" step="0.01" value={ribFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="riesgo_aprobado" type="number" step="0.01" value={solicitudFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="propuesta_comercial">Propuesta Comercial</Label>
-                        <Input id="propuesta_comercial" type="number" step="0.01" value={ribFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="propuesta_comercial" type="number" step="0.01" value={solicitudFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="exposicion_total">Exposición total (Soles)</Label>
-                        <Input id="exposicion_total" value={ribFormData.exposicion_total} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
+                        <Input id="exposicion_total" value={solicitudFormData.exposicion_total} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
                       </div>
                     </div>
                     <div>
                       <Label htmlFor="garantias">Garantías</Label>
-                      <Textarea id="garantias" value={ribFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      <Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                     </div>
                     <div>
                       <Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label>
-                      <Textarea id="condiciones_desembolso" value={ribFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      <Textarea id="condiciones_desembolso" value={solicitudFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                     </div>
                     <div>
                       <Label htmlFor="comentarios">Comentarios</Label>
-                      <Textarea id="comentarios" value={ribFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      <Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                     </div>
                   </CardContent>
                 </Card>
@@ -499,32 +499,32 @@ const RibCreateEditPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="direccion">Dirección</Label>
-                        <Input id="direccion" value={ribFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="visita">Visita</Label>
-                        <Input id="visita" value={ribFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="visita" value={solicitudFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="contacto">Contacto</Label>
-                        <Input id="contacto" value={ribFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="contacto" value={solicitudFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
                         <Label htmlFor="fianza">Fianza</Label>
-                        <Input id="fianza" value={ribFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        <Input id="fianza" value={solicitudFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="text-white">2. Completar Datos del Rib</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-white">2. Completar Datos de la Solicitud</CardTitle></CardHeader>
                   <CardContent>
                     <div>
-                      <Label htmlFor="status" className="text-gray-400">Estado de la Ficha Rib</Label>
-                      <Select value={ribFormData.status} onValueChange={(value) => setRibFormData(prev => ({ ...prev, status: value as 'draft' | 'completed' | 'in_review' }))} disabled={!isAdmin}>
+                      <Label htmlFor="status" className="text-gray-400">Estado de la Solicitud</Label>
+                      <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as 'draft' | 'completed' | 'in_review' }))} disabled={!isAdmin}>
                         <SelectTrigger className="bg-gray-900/50 border-gray-700">
                           <SelectValue />
                         </SelectTrigger>
@@ -535,7 +535,7 @@ const RibCreateEditPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    {editingRib && (
+                    {editingSolicitud && (
                       <div className="mt-6 border-t border-gray-800 pt-4 text-sm text-gray-400 space-y-3">
                         {creatorInfo && (
                           <div className="flex items-center gap-2">
@@ -545,11 +545,11 @@ const RibCreateEditPage = () => {
                         )}
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 flex-shrink-0" />
-                          <span>Fecha de creación: <strong className="text-gray-200">{new Date(editingRib.created_at).toLocaleString('es-PE')}</strong></span>
+                          <span>Fecha de creación: <strong className="text-gray-200">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</strong></span>
                         </div>
                         <div className="flex items-center gap-2">
                           <RefreshCw className="h-4 w-4 flex-shrink-0" />
-                          <span>Última modificación: <strong className="text-gray-200">{new Date(editingRib.updated_at).toLocaleString('es-PE')}</strong></span>
+                          <span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span>
                         </div>
                       </div>
                     )}
@@ -588,9 +588,9 @@ const RibCreateEditPage = () => {
                     Cancelar
                   </Button>
                   {isAdmin && (
-                    <Button onClick={handleSaveRib} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                    <Button onClick={handleSave} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
                       {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
-                      {id ? 'Actualizar Ficha Rib' : 'Confirmar y Crear Ficha Rib'}
+                      {id ? 'Actualizar Solicitud' : 'Confirmar y Crear Solicitud'}
                     </Button>
                   )}
                 </div>
@@ -603,4 +603,4 @@ const RibCreateEditPage = () => {
   );
 };
 
-export default RibCreateEditPage;
+export default SolicitudOperacionCreateEditPage;
