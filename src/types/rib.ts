@@ -4,6 +4,7 @@ export interface Rib {
   status: 'draft' | 'in_review' | 'completed';
   created_at: string;
   updated_at: string;
+  user_id: string | null;
   direccion?: string | null;
   visita?: string | null;
   contacto?: string | null;

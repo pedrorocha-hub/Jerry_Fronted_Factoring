@@ -2,10 +2,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Rib, RibInsert, RibUpdate } from '@/types/rib';
 
 export class RibService {
-  static async create(ribData: RibInsert): Promise<Rib> {
+  static async create(ribData: Omit<RibInsert, 'user_id'>): Promise<Rib> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const dataToInsert = {
+      ...ribData,
+      user_id: user.id,
+    };
+
     const { data, error } = await supabase
       .from('ribs')
-      .insert(ribData)
+      .insert(dataToInsert)
       .select()
       .single();
 
