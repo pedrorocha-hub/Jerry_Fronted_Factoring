@@ -9,8 +9,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Documento } from '@/types/documento';
 import { DocumentoService } from '@/services/documentoService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { useSession } from '@/contexts/SessionContext';
 
 const UploadPage = () => {
+  const { isAdmin } = useSession();
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -227,7 +229,7 @@ const UploadPage = () => {
           </div>
 
           {/* Upload Form */}
-          <DocumentUploadForm onUploadComplete={handleUploadComplete} />
+          {isAdmin && <DocumentUploadForm onUploadComplete={handleUploadComplete} />}
 
           {/* Documentos Table */}
           <Card className="bg-[#121212] border border-gray-800">
@@ -242,6 +244,7 @@ const UploadPage = () => {
                 documentos={documentos}
                 onDeleteDocumento={handleDeleteDocumento}
                 onReprocessDocumento={handleReprocessDocumento}
+                onRefresh={handleRefresh}
               />
             </CardContent>
           </Card>

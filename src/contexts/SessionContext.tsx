@@ -15,6 +15,7 @@ interface SessionContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  isAdmin: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -173,7 +174,8 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
     };
   }, []);
 
-  const value = { session, user, profile, loading, signOut };
+  const isAdmin = profile?.role === 'ADMINISTRADOR';
+  const value = { session, user, profile, loading, signOut, isAdmin };
 
   return (
     <SessionContext.Provider value={value}>

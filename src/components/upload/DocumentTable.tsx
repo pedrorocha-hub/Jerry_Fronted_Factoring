@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/table';
 import { Documento } from '@/types/documento';
 import DocumentDetailView from './DocumentDetailView';
+import { useSession } from '@/contexts/SessionContext';
 
 interface DocumentTableProps {
   documentos: Documento[];
@@ -57,6 +58,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
   onReprocessDocumento,
   onRefresh
 }) => {
+  const { isAdmin } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -266,7 +268,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {documento.estado === 'error' && (
+                        {isAdmin && documento.estado === 'error' && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -277,15 +279,17 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                             <RefreshCw className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDeleteDocumento(documento)}
-                          title="Eliminar"
-                          className="text-gray-400 hover:text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDeleteDocumento(documento)}
+                            title="Eliminar"
+                            className="text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
