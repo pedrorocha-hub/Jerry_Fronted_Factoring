@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Rib } from '@/types/rib';
 import { FichaRuc } from '@/types/ficha-ruc';
-import { RibService } from '@/services/ribService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import RibTable from '@/components/rib/RibTable';
@@ -14,6 +13,7 @@ import RibPdfTemplate from '@/components/rib/RibPdfTemplate';
 import { supabase } from '@/integrations/supabase/client';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { useSession } from '@/contexts/SessionContext';
 
 interface Top10kData {
   descripcion_ciiu_rev3: string | null;
@@ -21,15 +21,17 @@ interface Top10kData {
   ranking_2024: number | null;
 }
 
-// Define an extended type for Ribs that includes the company name
-interface RibWithCompanyName extends Rib {
+// Define an extended type for Ribs that includes company name and creator name
+interface RibWithDetails extends Rib {
   nombre_empresa?: string;
+  creator_name?: string;
 }
 
 const RibListPage = () => {
+  const { isAdmin } = useSession();
   const navigate = useNavigate();
   // Use the new extended type for the state
-  const [ribs, setRibs] = useState<RibWithCompanyName[]>([]);
+  const [ribs, setRibs] = useState<RibWithDetails[]>([]);
   const [loadingRibs, setLoadingRibs] = useState(true);
   const [pdfData, setPdfData] = useState<{ rib: Rib; ficha: FichaRuc; top10k: Top10kData | null } | null>(null);
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
@@ -64,7 +66,18 @@ const RibListPage = () => {
   const loadRibs = async () => {
     setLoadingRibs(true);
     try {
-      const ribData = await RibService.getAll();
+      // Fetch RIBs and join with profiles to get creator's name
+      const { data: ribData, error: ribError } = await supabase
+        .from('ribs')
+        .select(`
+          *,
+          profiles (
+            full_name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (ribError) throw ribError;
       
       if (ribData && ribData.length > 0) {
         // Get unique RUCs to fetch company names
@@ -81,10 +94,11 @@ const RibListPage = () => {
         // Create a map for easy lookup
         const rucToNameMap = new Map(fichasData.map(f => [f.ruc, f.nombre_empresa]));
 
-        // Enrich the Rib data with the company name
+        // Enrich the Rib data with the company name and creator name
         const enrichedRibs = ribData.map(rib => ({
           ...rib,
-          nombre_empresa: rucToNameMap.get(rib.ruc) || 'Razón Social no encontrada'
+          nombre_empresa: rucToNameMap.get(rib.ruc) || 'Razón Social no encontrada',
+          creator_name: rib.profiles?.full_name || 'Sistema'
         }));
         
         setRibs(enrichedRibs);
@@ -105,11 +119,17 @@ const RibListPage = () => {
 
   const handleDeleteRib = async (rib: Rib) => {
     if (window.confirm(`¿Está seguro de eliminar la ficha Rib para el RUC ${rib.ruc}?`)) {
+      const toastId = showLoading('Eliminando ficha Rib...');
       try {
-        await RibService.delete(rib.id);
+        // This should be adapted to use RibService if it handles deletion logic
+        const { error } = await supabase.from('ribs').delete().eq('id', rib.id);
+        if (error) throw error;
+        
+        dismissToast(toastId);
         showSuccess('Ficha Rib eliminada.');
         await loadRibs();
       } catch (err) {
+        dismissToast(toastId);
         showError('No se pudo eliminar la ficha Rib.');
       }
     }
@@ -152,10 +172,12 @@ const RibListPage = () => {
               </h1>
               <p className="text-gray-400">Reportes de Inicio Básico de empresa</p>
             </div>
-            <Button onClick={() => navigate('/rib/new')} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-              <FilePlus className="h-4 w-4 mr-2" />
-              Crear Ficha Rib
-            </Button>
+            {isAdmin && (
+              <Button onClick={() => navigate('/rib/new')} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                <FilePlus className="h-4 w-4 mr-2" />
+                Crear Ficha Rib
+              </Button>
+            )}
           </div>
 
           <Card className="bg-[#121212] border border-gray-800">
