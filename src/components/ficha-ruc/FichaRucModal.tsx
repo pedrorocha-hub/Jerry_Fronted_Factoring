@@ -25,6 +25,7 @@ import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast
 import AccionistaManager from './AccionistaManager';
 import GerenciaManager from '../gerencia/GerenciaManager';
 import CuentaBancariaManager from '../cuenta-bancaria/CuentaBancariaManager';
+import { useSession } from '@/contexts/SessionContext';
 
 interface FichaRucModalProps {
   ficha: FichaRuc | null;
@@ -41,6 +42,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
   onSave,
   mode: initialMode
 }) => {
+  const { isAdmin } = useSession();
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
   const [formData, setFormData] = useState<FichaRucUpdate>({});
   const [loading, setLoading] = useState(false);
@@ -68,6 +70,10 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
   };
 
   const handleSave = async () => {
+    if (!isAdmin) {
+      showError('No tienes permisos para guardar cambios.');
+      return;
+    }
     if (!ficha) return;
 
     const loadingToast = showLoading('Guardando cambios...');
@@ -125,7 +131,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {mode === 'view' ? (
+              {isAdmin && mode === 'view' ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -135,7 +141,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
-              ) : (
+              ) : isAdmin && mode === 'edit' ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -145,7 +151,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
                   <Eye className="h-4 w-4 mr-2" />
                   Ver
                 </Button>
-              )}
+              ) : null}
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -181,7 +187,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
                 <div>
                   <Label htmlFor="nombre_empresa" className="text-gray-300">Nombre de la Empresa *</Label>
-                  {mode === 'view' ? (
+                  {mode === 'view' || !isAdmin ? (
                     <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
                       <span className="font-medium text-white">{ficha.nombre_empresa}</span>
                     </div>
@@ -198,7 +204,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
                 <div>
                   <Label htmlFor="ruc" className="text-gray-300">RUC *</Label>
-                  {mode === 'view' ? (
+                  {mode === 'view' || !isAdmin ? (
                     <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
                       <span className="font-mono font-medium text-white">{ficha.ruc}</span>
                     </div>
@@ -216,7 +222,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
                 <div>
                   <Label htmlFor="actividad_empresa" className="text-gray-300">Actividad Empresarial</Label>
-                  {mode === 'view' ? (
+                  {mode === 'view' || !isAdmin ? (
                     <div className="mt-1 p-3 bg-gray-900/50 rounded-md min-h-[80px] border border-gray-800">
                       <span className="text-white">{ficha.actividad_empresa || 'No especificada'}</span>
                     </div>
@@ -234,7 +240,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
                 <div>
                   <Label htmlFor="estado_contribuyente" className="text-gray-300">Estado del Contribuyente</Label>
-                  {mode === 'view' ? (
+                  {mode === 'view' || !isAdmin ? (
                     <div className="mt-1 p-3 bg-gray-900/50 rounded-md border border-gray-800">
                       {getEstadoBadge(ficha.estado_contribuyente)}
                     </div>
@@ -267,7 +273,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
                 <div>
                   <Label htmlFor="fecha_inicio_actividades" className="text-gray-300">Fecha de Inicio de Actividades</Label>
-                  {mode === 'view' ? (
+                  {mode === 'view' || !isAdmin ? (
                     <div className="mt-1 p-3 bg-gray-900/50 rounded-md flex items-center border border-gray-800">
                       <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                       <span className="text-white">
@@ -290,7 +296,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
                 <div>
                   <Label htmlFor="domicilio_fiscal" className="text-gray-300">Domicilio Fiscal</Label>
-                  {mode === 'view' ? (
+                  {mode === 'view' || !isAdmin ? (
                     <div className="mt-1 p-3 bg-gray-900/50 rounded-md min-h-[80px] border border-gray-800">
                       <span className="text-white">{ficha.domicilio_fiscal || 'No especificado'}</span>
                     </div>
@@ -308,7 +314,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
 
                 <div>
                   <Label htmlFor="nombre_representante_legal" className="text-gray-300">Representante Legal</Label>
-                  {mode === 'view' ? (
+                  {mode === 'view' || !isAdmin ? (
                     <div className="mt-1 p-3 bg-gray-900/50 rounded-md flex items-center border border-gray-800">
                       <User className="h-4 w-4 mr-2 text-gray-400" />
                       <span className="text-white">{ficha.nombre_representante_legal || 'No especificado'}</span>
@@ -362,7 +368,7 @@ const FichaRucModal: React.FC<FichaRucModalProps> = ({
           >
             Cancelar
           </Button>
-          {mode === 'edit' && (
+          {isAdmin && mode === 'edit' && (
             <Button 
               onClick={handleSave} 
               disabled={loading}
