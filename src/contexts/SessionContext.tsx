@@ -34,66 +34,62 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    const initializeSession = async () => {
-      // 1. Get the initial session state quickly.
-      const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+    let isMounted = true;
 
-      if (sessionError) {
-        console.error("Error getting initial session:", sessionError);
+    // Safety timeout to prevent infinite loading state
+    const loadingTimeout = setTimeout(() => {
+      if (isMounted && loading) {
+        console.warn("Session check timed out. Assuming no active session.");
         setLoading(false);
-        return;
       }
+    }, 2500); // 2.5-second timeout
 
-      if (initialSession) {
-        setSession(initialSession);
-        setUser(initialSession.user);
-        
-        // 2. Fetch profile if a session exists.
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', initialSession.user.id)
-          .single();
-
-        if (profileError) {
-          console.error("Error fetching profile on init, signing out:", profileError);
+    const fetchProfile = async (userId: string) => {
+      if (!isMounted) return;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (isMounted) {
+        if (error) {
+          console.error('Error fetching profile, signing out:', error);
           await signOut();
         } else {
-          setProfile(profileData);
+          setProfile(data);
         }
       }
-      
-      // 3. Mark initial loading as complete.
-      setLoading(false);
     };
 
-    initializeSession();
-
-    // 4. Listen for subsequent auth state changes (e.g., token refresh, sign out).
+    // onAuthStateChange is the single source of truth. It fires on load and on every auth event.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      if (!isMounted) return;
+      
+      clearTimeout(loadingTimeout);
 
-      if (currentSession?.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentSession.user.id)
-          .single();
-        
-        if (profileError) {
-          console.error("Error fetching profile on auth change, signing out:", profileError);
-          await signOut();
+      if (_event === 'INITIAL_SESSION' || _event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        if (currentSession?.user) {
+          await fetchProfile(currentSession.user.id);
         } else {
-          setProfile(profileData);
+          setProfile(null);
         }
-      } else {
+      } else if (_event === 'SIGNED_OUT') {
+        setSession(null);
+        setUser(null);
         setProfile(null);
       }
+      
+      // Crucially, set loading to false only after the first event has been processed.
+      setLoading(false);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
+      clearTimeout(loadingTimeout);
     };
   }, []);
 
