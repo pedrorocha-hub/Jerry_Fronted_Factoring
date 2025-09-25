@@ -38,105 +38,120 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error fetching profile:', error);
-        // Si hay error de RLS, crear un perfil por defecto
-        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
-          console.log('RLS error detected, creating default profile');
-          return {
-            id: userId,
-            role: 'COMERCIAL',
-            updated_at: new Date().toISOString(),
-            first_name: null,
-            last_name: null
-          };
-        }
-        return null;
+        // Si hay cualquier error, devolver un perfil por defecto
+        console.log('Creating default profile due to error');
+        return {
+          id: userId,
+          role: 'COMERCIAL',
+          updated_at: new Date().toISOString(),
+          first_name: null,
+          last_name: null
+        };
       }
 
       console.log('Profile fetched successfully:', profileData);
       return profileData;
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      return null;
+      // En caso de cualquier error, devolver perfil por defecto
+      return {
+        id: userId,
+        role: 'COMERCIAL',
+        updated_at: new Date().toISOString(),
+        first_name: null,
+        last_name: null
+      };
     }
   };
 
   const signOut = async () => {
     try {
-      setLoading(true);
       await supabase.auth.signOut();
-      setSession(null);
-      setUser(null);
-      setProfile(null);
-      setLoading(false);
     } catch (error) {
       console.error('Error signing out:', error);
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     let mounted = true;
+    let initializationTimeout: NodeJS.Timeout;
 
     const initializeAuth = async () => {
       try {
-        console.log('SessionContext: Starting initialization...');
+        console.log('SessionContext: Starting auth initialization...');
         
-        // Set a maximum timeout for the entire initialization
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session initialization timeout')), 8000);
-        });
+        // Timeout de seguridad
+        initializationTimeout = setTimeout(() => {
+          if (mounted && loading) {
+            console.warn('SessionContext: Initialization timeout, setting loading to false');
+            setLoading(false);
+          }
+        }, 5000); // 5 segundos máximo
 
-        const sessionPromise = supabase.auth.getSession();
-
-        const { data: { session: currentSession }, error } = await Promise.race([
-          sessionPromise,
-          timeoutPromise
-        ]) as any;
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
-        if (error) {
-          console.error('SessionContext: Error getting session:', error);
-          throw error;
-        }
-
         if (!mounted) return;
 
-        console.log('SessionContext: Session obtained:', currentSession ? 'exists' : 'null');
+        if (error) {
+          console.error('SessionContext: Error getting session:', error);
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          return;
+        }
+
+        console.log('SessionContext: Session check complete:', currentSession ? 'authenticated' : 'not authenticated');
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        // If there's a user, try to fetch profile but don't block on it
+        // Si hay usuario, intentar cargar perfil pero no bloquear la app
         if (currentSession?.user) {
-          console.log('SessionContext: Fetching profile...');
-          try {
-            const profileData = await fetchProfile(currentSession.user.id);
+          console.log('SessionContext: User found, loading profile...');
+          // No await aquí - cargar perfil en background
+          fetchProfile(currentSession.user.id).then(profileData => {
             if (mounted) {
               setProfile(profileData);
+              console.log('SessionContext: Profile loaded in background');
             }
-          } catch (profileError) {
-            console.error('SessionContext: Profile fetch failed, continuing anyway:', profileError);
-            // Continue without profile - the app can still work
-          }
+          }).catch(error => {
+            console.error('SessionContext: Background profile load failed:', error);
+            // Crear perfil por defecto si falla
+            if (mounted) {
+              setProfile({
+                id: currentSession.user.id,
+                role: 'COMERCIAL',
+                updated_at: new Date().toISOString(),
+                first_name: null,
+                last_name: null
+              });
+            }
+          });
         } else {
           setProfile(null);
         }
 
+        // Siempre terminar la carga aquí
+        setLoading(false);
+        console.log('SessionContext: Initialization complete');
+
       } catch (error) {
-        console.error('SessionContext: Initialization failed:', error);
+        console.error('SessionContext: Fatal error in initialization:', error);
         if (mounted) {
           setSession(null);
           setUser(null);
           setProfile(null);
+          setLoading(false);
         }
       } finally {
-        if (mounted) {
-          setLoading(false);
-          console.log('SessionContext: Initialization complete');
+        if (initializationTimeout) {
+          clearTimeout(initializationTimeout);
         }
       }
     };
 
-    // Initialize auth
+    // Initialize
     initializeAuth();
 
     // Listen for auth changes
@@ -149,17 +164,25 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
-        if (newSession?.user && event === 'SIGNED_IN') {
-          console.log('SessionContext: User signed in, fetching profile...');
-          try {
-            const profileData = await fetchProfile(newSession.user.id);
+        if (newSession?.user) {
+          // Cargar perfil en background sin bloquear
+          fetchProfile(newSession.user.id).then(profileData => {
             if (mounted) {
               setProfile(profileData);
             }
-          } catch (error) {
-            console.error('SessionContext: Profile fetch failed after sign in:', error);
-          }
-        } else if (event === 'SIGNED_OUT') {
+          }).catch(error => {
+            console.error('SessionContext: Profile load failed on auth change:', error);
+            if (mounted) {
+              setProfile({
+                id: newSession.user.id,
+                role: 'COMERCIAL',
+                updated_at: new Date().toISOString(),
+                first_name: null,
+                last_name: null
+              });
+            }
+          });
+        } else {
           setProfile(null);
         }
       }
@@ -167,6 +190,9 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
     return () => {
       mounted = false;
+      if (initializationTimeout) {
+        clearTimeout(initializationTimeout);
+      }
       subscription.unsubscribe();
     };
   }, []);
