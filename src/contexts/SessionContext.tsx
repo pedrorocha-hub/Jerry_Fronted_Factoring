@@ -14,7 +14,7 @@ interface SessionContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  loading: boolean;
+  loading: boolean; // This will now mean "initial session check in progress"
   signOut: () => Promise<void>;
 }
 
@@ -24,69 +24,56 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
+    // The onAuthStateChange listener will handle state cleanup
   };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchProfile = async (userId: string) => {
-      if (!isMounted) return;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (isMounted) {
-        if (error) {
-          console.error('Error fetching profile, signing out:', error);
-          await signOut();
-        } else {
-          setProfile(data);
-        }
+    // 1. Get the initial session. This will also handle token refresh if needed.
+    // This is the most reliable way to check session on page load.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        setProfile(profileData);
       }
-    };
-
-    // onAuthStateChange is the single source of truth.
-    // It fires once on initial load and then for any auth changes.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
-      if (!isMounted) return;
-
-      // The primary session information is now known. We can stop the main loading state.
-      // This is the key change to prevent getting stuck on the loading screen.
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-
-      // Now, fetch the secondary profile information in the background.
-      if (currentSession?.user) {
-        await fetchProfile(currentSession.user.id);
-      } else {
-        // If there's no session, ensure the profile is cleared.
-        setProfile(null);
-      }
+      setLoading(false); // Initial check is done.
     });
 
+    // 2. Listen for any subsequent changes in auth state.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          setProfile(profileData);
+        } else {
+          setProfile(null);
+        }
+        // If a sign-out happens, loading should be false so the redirect happens.
+        setLoading(false);
+      }
+    );
+
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  const value = {
-    session,
-    user,
-    profile,
-    loading,
-    signOut,
-  };
+  const value = { session, user, profile, loading, signOut };
 
   return (
     <SessionContext.Provider value={value}>
