@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ReporteTributarioWithFicha } from '@/types/reporte-tributario';
+import { useSession } from '@/contexts/SessionContext';
 
 interface ReporteTributarioTableProps {
   reportes: ReporteTributarioWithFicha[];
@@ -45,6 +46,7 @@ const ReporteTributarioTable: React.FC<ReporteTributarioTableProps> = ({
   onEditReporte,
   onDeleteReporte,
 }) => {
+  const { isAdmin } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -267,24 +269,28 @@ const ReporteTributarioTable: React.FC<ReporteTributarioTableProps> = ({
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onEditReporte(reporte)}
-                          title="Editar"
-                          className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDeleteReporte(reporte)}
-                          title="Eliminar"
-                          className="text-gray-400 hover:text-red-400 hover:bg-red-500/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onEditReporte(reporte)}
+                              title="Editar"
+                              className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onDeleteReporte(reporte)}
+                              title="Eliminar"
+                              className="text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ReporteTributarioWithFicha, ReporteTributarioUpdate } from '@/types/reporte-tributario';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { useSession } from '@/contexts/SessionContext';
 
 interface ReporteTributarioModalProps {
   reporte: ReporteTributarioWithFicha | null;
@@ -29,9 +30,12 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
   onSave,
   mode: initialMode
 }) => {
+  const { isAdmin } = useSession();
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
   const [formData, setFormData] = useState<ReporteTributarioUpdate>({});
   const [loading, setLoading] = useState(false);
+
+  const isReadOnly = mode === 'view' || !isAdmin;
 
   useEffect(() => {
     if (reporte) {
@@ -90,6 +94,10 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
   };
 
   const handleSave = async () => {
+    if (!isAdmin) {
+      showError('No tienes permisos para guardar cambios.');
+      return;
+    }
     if (!reporte) return;
 
     const loadingToast = showLoading('Guardando cambios...');
@@ -140,7 +148,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
               <FileText className="h-6 w-6 text-[#00FF80]" />
               <div>
                 <span className="text-xl font-bold text-white">
-                  {mode === 'view' ? 'Ver' : 'Editar'} Reporte Tributario
+                  {isReadOnly ? 'Ver' : 'Editar'} Reporte Tributario
                 </span>
                 <div className="text-sm text-gray-400">
                   {reporte.ficha_ruc?.nombre_empresa} - {reporte.año_reporte}
@@ -148,7 +156,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {mode === 'view' ? (
+              {isAdmin && mode === 'view' ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -158,7 +166,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
-              ) : (
+              ) : isAdmin && mode === 'edit' ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -168,7 +176,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
                   <Eye className="h-4 w-4 mr-2" />
                   Ver
                 </Button>
-              )}
+              ) : null}
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -195,7 +203,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
 
             <div>
               <Label htmlFor="año_reporte">Año del Reporte</Label>
-              {mode === 'view' ? (
+              {isReadOnly ? (
                 <div className="mt-1 p-3 bg-gray-900/50 border border-gray-800 rounded-md flex items-center">
                   <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                   <span className="font-medium text-white">{reporte.año_reporte}</span>
@@ -259,7 +267,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
             ].map(item => (
               <div key={item.id}>
                 <Label htmlFor={item.id}>{item.label}</Label>
-                {mode === 'view' ? (
+                {isReadOnly ? (
                   <div className="mt-1 p-3 bg-gray-900/50 border border-gray-800 rounded-md">
                     <span className={`font-medium ${
                       (item.value || 0) >= 0 ? 'text-green-400' : 'text-red-400'
@@ -298,7 +306,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
             ].map(item => (
               <div key={item.id}>
                 <Label htmlFor={item.id}>{item.label}</Label>
-                {mode === 'view' ? (
+                {isReadOnly ? (
                   <div className="mt-1 p-3 bg-gray-900/50 border border-gray-800 rounded-md">
                     <span className="font-medium text-white">
                       {item.format ? item.format(item.value) : formatCurrency(item.value)}
@@ -336,7 +344,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
           <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
             Cancelar
           </Button>
-          {mode === 'edit' && (
+          {mode === 'edit' && isAdmin && (
             <Button onClick={handleSave} disabled={loading} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
               <Save className="h-4 w-4 mr-2" />
               {loading ? 'Guardando...' : 'Guardar Cambios'}
