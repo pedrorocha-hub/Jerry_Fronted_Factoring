@@ -6,8 +6,7 @@ export interface Profile {
   id: string;
   role: 'ADMINISTRADOR' | 'COMERCIAL';
   updated_at: string;
-  first_name: string | null;
-  last_name: string | null;
+  full_name: string | null;
 }
 
 interface SessionContextType {
@@ -41,8 +40,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
           id: userId,
           role: 'COMERCIAL',
           updated_at: new Date().toISOString(),
-          first_name: null,
-          last_name: null
+          full_name: null
         };
       }
 
@@ -53,8 +51,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
         id: userId,
         role: 'COMERCIAL',
         updated_at: new Date().toISOString(),
-        first_name: null,
-        last_name: null
+        full_name: null
       };
     }
   };
@@ -107,8 +104,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
                 id: currentSession.user.id,
                 role: 'COMERCIAL',
                 updated_at: new Date().toISOString(),
-                first_name: null,
-                last_name: null
+                full_name: null
               });
             }
           });
@@ -154,8 +150,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
                 id: newSession.user.id,
                 role: 'COMERCIAL',
                 updated_at: new Date().toISOString(),
-                first_name: null,
-                last_name: null
+                full_name: null
               });
             }
           });
