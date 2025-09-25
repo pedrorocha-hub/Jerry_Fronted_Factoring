@@ -4,23 +4,16 @@ import {
   Home, 
   Upload, 
   Zap,
-  FileText,
-  Users
+  FileText
 } from 'lucide-react';
-import { useSession } from '@/contexts/SessionContext';
 
 const Sidebar: React.FC = () => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { profile } = useSession();
 
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
     { to: '/rib', icon: FileText, label: 'Crear Rib' },
-  ];
-
-  const adminNavItems = [
-    { to: '/admin/users', icon: Users, label: 'Gestión de Usuarios' }
   ];
 
   return (
@@ -60,30 +53,6 @@ const Sidebar: React.FC = () => {
               </NavLink>
             </li>
           ))}
-          {profile?.role === 'ADMINISTRADOR' && (
-            <>
-              <div className="pt-4">
-                <span className={`text-xs text-gray-500 uppercase px-3 transition-all duration-200 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>Admin</span>
-              </div>
-              {adminNavItems.map((item) => (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    className={({ isActive }) =>
-                      `flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                        isActive
-                          ? 'bg-[#00FF80]/10 text-[#00FF80]'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-800'
-                      } ${!isExpanded && 'justify-center'}`
-                    }
-                  >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span className={`text-sm font-medium overflow-hidden transition-all duration-200 whitespace-nowrap ${isExpanded ? 'w-full' : 'w-0'}`}>{item.label}</span>
-                  </NavLink>
-                </li>
-              ))}
-            </>
-          )}
         </ul>
       </nav>
 
