@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +26,11 @@ interface Top10kData {
   facturado_2023_soles_maximo: string | null;
 }
 
+interface CreatorInfo {
+  fullName: string | null;
+  email: string | null;
+}
+
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 const RibCreateEditPage = () => {
@@ -40,6 +45,7 @@ const RibCreateEditPage = () => {
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
   const [editingRib, setEditingRib] = useState<Rib | null>(null);
+  const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   const [ribFormData, setRibFormData] = useState({
     status: 'draft' as 'draft' | 'completed' | 'in_review',
     direccion: '',
@@ -72,6 +78,21 @@ const RibCreateEditPage = () => {
           const ribData = await RibService.getById(id);
           if (ribData) {
             handleEditRib(ribData);
+            if (ribData.user_id) {
+              const { data: creatorData, error: creatorError } = await supabase
+                .rpc('get_user_details', { user_id_input: ribData.user_id })
+                .single();
+
+              if (creatorError) {
+                console.error("Error fetching creator details:", creatorError);
+                showError("No se pudo cargar la información del creador.");
+              } else if (creatorData) {
+                setCreatorInfo({
+                  fullName: creatorData.full_name,
+                  email: creatorData.email
+                });
+              }
+            }
           } else {
             showError('No se encontró la ficha Rib para editar.');
             navigate('/rib');
@@ -101,6 +122,7 @@ const RibCreateEditPage = () => {
     setSearchedFicha(null);
     setTop10kData(null);
     setEditingRib(null);
+    setCreatorInfo(null);
     setRibFormData({
       status: 'draft',
       direccion: '',
@@ -513,6 +535,24 @@ const RibCreateEditPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    {editingRib && (
+                      <div className="mt-6 border-t border-gray-800 pt-4 text-sm text-gray-400 space-y-3">
+                        {creatorInfo && (
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 flex-shrink-0" />
+                            <span>Creado por: <strong className="text-gray-200">{creatorInfo.fullName || 'N/A'}</strong> ({creatorInfo.email || 'N/A'})</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 flex-shrink-0" />
+                          <span>Fecha de creación: <strong className="text-gray-200">{new Date(editingRib.created_at).toLocaleString('es-PE')}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <RefreshCw className="h-4 w-4 flex-shrink-0" />
+                          <span>Última modificación: <strong className="text-gray-200">{new Date(editingRib.updated_at).toLocaleString('es-PE')}</strong></span>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
