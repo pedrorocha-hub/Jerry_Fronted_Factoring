@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { FacturaNegociarWithFicha, FacturaNegociarUpdate } from '@/types/factura-negociar';
 import { FacturaNegociarService } from '@/services/facturaNegociarService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { useSession } from '@/contexts/SessionContext';
 
 interface FacturaNegociarModalProps {
   factura: FacturaNegociarWithFicha | null;
@@ -36,9 +37,12 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
   onSave,
   mode: initialMode
 }) => {
+  const { isAdmin } = useSession();
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
   const [formData, setFormData] = useState<FacturaNegociarUpdate>({});
   const [loading, setLoading] = useState(false);
+
+  const isReadOnly = mode === 'view' || !isAdmin;
 
   useEffect(() => {
     if (factura) {
@@ -65,6 +69,10 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
   };
 
   const handleSave = async () => {
+    if (!isAdmin) {
+      showError('No tienes permisos para guardar cambios.');
+      return;
+    }
     if (!factura) return;
 
     const loadingToast = showLoading('Guardando cambios...');
@@ -131,7 +139,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
               <Receipt className="h-6 w-6 text-blue-600" />
               <div>
                 <span className="text-xl font-bold">
-                  {mode === 'view' ? 'Ver' : 'Editar'} Factura a Negociar
+                  {isReadOnly ? 'Ver' : 'Editar'} Factura a Negociar
                 </span>
                 <div className="text-sm text-gray-500 font-mono">
                   {factura.numero_factura}
@@ -139,7 +147,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {mode === 'view' ? (
+              {isAdmin && mode === 'view' ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -148,7 +156,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
                   <Edit className="h-4 w-4 mr-2" />
                   Editar
                 </Button>
-              ) : (
+              ) : isAdmin && mode === 'edit' ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -157,7 +165,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
                   <Eye className="h-4 w-4 mr-2" />
                   Ver
                 </Button>
-              )}
+              ) : null}
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -172,7 +180,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
 
             <div>
               <Label htmlFor="numero_factura">Número de Factura *</Label>
-              {mode === 'view' ? (
+              {isReadOnly ? (
                 <div className="mt-1 p-3 bg-gray-50 rounded-md">
                   <span className="font-mono font-medium">{factura.numero_factura}</span>
                 </div>
@@ -189,7 +197,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="fecha_emision">Fecha de Emisión</Label>
-                {mode === 'view' ? (
+                {isReadOnly ? (
                   <div className="mt-1 p-3 bg-gray-50 rounded-md flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                     <span>
@@ -211,7 +219,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
 
               <div>
                 <Label htmlFor="fecha_vencimiento">Fecha de Vencimiento</Label>
-                {mode === 'view' ? (
+                {isReadOnly ? (
                   <div className="mt-1 p-3 bg-gray-50 rounded-md flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                     <span>
@@ -234,7 +242,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
 
             <div>
               <Label htmlFor="estado_negociacion">Estado de Negociación</Label>
-              {mode === 'view' ? (
+              {isReadOnly ? (
                 <div className="mt-1 p-3 bg-gray-50 rounded-md">
                   {getEstadoBadge(factura.estado_negociacion, factura.fecha_vencimiento)}
                 </div>
@@ -265,7 +273,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
 
             <div>
               <Label htmlFor="monto_total">Monto Total</Label>
-              {mode === 'view' ? (
+              {isReadOnly ? (
                 <div className="mt-1 p-3 bg-gray-50 rounded-md">
                   <span className="font-medium text-green-600">
                     {formatCurrency(factura.monto_total)}
@@ -286,7 +294,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="monto_igv">Monto IGV</Label>
-                {mode === 'view' ? (
+                {isReadOnly ? (
                   <div className="mt-1 p-3 bg-gray-50 rounded-md">
                     <span>{formatCurrency(factura.monto_igv)}</span>
                   </div>
@@ -304,7 +312,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
 
               <div>
                 <Label htmlFor="monto_neto">Monto Neto</Label>
-                {mode === 'view' ? (
+                {isReadOnly ? (
                   <div className="mt-1 p-3 bg-gray-50 rounded-md">
                     <span>{formatCurrency(factura.monto_neto)}</span>
                   </div>
@@ -329,7 +337,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="fecha_negociacion">Fecha de Negociación</Label>
-                    {mode === 'view' ? (
+                    {isReadOnly ? (
                       <div className="mt-1 p-3 bg-green-50 rounded-md flex items-center">
                         <Calendar className="h-4 w-4 mr-2 text-green-400" />
                         <span>
@@ -351,7 +359,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
 
                   <div>
                     <Label htmlFor="monto_negociado">Monto Negociado</Label>
-                    {mode === 'view' ? (
+                    {isReadOnly ? (
                       <div className="mt-1 p-3 bg-green-50 rounded-md">
                         <span className="font-medium text-green-600">
                           {formatCurrency(factura.monto_negociado)}
@@ -408,7 +416,7 @@ const FacturaNegociarModal: React.FC<FacturaNegociarModalProps> = ({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          {mode === 'edit' && (
+          {mode === 'edit' && isAdmin && (
             <Button onClick={handleSave} disabled={loading}>
               <Save className="h-4 w-4 mr-2" />
               {loading ? 'Guardando...' : 'Guardar Cambios'}

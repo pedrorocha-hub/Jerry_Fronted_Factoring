@@ -32,6 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { FacturaNegociarWithFicha } from '@/types/factura-negociar';
+import { useSession } from '@/contexts/SessionContext';
 
 interface FacturaNegociarTableProps {
   facturas: FacturaNegociarWithFicha[];
@@ -48,6 +49,7 @@ const FacturaNegociarTable: React.FC<FacturaNegociarTableProps> = ({
   onDeleteFactura,
   onNegociarFactura,
 }) => {
+  const { isAdmin } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -257,35 +259,39 @@ const FacturaNegociarTable: React.FC<FacturaNegociarTableProps> = ({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEditFactura(factura)}
-                        title="Editar"
-                        className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {factura.estado_negociacion === 'Pendiente' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onNegociarFactura(factura)}
-                          title="Negociar"
-                          className="text-gray-400 hover:text-blue-400 hover:bg-blue-500/10"
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </Button>
+                      {isAdmin && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onEditFactura(factura)}
+                            title="Editar"
+                            className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          {factura.estado_negociacion === 'Pendiente' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => onNegociarFactura(factura)}
+                              title="Negociar"
+                              className="text-gray-400 hover:text-blue-400 hover:bg-blue-500/10"
+                            >
+                              <DollarSign className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDeleteFactura(factura)}
+                            title="Eliminar"
+                            className="text-gray-400 hover:text-red-400 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteFactura(factura)}
-                        title="Eliminar"
-                        className="text-gray-400 hover:text-red-400 hover:bg-red-500/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -9,8 +9,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FacturaNegociarWithFicha } from '@/types/factura-negociar';
 import { FacturaNegociarService } from '@/services/facturaNegociarService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { useSession } from '@/contexts/SessionContext';
 
 const FacturaNegociarPage = () => {
+  const { isAdmin } = useSession();
   const [facturas, setFacturas] = useState<FacturaNegociarWithFicha[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -204,7 +206,7 @@ const FacturaNegociarPage = () => {
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
-              {facturas.length === 0 && (
+              {isAdmin && facturas.length === 0 && (
                 <Button 
                   variant="outline" 
                   onClick={handleCreateTestData}
@@ -214,10 +216,12 @@ const FacturaNegociarPage = () => {
                   Crear Datos de Prueba
                 </Button>
               )}
-              <Button className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Factura
-              </Button>
+              {isAdmin && (
+                <Button className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Factura
+                </Button>
+              )}
             </div>
           </div>
 
@@ -354,10 +358,12 @@ const FacturaNegociarPage = () => {
                   </ol>
                 </div>
                 <div className="mt-6 space-x-3">
-                  <Button onClick={handleCreateTestData} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear Datos de Prueba
-                  </Button>
+                  {isAdmin && (
+                    <Button onClick={handleCreateTestData} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Crear Datos de Prueba
+                    </Button>
+                  )}
                   <Button 
                     variant="outline" 
                     onClick={() => window.location.href = '/upload'}
