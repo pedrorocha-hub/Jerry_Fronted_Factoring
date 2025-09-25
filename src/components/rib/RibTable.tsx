@@ -47,6 +47,8 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
         return <Badge className="bg-green-500/10 text-green-400 border border-green-500/20">Completado</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Pendiente</Badge>;
+      case 'in_review':
+        return <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/20">En Revisión</Badge>;
       case 'draft':
       default:
         return <Badge variant="outline" className="border-gray-700 text-gray-400">Borrador</Badge>;
