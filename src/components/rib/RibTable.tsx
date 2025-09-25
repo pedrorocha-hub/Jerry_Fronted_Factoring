@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, Download, Search, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -45,8 +45,6 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
     switch (status) {
       case 'completed':
         return <Badge className="bg-green-500/10 text-green-400 border border-green-500/20">Completado</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Pendiente</Badge>;
       case 'in_review':
         return <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/20">En Revisión</Badge>;
       case 'draft':
@@ -106,15 +104,19 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
                       <Button variant="ghost" size="icon" onClick={() => onDownload(rib)} title="Descargar PDF" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
                         <Download className="h-4 w-4" />
                       </Button>
+                      {isAdmin ? (
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} title="Editar" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} title="Ver Detalles" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                       {isAdmin && (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} title="Editar" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => onDelete(rib)} title="Eliminar" className="text-gray-400 hover:text-red-400 hover:bg-red-500/10">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
+                        <Button variant="ghost" size="icon" onClick={() => onDelete(rib)} title="Eliminar" className="text-gray-400 hover:text-red-400 hover:bg-red-500/10">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </TableCell>

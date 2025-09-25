@@ -294,7 +294,7 @@ const RibCreateEditPage = () => {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-white flex items-center">
-                  {id ? 'Editar Ficha Rib' : 'Crear Ficha Rib'}
+                  {id ? (isAdmin ? 'Editar Ficha Rib' : 'Ver Ficha Rib') : 'Crear Ficha Rib'}
                 </h1>
                 <p className="text-gray-400">Reporte de Inicio Básico de empresa</p>
               </div>
