@@ -14,7 +14,7 @@ interface SessionContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  loading: boolean; // This will now mean "initial session check in progress"
+  loading: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -24,51 +24,113 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
+
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return profileData;
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      return null;
+    }
+  };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    // The onAuthStateChange listener will handle state cleanup
+    try {
+      await supabase.auth.signOut();
+      // State cleanup will be handled by the auth state change listener
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   useEffect(() => {
-    // 1. Get the initial session. This will also handle token refresh if needed.
-    // This is the most reliable way to check session on page load.
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(profileData);
-      }
-      setLoading(false); // Initial check is done.
-    });
+    let mounted = true;
 
-    // 2. Listen for any subsequent changes in auth state.
+    const initializeSession = async () => {
+      try {
+        // Get the current session - this will refresh the token if needed
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (mounted) {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+
+          if (currentSession?.user) {
+            const profileData = await fetchProfile(currentSession.user.id);
+            if (mounted) {
+              setProfile(profileData);
+            }
+          } else {
+            setProfile(null);
+          }
+
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error initializing session:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
+      }
+    };
+
+    // Initialize session on mount
+    initializeSession();
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          setProfile(profileData);
+      async (event, newSession) => {
+        console.log('Auth state change:', event, newSession?.user?.email);
+
+        if (!mounted) return;
+
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          const profileData = await fetchProfile(newSession.user.id);
+          if (mounted) {
+            setProfile(profileData);
+          }
         } else {
           setProfile(null);
         }
-        // If a sign-out happens, loading should be false so the redirect happens.
-        setLoading(false);
+
+        // Only set loading to false after handling the auth state change
+        if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setLoading(false);
+        }
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
