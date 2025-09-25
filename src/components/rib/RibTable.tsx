@@ -11,6 +11,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Rib } from '@/types/rib';
 import { useSession } from '@/contexts/SessionContext';
 
@@ -31,6 +41,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
   const { isAdmin } = useSession();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [ribToDownload, setRibToDownload] = useState<Rib | null>(null);
   const itemsPerPage = 10;
 
   const filteredRibs = (ribs || []).filter(rib =>
@@ -101,7 +112,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
                   <TableCell>{getStatusBadge(rib.status)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => onDownload(rib)} title="Descargar PDF" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="icon" onClick={() => setRibToDownload(rib)} title="Descargar PDF" className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10">
                         <Download className="h-4 w-4" />
                       </Button>
                       {isAdmin ? (
@@ -158,6 +169,30 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
           </div>
         </div>
       )}
+
+      <AlertDialog open={!!ribToDownload} onOpenChange={(open) => !open && setRibToDownload(null)}>
+        <AlertDialogContent className="bg-[#121212] border border-gray-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Confirmar Descarga</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              ¿Está seguro de que desea generar y descargar el PDF para la ficha RIB de la empresa con RUC {ribToDownload?.ruc}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (ribToDownload) {
+                  onDownload(ribToDownload);
+                }
+              }} 
+              className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+            >
+              Descargar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
