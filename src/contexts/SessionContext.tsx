@@ -28,8 +28,6 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
-      console.log('Fetching profile for user:', userId);
-      
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
@@ -38,8 +36,6 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error fetching profile:', error);
-        // Si hay cualquier error, devolver un perfil por defecto
-        console.log('Creating default profile due to error');
         return {
           id: userId,
           role: 'COMERCIAL',
@@ -49,11 +45,9 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
         };
       }
 
-      console.log('Profile fetched successfully:', profileData);
       return profileData;
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      // En caso de cualquier error, devolver perfil por defecto
       return {
         id: userId,
         role: 'COMERCIAL',
@@ -78,15 +72,11 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
     const initializeAuth = async () => {
       try {
-        console.log('SessionContext: Starting auth initialization...');
-        
-        // Timeout de seguridad
         initializationTimeout = setTimeout(() => {
           if (mounted && loading) {
-            console.warn('SessionContext: Initialization timeout, setting loading to false');
             setLoading(false);
           }
-        }, 5000); // 5 segundos máximo
+        }, 5000);
 
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
@@ -100,24 +90,17 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
           setLoading(false);
           return;
         }
-
-        console.log('SessionContext: Session check complete:', currentSession ? 'authenticated' : 'not authenticated');
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        // Si hay usuario, intentar cargar perfil pero no bloquear la app
         if (currentSession?.user) {
-          console.log('SessionContext: User found, loading profile...');
-          // No await aquí - cargar perfil en background
           fetchProfile(currentSession.user.id).then(profileData => {
             if (mounted) {
               setProfile(profileData);
-              console.log('SessionContext: Profile loaded in background');
             }
           }).catch(error => {
             console.error('SessionContext: Background profile load failed:', error);
-            // Crear perfil por defecto si falla
             if (mounted) {
               setProfile({
                 id: currentSession.user.id,
@@ -132,9 +115,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
           setProfile(null);
         }
 
-        // Siempre terminar la carga aquí
         setLoading(false);
-        console.log('SessionContext: Initialization complete');
 
       } catch (error) {
         console.error('SessionContext: Fatal error in initialization:', error);
@@ -151,21 +132,16 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       }
     };
 
-    // Initialize
     initializeAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log('SessionContext: Auth state change:', event);
-
         if (!mounted) return;
 
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
         if (newSession?.user) {
-          // Cargar perfil en background sin bloquear
           fetchProfile(newSession.user.id).then(profileData => {
             if (mounted) {
               setProfile(profileData);
