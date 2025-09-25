@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, Download, Search, User, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, Download, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -74,7 +74,6 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
             <TableRow className="border-gray-800 hover:bg-gray-900/50">
               <TableHead className="text-gray-300">Empresa</TableHead>
               <TableHead className="text-gray-300">Creado por</TableHead>
-              <TableHead className="text-gray-300">Fecha Creación</TableHead>
               <TableHead className="text-gray-300">Estado</TableHead>
               <TableHead className="text-right text-gray-300">Acciones</TableHead>
             </TableRow>
@@ -92,15 +91,9 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-400" />
+                    <div className="flex flex-col">
                       <span className="text-sm text-gray-300">{rib.creator_name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-300">
+                      <span className="text-xs text-gray-400">
                         {rib.created_at ? new Date(rib.created_at).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
@@ -127,7 +120,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-gray-400">
+                <TableCell colSpan={4} className="text-center py-8 text-gray-400">
                   No se encontraron fichas RIB.
                 </TableCell>
               </TableRow>
