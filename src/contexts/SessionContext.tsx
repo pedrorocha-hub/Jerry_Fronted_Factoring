@@ -28,6 +28,8 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
+      console.log('Fetching profile for user:', userId);
+      
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
@@ -36,9 +38,21 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error fetching profile:', error);
+        // Si hay error de RLS, crear un perfil por defecto
+        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
+          console.log('RLS error detected, creating default profile');
+          return {
+            id: userId,
+            role: 'COMERCIAL',
+            updated_at: new Date().toISOString(),
+            first_name: null,
+            last_name: null
+          };
+        }
         return null;
       }
 
+      console.log('Profile fetched successfully:', profileData);
       return profileData;
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -48,9 +62,15 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
   const signOut = async () => {
     try {
+      setLoading(true);
       await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
     } catch (error) {
       console.error('Error signing out:', error);
+      setLoading(false);
     }
   };
 
@@ -59,43 +79,59 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
     const initializeAuth = async () => {
       try {
-        console.log('SessionContext: Initializing auth...');
+        console.log('SessionContext: Starting initialization...');
         
-        // Get current session
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        // Set a maximum timeout for the entire initialization
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session initialization timeout')), 8000);
+        });
+
+        const sessionPromise = supabase.auth.getSession();
+
+        const { data: { session: currentSession }, error } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]) as any;
         
         if (error) {
           console.error('SessionContext: Error getting session:', error);
+          throw error;
         }
 
-        if (mounted) {
-          console.log('SessionContext: Current session:', currentSession ? 'exists' : 'null');
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
+        if (!mounted) return;
 
-          // Fetch profile if user exists
-          if (currentSession?.user) {
-            console.log('SessionContext: Fetching profile for user:', currentSession.user.id);
+        console.log('SessionContext: Session obtained:', currentSession ? 'exists' : 'null');
+        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+
+        // If there's a user, try to fetch profile but don't block on it
+        if (currentSession?.user) {
+          console.log('SessionContext: Fetching profile...');
+          try {
             const profileData = await fetchProfile(currentSession.user.id);
             if (mounted) {
               setProfile(profileData);
-              console.log('SessionContext: Profile loaded:', profileData?.role);
             }
-          } else {
-            setProfile(null);
+          } catch (profileError) {
+            console.error('SessionContext: Profile fetch failed, continuing anyway:', profileError);
+            // Continue without profile - the app can still work
           }
-
-          // Always set loading to false after initial check
-          setLoading(false);
-          console.log('SessionContext: Initial auth check complete');
+        } else {
+          setProfile(null);
         }
+
       } catch (error) {
-        console.error('SessionContext: Error in initializeAuth:', error);
+        console.error('SessionContext: Initialization failed:', error);
         if (mounted) {
           setSession(null);
           setUser(null);
           setProfile(null);
+        }
+      } finally {
+        if (mounted) {
           setLoading(false);
+          console.log('SessionContext: Initialization complete');
         }
       }
     };
@@ -113,20 +149,18 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
-        if (newSession?.user) {
-          console.log('SessionContext: Loading profile after auth change');
-          const profileData = await fetchProfile(newSession.user.id);
-          if (mounted) {
-            setProfile(profileData);
+        if (newSession?.user && event === 'SIGNED_IN') {
+          console.log('SessionContext: User signed in, fetching profile...');
+          try {
+            const profileData = await fetchProfile(newSession.user.id);
+            if (mounted) {
+              setProfile(profileData);
+            }
+          } catch (error) {
+            console.error('SessionContext: Profile fetch failed after sign in:', error);
           }
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           setProfile(null);
-        }
-
-        // Don't set loading to false here for initial load
-        // Only for subsequent auth changes
-        if (event !== 'INITIAL_SESSION') {
-          setLoading(false);
         }
       }
     );
