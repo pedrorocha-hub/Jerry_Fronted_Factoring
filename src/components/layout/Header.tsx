@@ -43,14 +43,15 @@ const Header: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center text-white">
-                  {user?.email?.charAt(0).toUpperCase()}
+                  {profile?.full_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-[#121212] border-gray-800 text-white" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.email}</p>
+                  <p className="text-sm font-medium leading-none">{profile?.full_name || 'Usuario'}</p>
+                  <p className="text-xs leading-none text-gray-400">{user?.email}</p>
                   <p className="text-xs leading-none text-gray-400">{profile?.role}</p>
                 </div>
               </DropdownMenuLabel>
