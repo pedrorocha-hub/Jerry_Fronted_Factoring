@@ -45,106 +45,104 @@ const Dashboard = () => {
     reportes: { total: 0, thisYear: 0, lastYear: 0 }
   });
 
-  const [recentActivity, setRecentActivity] = useState([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAllStats();
-    loadRecentActivity();
+    const loadDashboardData = async () => {
+      setLoading(true);
+      try {
+        const results = await Promise.allSettled([
+          DocumentoService.getStats(),
+          FichaRucService.getStats(),
+          RepresentanteLegalService.getStats(),
+          CuentaBancariaService.getStats(),
+          VigenciaPoderesService.getStats(),
+          FacturaNegociarService.getStats(),
+          ReporteTributarioService.getStats(),
+          FichaRucService.getAll() // For recent activity
+        ]);
+
+        const getResultValue = (result: PromiseSettledResult<any>, defaultValue: any) => {
+          if (result.status === 'fulfilled') {
+            return result.value;
+          }
+          console.error("Dashboard data fetch failed:", result.reason);
+          return defaultValue;
+        };
+
+        const documentosStats = getResultValue(results[0], { total: 0, procesados: 0, pendientes: 0, errores: 0 });
+        const fichasRucStats = getResultValue(results[1], { total: 0, active: 0, inactive: 0 });
+        const representantesStats = getResultValue(results[2], { total: 0, withCargo: 0, withoutCargo: 0 });
+        const cuentasStats = getResultValue(results[3], { total: 0, activeCounts: 0, inactiveCounts: 0 });
+        const vigenciasStats = getResultValue(results[4], { total: 0, vigentes: 0, vencidos: 0 });
+        const facturasStats = getResultValue(results[5], { total: 0, pendientes: 0, negociadas: 0, vencidas: 0 });
+        const reportesStats = getResultValue(results[6], { total: 0, thisYear: 0, lastYear: 0 });
+        const recentFichas = getResultValue(results[7], []);
+
+        setStats({
+          documentos: {
+            total: documentosStats.total || 0,
+            procesados: documentosStats.procesados || 0,
+            pendientes: documentosStats.pendientes || 0,
+            errores: documentosStats.errores || 0
+          },
+          fichasRuc: {
+            total: fichasRucStats.total || 0,
+            activas: fichasRucStats.active || 0,
+            inactivas: fichasRucStats.inactive || 0
+          },
+          representantes: {
+            total: representantesStats.total || 0,
+            conCargo: representantesStats.withCargo || 0,
+            sinCargo: representantesStats.withoutCargo || 0
+          },
+          cuentasBancarias: {
+            total: cuentasStats.total || 0,
+            activas: cuentasStats.activeCounts || 0,
+            cerradas: cuentasStats.inactiveCounts || 0
+          },
+          vigenciaPoderes: {
+            total: vigenciasStats.total || 0,
+            vigentes: vigenciasStats.vigentes || 0,
+            vencidos: vigenciasStats.vencidos || 0
+          },
+          facturas: {
+            total: facturasStats.total || 0,
+            pendientes: facturasStats.pendientes || 0,
+            negociadas: facturasStats.negociadas || 0,
+            vencidas: facturasStats.vencidas || 0
+          },
+          reportes: {
+            total: reportesStats.total || 0,
+            thisYear: reportesStats.thisYear || 0,
+            lastYear: reportesStats.lastYear || 0
+          }
+        });
+
+        const recentActivityData = recentFichas.slice(0, 5).map((ficha: any) => ({
+          id: ficha.id,
+          type: 'ficha_ruc',
+          message: `Ficha RUC procesada: ${ficha.nombre_empresa}`,
+          timestamp: new Date(ficha.created_at).toLocaleString('es-ES'),
+          status: 'completed',
+          empresa: ficha.nombre_empresa,
+          ruc: ficha.ruc,
+          created_at: ficha.created_at
+        }));
+        setRecentActivity(recentActivityData);
+
+      } catch (error) {
+        console.error('Unexpected error in loadDashboardData:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
   }, []);
 
-  const loadAllStats = async () => {
-    try {
-      setLoading(true);
-      
-      // Load stats from all services
-      const [
-        documentosStats,
-        fichasRucStats,
-        representantesStats,
-        cuentasStats,
-        vigenciasStats,
-        facturasStats,
-        reportesStats
-      ] = await Promise.all([
-        DocumentoService.getStats().catch(() => ({ total: 0, procesados: 0, pendientes: 0, errores: 0 })),
-        FichaRucService.getStats().catch(() => ({ total: 0, active: 0, inactive: 0 })),
-        RepresentanteLegalService.getStats().catch(() => ({ total: 0, withCargo: 0, withoutCargo: 0 })),
-        CuentaBancariaService.getStats().catch(() => ({ total: 0, activeCounts: 0, inactiveCounts: 0 })),
-        VigenciaPoderesService.getStats().catch(() => ({ total: 0, vigentes: 0, vencidos: 0 })),
-        FacturaNegociarService.getStats().catch(() => ({ total: 0, pendientes: 0, negociadas: 0, vencidas: 0 })),
-        ReporteTributarioService.getStats().catch(() => ({ total: 0, thisYear: 0, lastYear: 0 }))
-      ]);
-
-      setStats({
-        documentos: {
-          total: documentosStats.total || 0,
-          procesados: documentosStats.procesados || 0,
-          pendientes: documentosStats.pendientes || 0,
-          errores: documentosStats.errores || 0
-        },
-        fichasRuc: {
-          total: fichasRucStats.total || 0,
-          activas: fichasRucStats.active || 0,
-          inactivas: fichasRucStats.inactive || 0
-        },
-        representantes: {
-          total: representantesStats.total || 0,
-          conCargo: representantesStats.withCargo || 0,
-          sinCargo: representantesStats.withoutCargo || 0
-        },
-        cuentasBancarias: {
-          total: cuentasStats.total || 0,
-          activas: cuentasStats.activeCounts || 0,
-          cerradas: cuentasStats.inactiveCounts || 0
-        },
-        vigenciaPoderes: {
-          total: vigenciasStats.total || 0,
-          vigentes: vigenciasStats.vigentes || 0,
-          vencidos: vigenciasStats.vencidos || 0
-        },
-        facturas: {
-          total: facturasStats.total || 0,
-          pendientes: facturasStats.pendientes || 0,
-          negociadas: facturasStats.negociadas || 0,
-          vencidas: facturasStats.vencidas || 0
-        },
-        reportes: {
-          total: reportesStats.total || 0,
-          thisYear: reportesStats.thisYear || 0,
-          lastYear: reportesStats.lastYear || 0
-        }
-      });
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRecentActivity = async () => {
-    try {
-      // Get recent fichas RUC as activity
-      const recentFichas = await FichaRucService.getAll();
-      const recentActivityData = recentFichas.slice(0, 5).map((ficha) => ({
-        id: ficha.id,
-        type: 'ficha_ruc',
-        message: `Ficha RUC procesada: ${ficha.nombre_empresa}`,
-        timestamp: new Date(ficha.created_at).toLocaleString('es-ES'),
-        status: 'completed',
-        empresa: ficha.nombre_empresa,
-        ruc: ficha.ruc,
-        created_at: ficha.created_at
-      }));
-      
-      setRecentActivity(recentActivityData);
-    } catch (error) {
-      console.error('Error loading recent activity:', error);
-      setRecentActivity([]);
-    }
-  };
-
-  const getActivityIcon = (type) => {
+  const getActivityIcon = (type: string) => {
     switch (type) {
       case 'ficha_ruc':
         return <Building2 className="h-4 w-4 text-[#00FF80]" />;
@@ -159,7 +157,7 @@ const Dashboard = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
         return <span className="px-2 py-1 text-xs bg-[#00FF80]/10 text-[#00FF80] rounded-full border border-[#00FF80]/20">✨ Procesado por IA</span>;
