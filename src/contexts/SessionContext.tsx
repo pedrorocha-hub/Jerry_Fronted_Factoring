@@ -49,7 +49,6 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
-      // State cleanup will be handled by the auth state change listener
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -58,39 +57,40 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   useEffect(() => {
     let mounted = true;
 
-    const initializeSession = async () => {
+    const initializeAuth = async () => {
       try {
-        // Get the current session - this will refresh the token if needed
+        console.log('SessionContext: Initializing auth...');
+        
+        // Get current session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-          }
-          return;
+          console.error('SessionContext: Error getting session:', error);
         }
 
         if (mounted) {
+          console.log('SessionContext: Current session:', currentSession ? 'exists' : 'null');
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
 
+          // Fetch profile if user exists
           if (currentSession?.user) {
+            console.log('SessionContext: Fetching profile for user:', currentSession.user.id);
             const profileData = await fetchProfile(currentSession.user.id);
             if (mounted) {
               setProfile(profileData);
+              console.log('SessionContext: Profile loaded:', profileData?.role);
             }
           } else {
             setProfile(null);
           }
 
+          // Always set loading to false after initial check
           setLoading(false);
+          console.log('SessionContext: Initial auth check complete');
         }
       } catch (error) {
-        console.error('Error initializing session:', error);
+        console.error('SessionContext: Error in initializeAuth:', error);
         if (mounted) {
           setSession(null);
           setUser(null);
@@ -100,13 +100,13 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       }
     };
 
-    // Initialize session on mount
-    initializeSession();
+    // Initialize auth
+    initializeAuth();
 
-    // Listen for auth state changes
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log('Auth state change:', event, newSession?.user?.email);
+        console.log('SessionContext: Auth state change:', event);
 
         if (!mounted) return;
 
@@ -114,6 +114,7 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
         setUser(newSession?.user ?? null);
 
         if (newSession?.user) {
+          console.log('SessionContext: Loading profile after auth change');
           const profileData = await fetchProfile(newSession.user.id);
           if (mounted) {
             setProfile(profileData);
@@ -122,8 +123,9 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
           setProfile(null);
         }
 
-        // Only set loading to false after handling the auth state change
-        if (event === 'SIGNED_OUT' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Don't set loading to false here for initial load
+        // Only for subsequent auth changes
+        if (event !== 'INITIAL_SESSION') {
           setLoading(false);
         }
       }
