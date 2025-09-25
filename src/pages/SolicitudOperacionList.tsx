@@ -65,7 +65,7 @@ const SolicitudOperacionListPage = () => {
     setLoadingSolicitudes(true);
     try {
       const { data: solicitudData, error: solicitudError } = await supabase
-        .from('ribs')
+        .from('solicitudes_operacion')
         .select(`
           *,
           profiles (
@@ -114,7 +114,7 @@ const SolicitudOperacionListPage = () => {
     if (window.confirm(`¿Está seguro de eliminar la solicitud para el RUC ${solicitud.ruc}?`)) {
       const toastId = showLoading('Eliminando solicitud...');
       try {
-        const { error } = await supabase.from('ribs').delete().eq('id', solicitud.id);
+        const { error } = await supabase.from('solicitudes_operacion').delete().eq('id', solicitud.id);
         if (error) throw error;
         
         dismissToast(toastId);

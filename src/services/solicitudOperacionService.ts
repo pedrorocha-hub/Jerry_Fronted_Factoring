@@ -12,7 +12,7 @@ export class SolicitudOperacionService {
     };
 
     const { data, error } = await supabase
-      .from('ribs')
+      .from('solicitudes_operacion')
       .insert(dataToInsert)
       .select()
       .single();
@@ -26,7 +26,7 @@ export class SolicitudOperacionService {
 
   static async getAll(): Promise<SolicitudOperacion[]> {
     const { data, error } = await supabase
-      .from('ribs')
+      .from('solicitudes_operacion')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -39,7 +39,7 @@ export class SolicitudOperacionService {
 
   static async getById(id: string): Promise<SolicitudOperacion | null> {
     const { data, error } = await supabase
-      .from('ribs')
+      .from('solicitudes_operacion')
       .select('*')
       .eq('id', id)
       .single();
@@ -57,7 +57,7 @@ export class SolicitudOperacionService {
 
   static async update(id: string, solicitudData: SolicitudOperacionUpdate): Promise<SolicitudOperacion> {
     const { data, error } = await supabase
-      .from('ribs')
+      .from('solicitudes_operacion')
       .update({ ...solicitudData, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -72,7 +72,7 @@ export class SolicitudOperacionService {
 
   static async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('ribs')
+      .from('solicitudes_operacion')
       .delete()
       .eq('id', id);
 
