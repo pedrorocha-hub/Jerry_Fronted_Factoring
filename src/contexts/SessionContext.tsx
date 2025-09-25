@@ -36,14 +36,6 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   useEffect(() => {
     let isMounted = true;
 
-    // Safety timeout to prevent infinite loading state
-    const loadingTimeout = setTimeout(() => {
-      if (isMounted && loading) {
-        console.warn("Session check timed out. Assuming no active session.");
-        setLoading(false);
-      }
-    }, 2500); // 2.5-second timeout
-
     const fetchProfile = async (userId: string) => {
       if (!isMounted) return;
       const { data, error } = await supabase
@@ -62,34 +54,29 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
       }
     };
 
-    // onAuthStateChange is the single source of truth. It fires on load and on every auth event.
+    // onAuthStateChange is the single source of truth.
+    // It fires once on initial load and then for any auth changes.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (!isMounted) return;
-      
-      clearTimeout(loadingTimeout);
 
-      if (_event === 'INITIAL_SESSION' || _event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        if (currentSession?.user) {
-          await fetchProfile(currentSession.user.id);
-        } else {
-          setProfile(null);
-        }
-      } else if (_event === 'SIGNED_OUT') {
-        setSession(null);
-        setUser(null);
+      // The primary session information is now known. We can stop the main loading state.
+      // This is the key change to prevent getting stuck on the loading screen.
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      setLoading(false);
+
+      // Now, fetch the secondary profile information in the background.
+      if (currentSession?.user) {
+        await fetchProfile(currentSession.user.id);
+      } else {
+        // If there's no session, ensure the profile is cleared.
         setProfile(null);
       }
-      
-      // Crucially, set loading to false only after the first event has been processed.
-      setLoading(false);
     });
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      clearTimeout(loadingTimeout);
     };
   }, []);
 
