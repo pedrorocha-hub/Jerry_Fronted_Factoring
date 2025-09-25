@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit, Trash2, Download, Search, User, Building, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, Download, Search, User, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -72,8 +72,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
         <Table>
           <TableHeader>
             <TableRow className="border-gray-800 hover:bg-gray-900/50">
-              <TableHead className="text-gray-300">RUC</TableHead>
-              <TableHead className="text-gray-300">Razón Social</TableHead>
+              <TableHead className="text-gray-300">Empresa</TableHead>
               <TableHead className="text-gray-300">Creado por</TableHead>
               <TableHead className="text-gray-300">Fecha Creación</TableHead>
               <TableHead className="text-gray-300">Estado</TableHead>
@@ -85,12 +84,11 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
               paginatedRibs.map((rib) => (
                 <TableRow key={rib.id} className="border-gray-800 hover:bg-gray-900/50 transition-colors">
                   <TableCell>
-                    <code className="font-mono text-sm text-white bg-gray-900/50 px-2 py-1 rounded">{rib.ruc}</code>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Building className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium text-white">{rib.nombre_empresa}</span>
+                    <div className="flex flex-col">
+                      <code className="font-mono text-sm text-white bg-gray-900/50 px-2 py-1 rounded w-fit">{rib.ruc}</code>
+                      <span className="text-xs text-gray-400 mt-1 max-w-[250px] truncate" title={rib.nombre_empresa}>
+                        {rib.nombre_empresa}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -129,7 +127,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete, onDownload 
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-400">
+                <TableCell colSpan={5} className="text-center py-8 text-gray-400">
                   No se encontraron fichas RIB.
                 </TableCell>
               </TableRow>
