@@ -4,7 +4,7 @@ import {
   Home, 
   Upload, 
   Zap,
-  ClipboardEdit
+  FileText
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -13,7 +13,7 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
-    { to: '/solicitud-operacion', icon: ClipboardEdit, label: 'Solicitud Operación' },
+    { to: '/rib', icon: FileText, label: 'Crear Rib' },
   ];
 
   return (

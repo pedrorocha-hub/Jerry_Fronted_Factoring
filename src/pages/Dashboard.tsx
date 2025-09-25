@@ -485,7 +485,7 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />
-                Análisis de Riesgo
+                Creación del RIB
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -493,10 +493,10 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-pink-500/50"
-                  onClick={() => navigate('/solicitud-operacion')}
+                  onClick={() => navigate('/rib')}
                 >
-                  <ClipboardEdit className="h-6 w-6" />
-                  <span className="text-xs">Solicitud de Operación</span>
+                  <FileText className="h-6 w-6" />
+                  <span className="text-xs">Rib</span>
                 </Button>
                 <Button 
                   variant="outline" 
