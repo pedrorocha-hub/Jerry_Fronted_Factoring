@@ -9,8 +9,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CuentaBancariaWithFicha } from '@/types/cuenta-bancaria';
 import { CuentaBancariaService } from '@/services/cuentaBancariaService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { useSession } from '@/contexts/SessionContext';
 
 const CuentaBancariaPage = () => {
+  const { isAdmin } = useSession();
   const [cuentas, setCuentas] = useState<CuentaBancariaWithFicha[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -164,10 +166,12 @@ const CuentaBancariaPage = () => {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Actualizar
               </Button>
-              <Button className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-                <Plus className="h-4 w-4 mr-2" />
-                Nueva Cuenta Bancaria
-              </Button>
+              {isAdmin && (
+                <Button className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nueva Cuenta Bancaria
+                </Button>
+              )}
             </div>
           </div>
 

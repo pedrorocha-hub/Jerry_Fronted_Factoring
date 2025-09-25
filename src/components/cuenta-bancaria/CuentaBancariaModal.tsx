@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { CuentaBancaria, CuentaBancariaUpdate, TIPO_CUENTA_LABELS, MONEDA_LABELS, TipoCuenta, Moneda } from '@/types/cuenta-bancaria';
 import { CuentaBancariaService } from '@/services/cuentaBancariaService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { useSession } from '@/contexts/SessionContext';
 
 interface CuentaBancariaModalProps {
   cuenta: CuentaBancaria | null;
@@ -36,9 +37,12 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
   onSave,
   mode: initialMode
 }) => {
+  const { isAdmin } = useSession();
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
   const [formData, setFormData] = useState<Partial<CuentaBancariaUpdate>>({});
   const [loading, setLoading] = useState(false);
+
+  const isReadOnly = mode === 'view' || !isAdmin;
 
   useEffect(() => {
     if (cuenta) {
@@ -71,6 +75,10 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
   };
 
   const handleSave = async () => {
+    if (!isAdmin) {
+      showError('No tienes permisos para guardar cambios.');
+      return;
+    }
     if (!cuenta) return;
 
     const loadingToast = showLoading('Guardando cambios...');
@@ -101,7 +109,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
               <CreditCard className="h-6 w-6 text-[#00FF80]" />
               <div>
                 <span className="text-xl font-bold">
-                  {mode === 'view' ? 'Ver' : 'Editar'} Cuenta Bancaria
+                  {isReadOnly ? 'Ver' : 'Editar'} Cuenta Bancaria
                 </span>
                 <div className="text-sm text-gray-400 font-mono">
                   {cuenta.numero_cuenta}
@@ -109,15 +117,15 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {mode === 'view' ? (
+              {isAdmin && mode === 'view' ? (
                 <Button variant="outline" size="sm" onClick={() => setMode('edit')} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                   <Edit className="h-4 w-4 mr-2" /> Editar
                 </Button>
-              ) : (
+              ) : isAdmin && mode === 'edit' ? (
                 <Button variant="outline" size="sm" onClick={() => setMode('view')} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                   <Eye className="h-4 w-4 mr-2" /> Ver
                 </Button>
-              )}
+              ) : null}
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -127,27 +135,27 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-gray-300">Banco</Label>
-              {mode === 'view' ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.banco}</div> : <Input value={formData.banco || ''} onChange={e => handleInputChange('banco', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
+              {isReadOnly ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.banco}</div> : <Input value={formData.banco || ''} onChange={e => handleInputChange('banco', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
             </div>
             <div>
               <Label className="text-gray-300">Titular</Label>
-              {mode === 'view' ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.titular_cuenta}</div> : <Input value={formData.titular_cuenta || ''} onChange={e => handleInputChange('titular_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
+              {isReadOnly ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.titular_cuenta}</div> : <Input value={formData.titular_cuenta || ''} onChange={e => handleInputChange('titular_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-gray-300">Número de Cuenta</Label>
-              {mode === 'view' ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md font-mono">{cuenta.numero_cuenta}</div> : <Input value={formData.numero_cuenta || ''} onChange={e => handleInputChange('numero_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
+              {isReadOnly ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md font-mono">{cuenta.numero_cuenta}</div> : <Input value={formData.numero_cuenta || ''} onChange={e => handleInputChange('numero_cuenta', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
             </div>
             <div>
               <Label className="text-gray-300">CCI</Label>
-              {mode === 'view' ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md font-mono">{cuenta.codigo_cuenta_interbancaria || 'N/A'}</div> : <Input value={formData.codigo_cuenta_interbancaria || ''} onChange={e => handleInputChange('codigo_cuenta_interbancaria', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
+              {isReadOnly ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md font-mono">{cuenta.codigo_cuenta_interbancaria || 'N/A'}</div> : <Input value={formData.codigo_cuenta_interbancaria || ''} onChange={e => handleInputChange('codigo_cuenta_interbancaria', e.target.value)} className="bg-gray-900/50 border-gray-700" />}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-gray-300">Tipo de Cuenta</Label>
-              {mode === 'view' ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.tipo_cuenta ? TIPO_CUENTA_LABELS[cuenta.tipo_cuenta] : 'N/A'}</div> : (
+              {isReadOnly ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.tipo_cuenta ? TIPO_CUENTA_LABELS[cuenta.tipo_cuenta] : 'N/A'}</div> : (
                 <Select value={formData.tipo_cuenta || ''} onValueChange={v => handleSelectChange('tipo_cuenta', v)}>
                   <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent className="bg-[#121212] border-gray-800 text-white">
@@ -158,7 +166,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
             </div>
             <div>
               <Label className="text-gray-300">Moneda</Label>
-              {mode === 'view' ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.moneda_cuenta ? MONEDA_LABELS[cuenta.moneda_cuenta].label : 'N/A'}</div> : (
+              {isReadOnly ? <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md">{cuenta.moneda_cuenta ? MONEDA_LABELS[cuenta.moneda_cuenta].label : 'N/A'}</div> : (
                 <Select value={formData.moneda_cuenta || ''} onValueChange={v => handleSelectChange('moneda_cuenta', v)}>
                   <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent className="bg-[#121212] border-gray-800 text-white">
@@ -172,7 +180,7 @@ const CuentaBancariaModal: React.FC<CuentaBancariaModalProps> = ({
 
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-800">
           <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancelar</Button>
-          {mode === 'edit' && (
+          {mode === 'edit' && isAdmin && (
             <Button onClick={handleSave} disabled={loading} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
               <Save className="h-4 w-4 mr-2" /> {loading ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
