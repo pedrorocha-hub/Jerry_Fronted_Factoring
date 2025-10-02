@@ -197,7 +197,7 @@ const RibPage = () => {
                 </Card>
 
                 <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="text-white">Historial de Análisis</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-white">Ribs Creados</CardTitle></CardHeader>
                   <CardContent>
                     {existingRibs.length > 0 ? (
                       <Table>
