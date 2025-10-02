@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,12 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
+import RibTable from '@/components/rib/RibTable';
+import { supabase } from '@/integrations/supabase/client';
+
+interface RibWithDetails extends Rib {
+  nombre_empresa?: string;
+}
 
 const RibPage = () => {
   const { isAdmin } = useSession();
@@ -21,6 +27,10 @@ const RibPage = () => {
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [allRibs, setAllRibs] = useState<RibWithDetails[]>([]);
+  const [loadingAllRibs, setLoadingAllRibs] = useState(true);
+
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [existingRibs, setExistingRibs] = useState<Rib[]>([]);
   const [selectedRib, setSelectedRib] = useState<Rib | null>(null);
@@ -29,13 +39,48 @@ const RibPage = () => {
     como_llego_lcp: '',
   });
 
+  const searchSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadAllRibs();
+  }, []);
+
+  const loadAllRibs = async () => {
+    setLoadingAllRibs(true);
+    try {
+      const ribData = await RibService.getAll();
+      if (ribData.length > 0) {
+        const rucs = [...new Set(ribData.map(r => r.ruc))];
+        const { data: fichasData, error: fichasError } = await supabase
+          .from('ficha_ruc')
+          .select('ruc, nombre_empresa')
+          .in('ruc', rucs);
+
+        if (fichasError) throw fichasError;
+
+        const rucToNameMap = new Map(fichasData.map(f => [f.ruc, f.nombre_empresa]));
+        const enrichedRibs = ribData.map(rib => ({
+          ...rib,
+          nombre_empresa: rucToNameMap.get(rib.ruc) || 'Razón Social no encontrada',
+        }));
+        setAllRibs(enrichedRibs);
+      } else {
+        setAllRibs([]);
+      }
+    } catch (err) {
+      showError('No se pudieron cargar los análisis RIB.');
+    } finally {
+      setLoadingAllRibs(false);
+    }
+  };
+
   const resetForm = () => {
     setFormData({ direccion: '', como_llego_lcp: '' });
     setSelectedRib(null);
   };
 
-  const handleSearch = async () => {
-    if (!rucInput || rucInput.length !== 11) {
+  const handleSearch = async (rucToSearch: string = rucInput) => {
+    if (!rucToSearch || rucToSearch.length !== 11) {
       setError('Por favor, ingrese un RUC válido de 11 dígitos.');
       return;
     }
@@ -46,10 +91,10 @@ const RibPage = () => {
     resetForm();
 
     try {
-      const fichaData = await FichaRucService.getByRuc(rucInput);
+      const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const ribData = await RibService.getByRuc(rucInput);
+        const ribData = await RibService.getByRuc(rucToSearch);
         setExistingRibs(ribData);
         if (ribData.length > 0) {
           handleSelectRib(ribData[0]);
@@ -84,6 +129,7 @@ const RibPage = () => {
       }
       const ribData = await RibService.getByRuc(searchedFicha.ruc);
       setExistingRibs(ribData);
+      await loadAllRibs(); // Recargar la lista principal
       resetForm();
     } catch (err) {
       showError('Error al guardar el análisis RIB.');
@@ -105,15 +151,24 @@ const RibPage = () => {
       try {
         await RibService.delete(id);
         showSuccess('Análisis RIB eliminado.');
-        if (searchedFicha) {
+        await loadAllRibs(); // Recargar la lista principal
+        if (searchedFicha && existingRibs.some(r => r.id === id)) {
           const ribData = await RibService.getByRuc(searchedFicha.ruc);
           setExistingRibs(ribData);
         }
-        resetForm();
+        if (selectedRib?.id === id) {
+          resetForm();
+        }
       } catch (err) {
         showError('Error al eliminar el análisis.');
       }
     }
+  };
+
+  const handleEditFromList = (rib: RibWithDetails) => {
+    setRucInput(rib.ruc);
+    handleSearch(rib.ruc);
+    searchSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -122,19 +177,21 @@ const RibPage = () => {
         <div className="space-y-6 p-6">
           <h1 className="text-2xl font-bold text-white">Análisis RIB</h1>
 
-          <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader><CardTitle className="text-white">Buscar Empresa por RUC</CardTitle></CardHeader>
-            <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
-              </div>
-              <Button onClick={handleSearch} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                Buscar
-              </Button>
-            </CardContent>
-          </Card>
+          <div ref={searchSectionRef}>
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader><CardTitle className="text-white">Buscar o Editar Empresa por RUC</CardTitle></CardHeader>
+              <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+                </div>
+                <Button onClick={() => handleSearch()} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                  {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                  Buscar
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
@@ -197,7 +254,7 @@ const RibPage = () => {
                 </Card>
 
                 <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="text-white">Ribs Creados</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
                   <CardContent>
                     {existingRibs.length > 0 ? (
                       <Table>
@@ -215,13 +272,29 @@ const RibPage = () => {
                         </TableBody>
                       </Table>
                     ) : (
-                      <p className="text-center text-gray-400 py-4">No hay análisis previos.</p>
+                      <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
                     )}
                   </CardContent>
                 </Card>
               </div>
             </div>
           )}
+
+          <Card className="bg-[#121212] border border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingAllRibs ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                </div>
+              ) : (
+                <RibTable ribs={allRibs} onEdit={handleEditFromList} onDelete={handleDelete} />
+              )}
+            </CardContent>
+          </Card>
+
         </div>
       </div>
     </Layout>

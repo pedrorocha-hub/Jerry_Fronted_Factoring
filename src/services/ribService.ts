@@ -2,6 +2,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Rib, RibInsert, RibUpdate } from '@/types/rib';
 
 export class RibService {
+  static async getAll(): Promise<Rib[]> {
+    const { data, error } = await supabase
+      .from('rib')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all RIB data:', error);
+      throw error;
+    }
+    return data || [];
+  }
+
   static async getByRuc(ruc: string): Promise<Rib[]> {
     const { data, error } = await supabase
       .from('rib')
