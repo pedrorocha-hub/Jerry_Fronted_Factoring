@@ -259,7 +259,7 @@ const RibPage = () => {
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
           {searchedFicha && (
-            <>
+            <div className="space-y-6">
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="flex items-center text-white">
@@ -274,129 +274,123 @@ const RibPage = () => {
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                  <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between text-white">
-                        <span>{selectedRib ? 'Editando Análisis RIB' : 'Nuevo Análisis RIB'}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label htmlFor="direccion">Dirección del Proveedor</Label>
-                        <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="telefono">Teléfono</Label>
-                          <Input id="telefono" value={formData.telefono || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                        </div>
-                        <div>
-                          <Label htmlFor="grupo_economico">Grupo Económico</Label>
-                          <Input id="grupo_economico" value={formData.grupo_economico || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
-                        <Textarea
-                          id="como_llego_lcp"
-                          value={formData.como_llego_lcp}
-                          onChange={handleFormChange}
-                          placeholder="Especificar cómo llegó a LCP; si es referido indicar el nombre completo de quien proviene la referencia"
-                          className="bg-gray-900/50 border-gray-700"
-                          disabled={!isAdmin}
-                        />
-                      </div>
-                      {isAdmin && (
-                        <div className="flex justify-end">
-                          <Button onClick={handleSave} disabled={saving}>
-                            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                            {selectedRib ? 'Actualizar' : 'Guardar'}
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between text-white">
+                    <span>{selectedRib ? 'Editando Análisis RIB' : 'Nuevo Análisis RIB'}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="direccion">Dirección del Proveedor</Label>
+                    <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="telefono">Teléfono</Label>
+                      <Input id="telefono" value={formData.telefono || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                    </div>
+                    <div>
+                      <Label htmlFor="grupo_economico">Grupo Económico</Label>
+                      <Input id="grupo_economico" value={formData.grupo_economico || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
+                    <Textarea
+                      id="como_llego_lcp"
+                      value={formData.como_llego_lcp}
+                      onChange={handleFormChange}
+                      placeholder="Especificar cómo llegó a LCP; si es referido indicar el nombre completo de quien proviene la referencia"
+                      className="bg-gray-900/50 border-gray-700"
+                      disabled={!isAdmin}
+                    />
+                  </div>
+                  {isAdmin && (
+                    <div className="flex justify-end">
+                      <Button onClick={handleSave} disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        {selectedRib ? 'Actualizar' : 'Guardar'}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                  <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader>
-                      <CardTitle className="text-white">Visita</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        id="visita"
-                        value={formData.visita}
-                        onChange={handleFormChange}
-                        placeholder="(indicar la fecha de la visita día/mes/año, con quien se tuvo la reunión, que funciona en la dirección, si es un local/oficina propio o alquilada, entre otra información que se considere relevante)"
-                        className="bg-gray-900/50 border-gray-700 min-h-[120px]"
-                        disabled={!isAdmin}
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white">Visita</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    id="visita"
+                    value={formData.visita}
+                    onChange={handleFormChange}
+                    placeholder="(indicar la fecha de la visita día/mes/año, con quien se tuvo la reunión, que funciona en la dirección, si es un local/oficina propio o alquilada, entre otra información que se considere relevante)"
+                    className="bg-gray-900/50 border-gray-700 min-h-[120px]"
+                    disabled={!isAdmin}
+                  />
+                </CardContent>
+              </Card>
 
-                <div className="space-y-6">
-                  <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
-                    <CardContent>
-                      {existingRibs.length > 0 ? (
-                        <Table>
-                          <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
-                          <TableBody>
-                            {existingRibs.map(rib => (
-                              <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
-                                <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
-                                <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={async () => await handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
-                                  {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
-                      )}
-                    </CardContent>
-                    {selectedRib && (
-                      <CardFooter className="flex flex-col items-start space-y-3 text-sm text-gray-300 border-t border-gray-800 pt-4">
-                        <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
-                        <div className="flex items-center">
-                          <User className="h-4 w-4 mr-2 text-gray-400" />
-                          <div>
-                            <strong className="text-gray-400">Creado por:</strong>
-                            {selectedRib.user_id ? (
-                              creatorDetails ? (
-                                <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
-                              ) : (
-                                <span> Cargando...</span>
-                              )
-                            ) : (
-                              <span> Desconocido</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                          <div>
-                            <strong className="text-gray-400">Fecha de creación:</strong>{' '}
-                            {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                          <div>
-                            <strong className="text-gray-400">Última modificación:</strong>{' '}
-                            {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
-                          </div>
-                        </div>
-                      </CardFooter>
-                    )}
-                  </Card>
-                </div>
-              </div>
-            </>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
+                <CardContent>
+                  {existingRibs.length > 0 ? (
+                    <Table>
+                      <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {existingRibs.map(rib => (
+                          <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
+                            <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={async () => await handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                              {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
+                  )}
+                </CardContent>
+                {selectedRib && (
+                  <CardFooter className="flex flex-col items-start space-y-3 text-sm text-gray-300 border-t border-gray-800 pt-4">
+                    <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 mr-2 text-gray-400" />
+                      <div>
+                        <strong className="text-gray-400">Creado por:</strong>
+                        {selectedRib.user_id ? (
+                          creatorDetails ? (
+                            <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                          ) : (
+                            <span> Cargando...</span>
+                          )
+                        ) : (
+                          <span> Desconocido</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                      <div>
+                        <strong className="text-gray-400">Fecha de creación:</strong>{' '}
+                        {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                      <div>
+                        <strong className="text-gray-400">Última modificación:</strong>{' '}
+                        {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                      </div>
+                    </div>
+                  </CardFooter>
+                )}
+              </Card>
+            </div>
           )}
 
           {!searchedFicha && (
