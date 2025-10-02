@@ -323,30 +323,35 @@ const ComportamientoCrediticioPage = () => {
                     <Label htmlFor="proveedor">Proveedor</Label>
                     <Input id="proveedor" value={formData.proveedor} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
                   </div>
-                  <div className="space-y-4 pt-4 mt-4 border-t border-gray-800">
-                    <div className="grid grid-cols-3 gap-x-4 gap-y-2 items-center font-medium">
-                      <div className="text-gray-300">Concepto</div>
-                      <div className="text-white text-center">Equifax</div>
-                      <div className="text-white text-center">Sentinel</div>
-                    </div>
-                    {formFields.map(field => (
-                      <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
-                        <Label htmlFor={`equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
-                        <Input id={`equifax_${field.id}`} type={field.type} value={formData[`equifax_${field.id}` as keyof typeof formData]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
-                        <Input id={`sentinel_${field.id}`} type={field.type} value={formData[`sentinel_${field.id}` as keyof typeof formData]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
-                      </div>
-                    ))}
-                  </div>
                   <div className="pt-4 mt-4 border-t border-gray-800">
-                    <Label htmlFor="apefac_descripcion">Apefac</Label>
-                    <Textarea
-                      id="apefac_descripcion"
-                      value={formData.apefac_descripcion}
-                      onChange={handleFormChange}
-                      placeholder="Ingrese la descripción o resumen de Apefac aquí..."
-                      className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]"
-                      disabled={!isAdmin}
-                    />
+                    <div className="grid grid-cols-4 gap-x-4">
+                      {/* Headers */}
+                      <div className="font-medium text-gray-300 mb-2">Concepto</div>
+                      <div className="text-white text-center font-medium mb-2">Equifax</div>
+                      <div className="text-white text-center font-medium mb-2">Sentinel</div>
+                      <div className="text-white text-center font-medium mb-2">Apefac</div>
+
+                      {/* Inputs and Textarea */}
+                      <div className="col-span-3 space-y-2">
+                        {formFields.map(field => (
+                          <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
+                            <Label htmlFor={`equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
+                            <Input id={`equifax_${field.id}`} type={field.type} value={formData[`equifax_${field.id}` as keyof typeof formData]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                            <Input id={`sentinel_${field.id}`} type={field.type} value={formData[`sentinel_${field.id}` as keyof typeof formData]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="col-span-1">
+                        <Textarea
+                          id="apefac_descripcion"
+                          value={formData.apefac_descripcion}
+                          onChange={handleFormChange}
+                          placeholder="Resumen de Apefac..."
+                          className="bg-gray-900/50 border-gray-700 text-white h-full min-h-[200px]"
+                          disabled={!isAdmin}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
