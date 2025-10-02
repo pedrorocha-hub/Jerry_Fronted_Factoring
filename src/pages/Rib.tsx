@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,8 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib, RibStatus } from '@/types/rib';
+import { Accionista } from '@/types/accionista';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
+import { AccionistasService } from '@/services/accionistasService';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
@@ -50,6 +52,7 @@ const RibPage = () => {
   const [existingRibs, setExistingRibs] = useState<Rib[]>([]);
   const [selectedRib, setSelectedRib] = useState<Rib | null>(null);
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
+  const [accionistas, setAccionistas] = useState<Accionista[]>([]);
   
   const emptyForm = {
     direccion: '',
@@ -149,6 +152,7 @@ const RibPage = () => {
     setSearchedFicha(null);
     setExistingRibs([]);
     resetForm();
+    setAccionistas([]);
 
     try {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
@@ -156,6 +160,8 @@ const RibPage = () => {
         setSearchedFicha(fichaData);
         const ribData = await RibService.getByRuc(rucToSearch);
         setExistingRibs(ribData);
+        const accionistasData = await AccionistasService.getByRuc(rucToSearch);
+        setAccionistas(accionistasData);
         if (ribData.length > 0) {
           await handleSelectRib(ribData[0]);
         } else {
@@ -278,6 +284,7 @@ const RibPage = () => {
     setRucInput('');
     setError(null);
     resetForm();
+    setAccionistas([]);
   };
 
   return (
@@ -422,6 +429,41 @@ const RibPage = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {accionistas.length > 0 && (
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-white">
+                      <Users className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Accionistas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-800 hover:bg-gray-900/50">
+                          <TableHead className="text-gray-300">DNI</TableHead>
+                          <TableHead className="text-gray-300">Nombre</TableHead>
+                          <TableHead className="text-gray-300">Porcentaje</TableHead>
+                          <TableHead className="text-gray-300">Vínculo</TableHead>
+                          <TableHead className="text-gray-300">Calificación</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {accionistas.map(accionista => (
+                          <TableRow key={accionista.id} className="border-gray-800 hover:bg-gray-900/50">
+                            <TableCell className="font-mono">{accionista.dni}</TableCell>
+                            <TableCell>{accionista.nombre}</TableCell>
+                            <TableCell>{accionista.porcentaje ? `${accionista.porcentaje}%` : '-'}</TableCell>
+                            <TableCell>{accionista.vinculo || '-'}</TableCell>
+                            <TableCell>{accionista.calificacion || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
