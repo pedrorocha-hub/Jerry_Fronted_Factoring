@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus, ArrowLeft } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -129,8 +129,7 @@ const RibPage = () => {
       }
       const ribData = await RibService.getByRuc(searchedFicha.ruc);
       setExistingRibs(ribData);
-      await loadAllRibs(); // Recargar la lista principal
-      resetForm();
+      await loadAllRibs();
     } catch (err) {
       showError('Error al guardar el análisis RIB.');
     } finally {
@@ -151,7 +150,7 @@ const RibPage = () => {
       try {
         await RibService.delete(id);
         showSuccess('Análisis RIB eliminado.');
-        await loadAllRibs(); // Recargar la lista principal
+        await loadAllRibs();
         if (searchedFicha && existingRibs.some(r => r.id === id)) {
           const ribData = await RibService.getByRuc(searchedFicha.ruc);
           setExistingRibs(ribData);
@@ -171,6 +170,13 @@ const RibPage = () => {
     searchSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleBackToList = () => {
+    setSearchedFicha(null);
+    setRucInput('');
+    setError(null);
+    resetForm();
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-black">
@@ -179,17 +185,31 @@ const RibPage = () => {
 
           <div ref={searchSectionRef}>
             <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="text-white">Buscar o Editar Empresa por RUC</CardTitle></CardHeader>
-              <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-white">
+                    {searchedFicha ? 'Detalles y Edición' : 'Buscar Empresa por RUC'}
+                  </CardTitle>
+                  {searchedFicha && (
+                    <Button variant="outline" onClick={handleBackToList} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Volver a la lista
+                    </Button>
+                  )}
                 </div>
-                <Button onClick={() => handleSearch()} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                  {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                  Buscar
-                </Button>
-              </CardContent>
+              </CardHeader>
+              {!searchedFicha && (
+                <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
+                  <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+                  </div>
+                  <Button onClick={() => handleSearch()} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                    {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                    Buscar
+                  </Button>
+                </CardContent>
+              )}
             </Card>
           </div>
 
@@ -245,7 +265,7 @@ const RibPage = () => {
                       <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
                       Información de la Empresa
                     </CardTitle>
-                  </CardHeader>
+                  </Header>
                   <CardContent className="space-y-2 text-sm">
                     <p><strong className="text-gray-400">RUC:</strong> <span className="font-mono">{searchedFicha.ruc}</span></p>
                     <p><strong className="text-gray-400">Razón Social:</strong> {searchedFicha.nombre_empresa}</p>
@@ -280,20 +300,22 @@ const RibPage = () => {
             </div>
           )}
 
-          <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingAllRibs ? (
-                <div className="flex justify-center items-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
-                </div>
-              ) : (
-                <RibTable ribs={allRibs} onEdit={handleEditFromList} onDelete={handleDelete} />
-              )}
-            </CardContent>
-          </Card>
+          {!searchedFicha && (
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingAllRibs ? (
+                  <div className="flex justify-center items-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                  </div>
+                ) : (
+                  <RibTable ribs={allRibs} onEdit={handleEditFromList} onDelete={handleDelete} />
+                )}
+              </CardContent>
+            </Card>
+          )}
 
         </div>
       </div>
