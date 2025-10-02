@@ -4,7 +4,7 @@ import { Gerente, GerenteInsert, GerenteUpdate } from '@/types/gerencia';
 export class GerenciaService {
   static async getAllByRuc(ruc: string): Promise<Gerente[]> {
     const { data, error } = await supabase
-      .from('gerencia')
+      .from('ficha_ruc_gerencia')
       .select('*')
       .eq('ruc', ruc)
       .order('created_at', { ascending: true });
@@ -15,7 +15,7 @@ export class GerenciaService {
 
   static async create(gerenteData: GerenteInsert): Promise<Gerente> {
     const { data, error } = await supabase
-      .from('gerencia')
+      .from('ficha_ruc_gerencia')
       .insert(gerenteData)
       .select()
       .single();
@@ -26,7 +26,7 @@ export class GerenciaService {
 
   static async update(id: string, gerenteData: GerenteUpdate): Promise<Gerente> {
     const { data, error } = await supabase
-      .from('gerencia')
+      .from('ficha_ruc_gerencia')
       .update({ ...gerenteData, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -38,7 +38,7 @@ export class GerenciaService {
 
   static async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('gerencia')
+      .from('ficha_ruc_gerencia')
       .delete()
       .eq('id', id);
 

@@ -4,7 +4,7 @@ import { Accionista, AccionistaInsert, AccionistaUpdate } from '@/types/accionis
 export class AccionistaService {
   static async getByRuc(ruc: string): Promise<Accionista[]> {
     const { data, error } = await supabase
-      .from('accionistas')
+      .from('ficha_ruc_accionistas')
       .select('*')
       .eq('ruc', ruc)
       .order('created_at', { ascending: false });
@@ -18,7 +18,7 @@ export class AccionistaService {
 
   static async create(accionistaData: AccionistaInsert): Promise<Accionista> {
     const { data, error } = await supabase
-      .from('accionistas')
+      .from('ficha_ruc_accionistas')
       .insert(accionistaData)
       .select()
       .single();
@@ -32,7 +32,7 @@ export class AccionistaService {
 
   static async update(id: string, accionistaData: AccionistaUpdate): Promise<Accionista> {
     const { data, error } = await supabase
-      .from('accionistas')
+      .from('ficha_ruc_accionistas')
       .update({ ...accionistaData, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
@@ -47,7 +47,7 @@ export class AccionistaService {
 
   static async delete(id: string): Promise<void> {
     const { error } = await supabase
-      .from('accionistas')
+      .from('ficha_ruc_accionistas')
       .delete()
       .eq('id', id);
 
