@@ -17,6 +17,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
 import { supabase } from '@/integrations/supabase/client';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface RibWithDetails extends Rib {
   nombre_empresa?: string;
@@ -57,6 +58,9 @@ const RibPage = () => {
     grupo_economico: '',
     visita: '',
     status: 'Borrador' as RibStatus,
+    descripcion_empresa: '',
+    inicio_actividades: null as string | null,
+    relacion_comercial_deudor: '',
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -216,6 +220,9 @@ const RibPage = () => {
       grupo_economico: rib.grupo_economico || '',
       visita: rib.visita || '',
       status: rib.status || 'Borrador',
+      descripcion_empresa: rib.descripcion_empresa || '',
+      inicio_actividades: rib.inicio_actividades || null,
+      relacion_comercial_deudor: rib.relacion_comercial_deudor || '',
     };
     setFormData(newFormData);
     setInitialFormData(newFormData);
@@ -375,6 +382,44 @@ const RibPage = () => {
                     className="bg-gray-900/50 border-gray-700 min-h-[120px]"
                     disabled={!isAdmin}
                   />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white">Detalles Adicionales</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="descripcion_empresa">Descripción de la empresa</Label>
+                    <Textarea
+                      id="descripcion_empresa"
+                      value={formData.descripcion_empresa || ''}
+                      onChange={handleFormChange}
+                      placeholder="(comentar la actividad de la empresa en resumen, líneas de negocio, principales clientes, principales proveedores, proyección de ventas y en qué se sustenta; quien posee el know-how del negocio, así como su experiencia, su formación; entre otra información que se pueda tener en la visita o reunión)"
+                      className="bg-gray-900/50 border-gray-700 min-h-[120px]"
+                      disabled={!isAdmin}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="inicio_actividades">Inicio de actividades</Label>
+                    <DatePicker
+                      date={formData.inicio_actividades ? new Date(formData.inicio_actividades) : undefined}
+                      setDate={(date) => setFormData(prev => ({ ...prev, inicio_actividades: date ? date.toISOString().split('T')[0] : null }))}
+                      disabled={!isAdmin}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="relacion_comercial_deudor">Relación comercial con el deudor</Label>
+                    <Textarea
+                      id="relacion_comercial_deudor"
+                      value={formData.relacion_comercial_deudor || ''}
+                      onChange={handleFormChange}
+                      placeholder="(aquí pueden indicar la relación entre el proveedor y deudor, además de comentar brevemente cómo se orgina la factura a descontar)"
+                      className="bg-gray-900/50 border-gray-700"
+                      disabled={!isAdmin}
+                    />
+                  </div>
                 </CardContent>
               </Card>
 
