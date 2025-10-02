@@ -15,7 +15,7 @@ import { Accionista } from '@/types/accionista';
 import { Gerente } from '@/types/gerencia';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
-import { AccionistasService } from '@/services/accionistasService';
+import { AccionistaService } from '@/services/accionistaService';
 import { GerenciaService } from '@/services/gerenciaService';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
@@ -165,7 +165,7 @@ const RibPage = () => {
         setSearchedFicha(fichaData);
         const [ribData, accionistasData, gerentesData] = await Promise.all([
           RibService.getByRuc(rucToSearch),
-          AccionistasService.getByRuc(rucToSearch),
+          AccionistaService.getByRuc(rucToSearch),
           GerenciaService.getAllByRuc(rucToSearch)
         ]);
         setExistingRibs(ribData);
