@@ -265,7 +265,7 @@ const RibPage = () => {
                       <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
                       Información de la Empresa
                     </CardTitle>
-                  </Header>
+                  </CardHeader>
                   <CardContent className="space-y-2 text-sm">
                     <p><strong className="text-gray-400">RUC:</strong> <span className="font-mono">{searchedFicha.ruc}</span></p>
                     <p><strong className="text-gray-400">Razón Social:</strong> {searchedFicha.nombre_empresa}</p>
