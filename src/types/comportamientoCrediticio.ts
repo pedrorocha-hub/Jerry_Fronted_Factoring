@@ -11,16 +11,22 @@ export interface ComportamientoCrediticio {
   
   equifax_calificacion: string | null;
   sentinel_calificacion: string | null;
+  apefac_calificacion: string | null;
   equifax_deuda_directa: number | null;
   sentinel_deuda_directa: number | null;
+  apefac_deuda_directa: number | null;
   equifax_deuda_indirecta: number | null;
   sentinel_deuda_indirecta: number | null;
+  apefac_deuda_indirecta: number | null;
   equifax_impagos: number | null;
   sentinel_impagos: number | null;
+  apefac_impagos: number | null;
   equifax_deuda_sunat: number | null;
   sentinel_deuda_sunat: number | null;
+  apefac_deuda_sunat: number | null;
   equifax_protestos: number | null;
   sentinel_protestos: number | null;
+  apefac_protestos: number | null;
   validado_por: string | null;
 }
 
@@ -32,16 +38,22 @@ export interface ComportamientoCrediticioInsert {
 
   equifax_calificacion?: string | null;
   sentinel_calificacion?: string | null;
+  apefac_calificacion?: string | null;
   equifax_deuda_directa?: number | null;
   sentinel_deuda_directa?: number | null;
+  apefac_deuda_directa?: number | null;
   equifax_deuda_indirecta?: number | null;
   sentinel_deuda_indirecta?: number | null;
+  apefac_deuda_indirecta?: number | null;
   equifax_impagos?: number | null;
   sentinel_impagos?: number | null;
+  apefac_impagos?: number | null;
   equifax_deuda_sunat?: number | null;
   sentinel_deuda_sunat?: number | null;
+  apefac_deuda_sunat?: number | null;
   equifax_protestos?: number | null;
   sentinel_protestos?: number | null;
+  apefac_protestos?: number | null;
   validado_por?: string | null;
 }
 
@@ -51,15 +63,21 @@ export interface ComportamientoCrediticioUpdate {
 
   equifax_calificacion?: string | null;
   sentinel_calificacion?: string | null;
+  apefac_calificacion?: string | null;
   equifax_deuda_directa?: number | null;
   sentinel_deuda_directa?: number | null;
+  apefac_deuda_directa?: number | null;
   equifax_deuda_indirecta?: number | null;
   sentinel_deuda_indirecta?: number | null;
+  apefac_deuda_indirecta?: number | null;
   equifax_impagos?: number | null;
   sentinel_impagos?: number | null;
+  apefac_impagos?: number | null;
   equifax_deuda_sunat?: number | null;
   sentinel_deuda_sunat?: number | null;
+  apefac_deuda_sunat?: number | null;
   equifax_protestos?: number | null;
   sentinel_protestos?: number | null;
+  apefac_protestos?: number | null;
   validado_por?: string | null;
 }
