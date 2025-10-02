@@ -67,6 +67,7 @@ const RibPage = () => {
     descripcion_empresa: '',
     inicio_actividades: null as string | null,
     relacion_comercial_deudor: '',
+    validado_por: '',
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -237,6 +238,7 @@ const RibPage = () => {
       descripcion_empresa: rib.descripcion_empresa || '',
       inicio_actividades: rib.inicio_actividades || null,
       relacion_comercial_deudor: rib.relacion_comercial_deudor || '',
+      validado_por: rib.validado_por || '',
     };
     setFormData(newFormData);
     setInitialFormData(newFormData);
@@ -576,6 +578,16 @@ const RibPage = () => {
                         <strong className="text-gray-400">Última modificación:</strong>{' '}
                         {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
                       </div>
+                    </div>
+                    <div className="w-full pt-2">
+                      <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
+                      <Input
+                        id="validado_por"
+                        value={formData.validado_por || ''}
+                        onChange={handleFormChange}
+                        className="bg-gray-900/50 border-gray-700 mt-1"
+                        disabled={!isAdmin}
+                      />
                     </div>
                     <div className="w-full pt-2">
                       <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
