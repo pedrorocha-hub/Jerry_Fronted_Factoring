@@ -335,23 +335,6 @@ const RibPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <Label htmlFor="status">Estado de Solicitud</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) => handleStatusChange(value as RibStatus)}
-                      disabled={!isAdmin}
-                    >
-                      <SelectTrigger id="status" className="bg-gray-900/50 border-gray-700">
-                        <SelectValue placeholder="Seleccione un estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Borrador">Borrador</SelectItem>
-                        <SelectItem value="En revisión">En revisión</SelectItem>
-                        <SelectItem value="Completado">Completado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
                     <Label htmlFor="direccion">Dirección del Proveedor</Label>
                     <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                   </div>
@@ -433,7 +416,7 @@ const RibPage = () => {
                   )}
                 </CardContent>
                 {selectedRib && (
-                  <CardFooter className="flex flex-col items-start space-y-3 text-sm text-gray-300 border-t border-gray-800 pt-4">
+                  <CardFooter className="flex flex-col items-start space-y-4 text-sm text-gray-300 border-t border-gray-800 pt-4">
                     <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
                     <div className="flex items-center">
                       <User className="h-4 w-4 mr-2 text-gray-400" />
@@ -463,6 +446,23 @@ const RibPage = () => {
                         <strong className="text-gray-400">Última modificación:</strong>{' '}
                         {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
                       </div>
+                    </div>
+                    <div className="w-full pt-2">
+                      <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value) => handleStatusChange(value as RibStatus)}
+                        disabled={!isAdmin}
+                      >
+                        <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
+                          <SelectValue placeholder="Seleccione un estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Borrador">Borrador</SelectItem>
+                          <SelectItem value="En revisión">En revisión</SelectItem>
+                          <SelectItem value="Completado">Completado</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </CardFooter>
                 )}
