@@ -40,6 +40,7 @@ const RibPage = () => {
     como_llego_lcp: '',
     telefono: '',
     grupo_economico: '',
+    visita: '',
   });
 
   const searchSectionRef = useRef<HTMLDivElement>(null);
@@ -93,7 +94,7 @@ const RibPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ direccion: '', como_llego_lcp: '', telefono: '', grupo_economico: '' });
+    setFormData({ direccion: '', como_llego_lcp: '', telefono: '', grupo_economico: '', visita: '' });
     setSelectedRib(null);
   };
 
@@ -162,6 +163,7 @@ const RibPage = () => {
       como_llego_lcp: rib.como_llego_lcp || '',
       telefono: rib.telefono || '',
       grupo_economico: rib.grupo_economico || '',
+      visita: rib.visita || '',
     });
   };
 
@@ -236,90 +238,111 @@ const RibPage = () => {
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
           {searchedFicha && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 space-y-6">
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-white">
-                      <span>{selectedRib ? 'Editando Análisis RIB' : 'Nuevo Análisis RIB'}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="direccion">Dirección del Proveedor</Label>
-                      <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                    </div>
-                    <div>
-                      <Label htmlFor="telefono">Teléfono</Label>
-                      <Input id="telefono" value={formData.telefono || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                    </div>
-                    <div>
-                      <Label htmlFor="grupo_economico">Grupo Económico</Label>
-                      <Input id="grupo_economico" value={formData.grupo_economico || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                    </div>
-                    <div>
-                      <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
+            <>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-white">
+                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    Información de la Empresa
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <p><strong className="text-gray-400">RUC:</strong> <span className="font-mono">{searchedFicha.ruc}</span></p>
+                  <p><strong className="text-gray-400">Razón Social:</strong> {searchedFicha.nombre_empresa}</p>
+                  <p><strong className="text-gray-400">Estado:</strong> {searchedFicha.estado_contribuyente}</p>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between text-white">
+                        <span>{selectedRib ? 'Editando Análisis RIB' : 'Nuevo Análisis RIB'}</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label htmlFor="direccion">Dirección del Proveedor</Label>
+                        <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="telefono">Teléfono</Label>
+                          <Input id="telefono" value={formData.telefono || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        </div>
+                        <div>
+                          <Label htmlFor="grupo_economico">Grupo Económico</Label>
+                          <Input id="grupo_economico" value={formData.grupo_economico || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
+                        <Textarea
+                          id="como_llego_lcp"
+                          value={formData.como_llego_lcp}
+                          onChange={handleFormChange}
+                          placeholder="Especificar cómo llegó a LCP; si es referido indicar el nombre completo de quien proviene la referencia"
+                          className="bg-gray-900/50 border-gray-700"
+                          disabled={!isAdmin}
+                        />
+                      </div>
+                      {isAdmin && (
+                        <div className="flex justify-end">
+                          <Button onClick={handleSave} disabled={saving}>
+                            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                            {selectedRib ? 'Actualizar' : 'Guardar'}
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="text-white">Visita</CardTitle>
+                    </CardHeader>
+                    <CardContent>
                       <Textarea
-                        id="como_llego_lcp"
-                        value={formData.como_llego_lcp}
+                        id="visita"
+                        value={formData.visita}
                         onChange={handleFormChange}
-                        placeholder="Especificar cómo llegó a LCP; si es referido indicar el nombre completo de quien proviene la referencia"
-                        className="bg-gray-900/50 border-gray-700"
+                        placeholder="(indicar la fecha de la visita día/mes/año, con quien se tuvo la reunión, que funciona en la dirección, si es un local/oficina propio o alquilada, entre otra información que se considere relevante)"
+                        className="bg-gray-900/50 border-gray-700 min-h-[120px]"
                         disabled={!isAdmin}
                       />
-                    </div>
-                    {isAdmin && (
-                      <div className="flex justify-end">
-                        <Button onClick={handleSave} disabled={saving}>
-                          {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                          {selectedRib ? 'Actualizar' : 'Guardar'}
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              <div className="space-y-6">
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-white">
-                      <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      Información de la Empresa
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p><strong className="text-gray-400">RUC:</strong> <span className="font-mono">{searchedFicha.ruc}</span></p>
-                    <p><strong className="text-gray-400">Razón Social:</strong> {searchedFicha.nombre_empresa}</p>
-                    <p><strong className="text-gray-400">Estado:</strong> {searchedFicha.estado_contribuyente}</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
-                  <CardContent>
-                    {existingRibs.length > 0 ? (
-                      <Table>
-                        <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                          {existingRibs.map(rib => (
-                            <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
-                              <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
-                                {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
+                <div className="space-y-6">
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
+                    <CardContent>
+                      {existingRibs.length > 0 ? (
+                        <Table>
+                          <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                          <TableBody>
+                            {existingRibs.map(rib => (
+                              <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
+                                <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button variant="ghost" size="icon" onClick={() => handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                                  {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </Table>
-                    ) : (
-                      <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
-                    )}
-                  </CardContent>
-                </Card>
+                      ) : (
+                        <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {!searchedFicha && (
