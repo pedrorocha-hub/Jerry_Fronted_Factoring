@@ -12,7 +12,7 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib } from '@/types/rib';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
-import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +22,7 @@ interface RibWithDetails extends Rib {
 }
 
 const RibPage = () => {
-  const { isAdmin, user } = useSession();
+  const { isAdmin } = useSession();
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -191,40 +191,6 @@ const RibPage = () => {
     resetForm();
   };
 
-  const handleCreateTestData = async () => {
-    if (!user) {
-        showError("Debes estar autenticado para crear datos de prueba.");
-        return;
-    }
-
-    const toastId = showLoading("Creando datos de prueba...");
-    try {
-        let testRuc = '20601847341';
-        let ficha = await FichaRucService.getByRuc(testRuc);
-        if (!ficha) {
-            ficha = await FichaRucService.create({
-                ruc: testRuc,
-                nombre_empresa: 'EMPRESA DE PRUEBA RIB S.A.C.',
-                estado_contribuyente: 'Activo',
-            });
-        }
-
-        await RibService.create({
-            ruc: testRuc,
-            direccion: 'AV. DE PRUEBA 123, LIMA',
-            como_llego_lcp: 'Referido por colega',
-        });
-
-        dismissToast(toastId);
-        showSuccess("Datos de prueba para RIB creados exitosamente.");
-        await loadAllRibs();
-
-    } catch (err) {
-        dismissToast(toastId);
-        showError(`Error al crear datos de prueba: ${err instanceof Error ? err.message : 'Error desconocido'}`);
-    }
-  };
-
   return (
     <Layout>
       <div className="min-h-screen bg-black">
@@ -353,12 +319,6 @@ const RibPage = () => {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
-                  {isAdmin && allRibs.length === 0 && !loadingAllRibs && (
-                    <Button onClick={handleCreateTestData} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Crear Datos de Prueba
-                    </Button>
-                  )}
                 </div>
               </CardHeader>
               <CardContent>
@@ -369,7 +329,7 @@ const RibPage = () => {
                 ) : allRibs.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <p>No hay análisis RIB creados.</p>
-                    <p className="text-sm mt-2">Utilice el buscador para crear uno nuevo o genere datos de prueba.</p>
+                    <p className="text-sm mt-2">Utilice el buscador para crear uno nuevo.</p>
                   </div>
                 ) : (
                   <RibTable ribs={allRibs} onEdit={handleEditFromList} onDelete={handleDelete} />
