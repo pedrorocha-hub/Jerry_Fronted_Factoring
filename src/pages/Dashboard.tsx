@@ -500,19 +500,19 @@ const Dashboard = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-indigo-500/50"
-                  onClick={() => alert('Página en construcción')}
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-teal-500/50"
+                  onClick={() => navigate('/rib')}
                 >
-                  <TrendingUp className="h-6 w-6" />
-                  <span className="text-xs">Comportamiento Crediticio</span>
+                  <List className="h-6 w-6" />
+                  <span className="text-xs">Análisis RIB</span>
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-cyan-500/50"
-                  onClick={() => navigate('/reporte-tributario')}
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-indigo-500/50"
+                  onClick={() => navigate('/comportamiento-crediticio')}
                 >
-                  <FileBarChart className="h-6 w-6" />
-                  <span className="text-xs">Reporte Tributario Deudor</span>
+                  <TrendingUp className="h-6 w-6" />
+                  <span className="text-xs">Comportamiento Crediticio</span>
                 </Button>
               </div>
             </CardContent>
