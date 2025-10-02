@@ -65,6 +65,7 @@ const ComportamientoCrediticioPage = () => {
     validado_por: '',
     status: 'Borrador' as CrediticioStatus,
     apefac_descripcion: '',
+    comentarios: '',
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -171,6 +172,7 @@ const ComportamientoCrediticioPage = () => {
       validado_por: report.validado_por || '',
       status: report.status || 'Borrador',
       apefac_descripcion: report.apefac_descripcion || '',
+      comentarios: report.comentarios || '',
     };
     setFormData(newFormData);
     setInitialFormData(newFormData);
@@ -216,6 +218,7 @@ const ComportamientoCrediticioPage = () => {
         validado_por: formData.validado_por || null,
         status: formData.status,
         apefac_descripcion: formData.apefac_descripcion || null,
+        comentarios: formData.comentarios || null,
       };
 
       if (selectedReport) {
@@ -352,6 +355,17 @@ const ComportamientoCrediticioPage = () => {
                         />
                       </div>
                     </div>
+                  </div>
+                  <div className="pt-4 mt-4 border-t border-gray-800">
+                    <Label htmlFor="comentarios">Comentarios</Label>
+                    <Textarea
+                      id="comentarios"
+                      value={formData.comentarios}
+                      onChange={handleFormChange}
+                      placeholder="(aquí pueden comentar acerca de las morosidades y/o sustentos)"
+                      className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]"
+                      disabled={!isAdmin}
+                    />
                   </div>
                 </CardContent>
               </Card>

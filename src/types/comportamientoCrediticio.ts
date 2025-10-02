@@ -23,6 +23,7 @@ export interface ComportamientoCrediticio {
   sentinel_protestos: number | null;
   validado_por: string | null;
   apefac_descripcion: string | null;
+  comentarios: string | null;
 }
 
 export interface ComportamientoCrediticioInsert {
@@ -45,6 +46,7 @@ export interface ComportamientoCrediticioInsert {
   sentinel_protestos?: number | null;
   validado_por?: string | null;
   apefac_descripcion?: string | null;
+  comentarios?: string | null;
 }
 
 export interface ComportamientoCrediticioUpdate {
@@ -65,4 +67,5 @@ export interface ComportamientoCrediticioUpdate {
   sentinel_protestos?: number | null;
   validado_por?: string | null;
   apefac_descripcion?: string | null;
+  comentarios?: string | null;
 }
