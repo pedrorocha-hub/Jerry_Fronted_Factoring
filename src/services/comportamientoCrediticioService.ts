@@ -12,6 +12,17 @@ export class ComportamientoCrediticioService {
     return data || [];
   }
 
+  static async getByRuc(ruc: string): Promise<ComportamientoCrediticio[]> {
+    const { data, error } = await supabase
+      .from('comportamiento_crediticio')
+      .select('*')
+      .eq('ruc', ruc)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   static async create(insertData: Omit<ComportamientoCrediticioInsert, 'user_id'>): Promise<ComportamientoCrediticio> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
