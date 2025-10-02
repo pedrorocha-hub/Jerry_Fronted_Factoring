@@ -242,12 +242,6 @@ const RibPage = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between text-white">
                       <span>{selectedRib ? 'Editando Análisis RIB' : 'Nuevo Análisis RIB'}</span>
-                      {selectedRib && isAdmin && (
-                        <Button variant="outline" size="sm" onClick={resetForm} className="border-gray-700 text-gray-300">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Crear Nuevo
-                        </Button>
-                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
