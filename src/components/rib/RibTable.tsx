@@ -1,14 +1,12 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, User } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
+import { Rib } from '@/types/rib';
 
-interface RibWithDetails {
-  id: string;
-  ruc: string;
+interface RibWithDetails extends Rib {
   nombre_empresa?: string;
-  created_at: string;
 }
 
 interface RibTableProps {
@@ -26,7 +24,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete }) => {
         <TableRow className="border-gray-800 hover:bg-gray-900/50">
           <TableHead className="text-gray-300">RUC</TableHead>
           <TableHead className="text-gray-300">Razón Social</TableHead>
-          <TableHead className="text-gray-300">Fecha de Creación</TableHead>
+          <TableHead className="text-gray-300">Ejecutivo</TableHead>
           <TableHead className="text-right text-gray-300">Acciones</TableHead>
         </TableRow>
       </TableHeader>
@@ -34,8 +32,18 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete }) => {
         {ribs.map((rib) => (
           <TableRow key={rib.id} className="border-gray-800 hover:bg-gray-900/50">
             <TableCell className="font-mono">{rib.ruc}</TableCell>
-            <TableCell>{rib.nombre_empresa || 'No disponible'}</TableCell>
-            <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
+            <TableCell>
+              <div>{rib.nombre_empresa || 'No disponible'}</div>
+              <div className="text-xs text-gray-500">
+                Editado: {new Date(rib.updated_at).toLocaleDateString()}
+              </div>
+            </TableCell>
+            <TableCell>
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-300">{rib.profiles?.full_name || 'N/A'}</span>
+              </div>
+            </TableCell>
             <TableCell className="text-right">
               <Button variant="ghost" size="icon" onClick={() => onEdit(rib)} className="text-gray-400 hover:text-white">
                 <Edit className="h-4 w-4" />

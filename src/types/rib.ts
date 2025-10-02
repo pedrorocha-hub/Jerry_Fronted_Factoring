@@ -6,7 +6,10 @@ export interface Rib {
   user_id: string | null;
   created_at: string;
   updated_at: string;
+  profiles?: {
+    full_name: string | null;
+  } | null;
 }
 
-export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;
-export type RibUpdate = Partial<Omit<Rib, 'id' | 'created_at' | 'updated_at'>>;
+export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at' | 'profiles'>;
+export type RibUpdate = Partial<Omit<Rib, 'id' | 'created_at' | 'updated_at' | 'profiles'>>;
