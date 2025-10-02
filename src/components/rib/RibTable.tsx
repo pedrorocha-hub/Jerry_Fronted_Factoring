@@ -7,6 +7,7 @@ import { Rib } from '@/types/rib';
 
 interface RibWithDetails extends Rib {
   nombre_empresa?: string;
+  profiles?: { full_name: string | null } | null;
 }
 
 interface RibTableProps {
@@ -34,14 +35,14 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete }) => {
             <TableCell className="font-mono">{rib.ruc}</TableCell>
             <TableCell>
               <div>{rib.nombre_empresa || 'No disponible'}</div>
-              <div className="text-xs text-gray-500">
-                Editado: {new Date(rib.updated_at).toLocaleDateString()}
-              </div>
             </TableCell>
             <TableCell>
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4 text-gray-400" />
                 <span className="text-sm text-gray-300">{rib.profiles?.full_name || 'N/A'}</span>
+              </div>
+              <div className="text-xs text-gray-500 pl-6">
+                Editado: {new Date(rib.updated_at).toLocaleDateString()}
               </div>
             </TableCell>
             <TableCell className="text-right">
