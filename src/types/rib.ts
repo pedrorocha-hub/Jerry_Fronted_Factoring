@@ -1,3 +1,5 @@
+export type RibStatus = "Borrador" | "En revisión" | "Completado";
+
 export interface Rib {
   id: string;
   ruc: string;
@@ -9,4 +11,5 @@ export interface Rib {
   user_id: string | null;
   created_at: string;
   updated_at: string;
+  status: RibStatus | null;
 }

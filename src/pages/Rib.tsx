@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus, ArrowLeft, User, Calendar, Clock } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
-import { Rib } from '@/types/rib';
+import { Rib, RibStatus } from '@/types/rib';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
 import { showSuccess, showError } from '@/utils/toast';
@@ -21,6 +22,18 @@ interface RibWithDetails extends Rib {
   nombre_empresa?: string;
   profiles?: { full_name: string | null } | null;
 }
+
+const getStatusColor = (status: RibStatus | null | undefined) => {
+  switch (status) {
+    case 'Completado':
+      return 'bg-green-500/20 text-green-400';
+    case 'En revisión':
+      return 'bg-yellow-500/20 text-yellow-400';
+    case 'Borrador':
+    default:
+      return 'bg-gray-500/20 text-gray-400';
+  }
+};
 
 const RibPage = () => {
   const { isAdmin } = useSession();
@@ -43,6 +56,7 @@ const RibPage = () => {
     telefono: '',
     grupo_economico: '',
     visita: '',
+    status: 'Borrador' as RibStatus,
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -160,6 +174,10 @@ const RibPage = () => {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
+  const handleStatusChange = (value: RibStatus) => {
+    setFormData(prev => ({ ...prev, status: value }));
+  };
+
   const handleSave = async () => {
     if (!searchedFicha) return;
     setSaving(true);
@@ -197,6 +215,7 @@ const RibPage = () => {
       telefono: rib.telefono || '',
       grupo_economico: rib.grupo_economico || '',
       visita: rib.visita || '',
+      status: rib.status || 'Borrador',
     };
     setFormData(newFormData);
     setInitialFormData(newFormData);
@@ -316,6 +335,23 @@ const RibPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
+                    <Label htmlFor="status">Estado de Solicitud</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => handleStatusChange(value as RibStatus)}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger id="status" className="bg-gray-900/50 border-gray-700">
+                        <SelectValue placeholder="Seleccione un estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Borrador">Borrador</SelectItem>
+                        <SelectItem value="En revisión">En revisión</SelectItem>
+                        <SelectItem value="Completado">Completado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
                     <Label htmlFor="direccion">Dirección del Proveedor</Label>
                     <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                   </div>
@@ -374,11 +410,16 @@ const RibPage = () => {
                 <CardContent>
                   {existingRibs.length > 0 ? (
                     <Table>
-                      <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                      <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
                       <TableBody>
                         {existingRibs.map(rib => (
                           <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
                             <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell>
+                              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(rib.status)}`}>
+                                {rib.status || 'Borrador'}
+                              </span>
+                            </TableCell>
                             <TableCell className="text-right">
                               <Button variant="ghost" size="icon" onClick={async () => await handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
                               {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
