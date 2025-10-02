@@ -7,7 +7,7 @@ export class RibService {
       .from('rib')
       .select(`
         *,
-        profiles:user_id (
+        profiles (
           full_name
         )
       `)
