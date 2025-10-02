@@ -418,26 +418,27 @@ const RibPage = () => {
                 {selectedRib && (
                   <CardFooter className="flex flex-col items-start space-y-4 text-sm text-gray-300 border-t border-gray-800 pt-4">
                     <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-2 text-gray-400" />
+                    <div className="flex items-start">
+                      <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" />
                       <div>
-                        <strong className="text-gray-400">Creado por:</strong>
-                        {selectedRib.user_id ? (
-                          creatorDetails ? (
-                            <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                        <p>
+                          <strong className="text-gray-400">Ejecutivo:</strong>
+                          {selectedRib.user_id ? (
+                            creatorDetails ? (
+                              <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                            ) : (
+                              <span> Cargando...</span>
+                            )
                           ) : (
-                            <span> Cargando...</span>
-                          )
-                        ) : (
-                          <span> Desconocido</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      <div>
-                        <strong className="text-gray-400">Fecha de creación:</strong>{' '}
-                        {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                            <span> Desconocido</span>
+                          )}
+                        </p>
+                        <div className="flex items-center mt-1 text-gray-500">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span className="text-xs">
+                            {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center">
