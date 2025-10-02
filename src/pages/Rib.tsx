@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users, Briefcase } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,9 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib, RibStatus } from '@/types/rib';
 import { Accionista } from '@/types/accionista';
+import { Gerente } from '@/types/gerencia';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
 import { AccionistasService } from '@/services/accionistasService';
+import { GerenciaService } from '@/services/gerenciaService';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
@@ -53,6 +55,7 @@ const RibPage = () => {
   const [selectedRib, setSelectedRib] = useState<Rib | null>(null);
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
   const [accionistas, setAccionistas] = useState<Accionista[]>([]);
+  const [gerentes, setGerentes] = useState<Gerente[]>([]);
   
   const emptyForm = {
     direccion: '',
@@ -153,15 +156,20 @@ const RibPage = () => {
     setExistingRibs([]);
     resetForm();
     setAccionistas([]);
+    setGerentes([]);
 
     try {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const ribData = await RibService.getByRuc(rucToSearch);
+        const [ribData, accionistasData, gerentesData] = await Promise.all([
+          RibService.getByRuc(rucToSearch),
+          AccionistasService.getByRuc(rucToSearch),
+          GerenciaService.getAllByRuc(rucToSearch)
+        ]);
         setExistingRibs(ribData);
-        const accionistasData = await AccionistasService.getByRuc(rucToSearch);
         setAccionistas(accionistasData);
+        setGerentes(gerentesData);
         if (ribData.length > 0) {
           await handleSelectRib(ribData[0]);
         } else {
@@ -285,6 +293,7 @@ const RibPage = () => {
     setError(null);
     resetForm();
     setAccionistas([]);
+    setGerentes([]);
   };
 
   return (
@@ -457,6 +466,39 @@ const RibPage = () => {
                             <TableCell>{accionista.porcentaje ? `${accionista.porcentaje}%` : '-'}</TableCell>
                             <TableCell>{accionista.vinculo || '-'}</TableCell>
                             <TableCell>{accionista.calificacion || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              )}
+
+              {gerentes.length > 0 && (
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-white">
+                      <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Gerencia
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-gray-800 hover:bg-gray-900/50">
+                          <TableHead className="text-gray-300">DNI</TableHead>
+                          <TableHead className="text-gray-300">Nombre</TableHead>
+                          <TableHead className="text-gray-300">Cargo</TableHead>
+                          <TableHead className="text-gray-300">Vínculo</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {gerentes.map(gerente => (
+                          <TableRow key={gerente.id} className="border-gray-800 hover:bg-gray-900/50">
+                            <TableCell className="font-mono">{gerente.dni}</TableCell>
+                            <TableCell>{gerente.nombre}</TableCell>
+                            <TableCell>{gerente.cargo || '-'}</TableCell>
+                            <TableCell>{gerente.vinculo || '-'}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
