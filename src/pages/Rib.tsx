@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus, ArrowLeft, User, Calendar, Clock } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -337,12 +337,31 @@ const RibPage = () => {
                 </div>
 
                 <div className="space-y-6">
-                  {selectedRib && (
-                    <Card className="bg-[#121212] border border-gray-800">
-                      <CardHeader>
-                        <CardTitle className="text-white">Detalles del Análisis</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 text-sm text-gray-300">
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
+                    <CardContent>
+                      {existingRibs.length > 0 ? (
+                        <Table>
+                          <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                          <TableBody>
+                            {existingRibs.map(rib => (
+                              <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
+                                <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
+                                <TableCell className="text-right">
+                                  <Button variant="ghost" size="icon" onClick={async () => await handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                                  {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      ) : (
+                        <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
+                      )}
+                    </CardContent>
+                    {selectedRib && (
+                      <CardFooter className="flex flex-col items-start space-y-3 text-sm text-gray-300 border-t border-gray-800 pt-4">
+                        <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
                         <div className="flex items-center">
                           <User className="h-4 w-4 mr-2 text-gray-400" />
                           <div>
@@ -372,32 +391,8 @@ const RibPage = () => {
                             {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
-                    <CardContent>
-                      {existingRibs.length > 0 ? (
-                        <Table>
-                          <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
-                          <TableBody>
-                            {existingRibs.map(rib => (
-                              <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
-                                <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
-                                <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={async () => await handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
-                                  {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      ) : (
-                        <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
-                      )}
-                    </CardContent>
+                      </CardFooter>
+                    )}
                   </Card>
                 </div>
               </div>
