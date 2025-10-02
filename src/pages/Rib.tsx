@@ -36,19 +36,41 @@ const RibPage = () => {
   const [existingRibs, setExistingRibs] = useState<Rib[]>([]);
   const [selectedRib, setSelectedRib] = useState<Rib | null>(null);
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
-  const [formData, setFormData] = useState({
+  
+  const emptyForm = {
     direccion: '',
     como_llego_lcp: '',
     telefono: '',
     grupo_economico: '',
     visita: '',
-  });
+  };
+
+  const [formData, setFormData] = useState(emptyForm);
+  const [initialFormData, setInitialFormData] = useState(emptyForm);
+  const [isDirty, setIsDirty] = useState(false);
 
   const searchSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadAllRibs();
   }, []);
+
+  useEffect(() => {
+    setIsDirty(JSON.stringify(formData) !== JSON.stringify(initialFormData));
+  }, [formData, initialFormData]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   const loadAllRibs = async () => {
     setLoadingAllRibs(true);
@@ -93,7 +115,8 @@ const RibPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ direccion: '', como_llego_lcp: '', telefono: '', grupo_economico: '', visita: '' });
+    setFormData(emptyForm);
+    setInitialFormData(emptyForm);
     setSelectedRib(null);
     setCreatorDetails(null);
   };
@@ -117,6 +140,8 @@ const RibPage = () => {
         setExistingRibs(ribData);
         if (ribData.length > 0) {
           await handleSelectRib(ribData[0]);
+        } else {
+          setInitialFormData(emptyForm);
         }
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un análisis RIB.');
@@ -139,18 +164,22 @@ const RibPage = () => {
     if (!searchedFicha) return;
     setSaving(true);
     try {
+      let savedData;
       if (selectedRib) {
-        await RibService.update(selectedRib.id, { ...formData });
+        savedData = await RibService.update(selectedRib.id, { ...formData });
         showSuccess('Análisis RIB actualizado.');
       } else {
-        await RibService.create({ ruc: searchedFicha.ruc, ...formData });
+        savedData = await RibService.create({ ruc: searchedFicha.ruc, ...formData });
         showSuccess('Análisis RIB creado.');
       }
+      setInitialFormData(formData);
       const ribData = await RibService.getByRuc(searchedFicha.ruc);
       setExistingRibs(ribData);
       if (selectedRib) {
         const updatedSelected = ribData.find(r => r.id === selectedRib.id);
         if (updatedSelected) setSelectedRib(updatedSelected);
+      } else if (ribData.length > 0) {
+        await handleSelectRib(ribData[ribData.length - 1]);
       }
       await loadAllRibs();
     } catch (err) {
@@ -162,13 +191,15 @@ const RibPage = () => {
 
   const handleSelectRib = async (rib: Rib) => {
     setSelectedRib(rib);
-    setFormData({
+    const newFormData = {
       direccion: rib.direccion || '',
       como_llego_lcp: rib.como_llego_lcp || '',
       telefono: rib.telefono || '',
       grupo_economico: rib.grupo_economico || '',
       visita: rib.visita || '',
-    });
+    };
+    setFormData(newFormData);
+    setInitialFormData(newFormData);
 
     setCreatorDetails(null);
     if (rib.user_id) {
@@ -214,6 +245,9 @@ const RibPage = () => {
   };
 
   const handleBackToList = () => {
+    if (isDirty && !window.confirm('Hay cambios sin guardar. ¿Está seguro de que quiere volver a la lista?')) {
+      return;
+    }
     setSearchedFicha(null);
     setRucInput('');
     setError(null);
@@ -306,14 +340,6 @@ const RibPage = () => {
                       disabled={!isAdmin}
                     />
                   </div>
-                  {isAdmin && (
-                    <div className="flex justify-end">
-                      <Button onClick={handleSave} disabled={saving}>
-                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        {selectedRib ? 'Actualizar' : 'Guardar'}
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
@@ -334,7 +360,17 @@ const RibPage = () => {
               </Card>
 
               <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle>
+                    {isAdmin && (
+                      <Button onClick={handleSave} disabled={saving || !isDirty}>
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        {selectedRib ? 'Actualizar' : 'Guardar'}
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
                 <CardContent>
                   {existingRibs.length > 0 ? (
                     <Table>
