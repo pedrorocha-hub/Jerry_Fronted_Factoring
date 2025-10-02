@@ -21,6 +21,7 @@ export interface ComportamientoCrediticio {
   sentinel_deuda_sunat: number | null;
   equifax_protestos: number | null;
   sentinel_protestos: number | null;
+  validado_por: string | null;
 }
 
 export interface ComportamientoCrediticioInsert {
@@ -41,6 +42,7 @@ export interface ComportamientoCrediticioInsert {
   sentinel_deuda_sunat?: number | null;
   equifax_protestos?: number | null;
   sentinel_protestos?: number | null;
+  validado_por?: string | null;
 }
 
 export interface ComportamientoCrediticioUpdate {
@@ -59,4 +61,5 @@ export interface ComportamientoCrediticioUpdate {
   sentinel_deuda_sunat?: number | null;
   equifax_protestos?: number | null;
   sentinel_protestos?: number | null;
+  validado_por?: string | null;
 }
