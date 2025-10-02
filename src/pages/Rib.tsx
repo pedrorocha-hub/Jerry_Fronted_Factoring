@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface RibWithDetails extends Rib {
   nombre_empresa?: string;
+  profiles?: { full_name: string | null } | null;
 }
 
 const RibPage = () => {
@@ -82,6 +83,7 @@ const RibPage = () => {
         setAllRibs([]);
       }
     } catch (err) {
+      console.error("Failed to load RIBs:", err);
       showError('No se pudieron cargar los análisis RIB.');
     } finally {
       setLoadingAllRibs(false);
