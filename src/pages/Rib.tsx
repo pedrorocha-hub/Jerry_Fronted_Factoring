@@ -1,0 +1,231 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus } from 'lucide-react';
+import Layout from '@/components/layout/Layout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { FichaRuc } from '@/types/ficha-ruc';
+import { Rib } from '@/types/rib';
+import { FichaRucService } from '@/services/fichaRucService';
+import { RibService } from '@/services/ribService';
+import { showSuccess, showError } from '@/utils/toast';
+import { useSession } from '@/contexts/SessionContext';
+
+const RibPage = () => {
+  const { isAdmin } = useSession();
+  const [rucInput, setRucInput] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
+  const [existingRibs, setExistingRibs] = useState<Rib[]>([]);
+  const [selectedRib, setSelectedRib] = useState<Rib | null>(null);
+  const [formData, setFormData] = useState({
+    direccion: '',
+    como_llego_lcp: '',
+  });
+
+  const resetForm = () => {
+    setFormData({ direccion: '', como_llego_lcp: '' });
+    setSelectedRib(null);
+  };
+
+  const handleSearch = async () => {
+    if (!rucInput || rucInput.length !== 11) {
+      setError('Por favor, ingrese un RUC válido de 11 dígitos.');
+      return;
+    }
+    setSearching(true);
+    setError(null);
+    setSearchedFicha(null);
+    setExistingRibs([]);
+    resetForm();
+
+    try {
+      const fichaData = await FichaRucService.getByRuc(rucInput);
+      if (fichaData) {
+        setSearchedFicha(fichaData);
+        const ribData = await RibService.getByRuc(rucInput);
+        setExistingRibs(ribData);
+        if (ribData.length > 0) {
+          handleSelectRib(ribData[0]);
+        }
+      } else {
+        setError('Ficha RUC no encontrada. No se puede crear un análisis RIB.');
+        showError('Ficha RUC no encontrada.');
+      }
+    } catch (err) {
+      setError('Ocurrió un error al buscar la empresa.');
+      showError('Error al buscar la empresa.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!searchedFicha) return;
+    setSaving(true);
+    try {
+      if (selectedRib) {
+        await RibService.update(selectedRib.id, { ...formData });
+        showSuccess('Análisis RIB actualizado.');
+      } else {
+        await RibService.create({ ruc: searchedFicha.ruc, ...formData });
+        showSuccess('Análisis RIB creado.');
+      }
+      const ribData = await RibService.getByRuc(searchedFicha.ruc);
+      setExistingRibs(ribData);
+      resetForm();
+    } catch (err) {
+      showError('Error al guardar el análisis RIB.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSelectRib = (rib: Rib) => {
+    setSelectedRib(rib);
+    setFormData({
+      direccion: rib.direccion || '',
+      como_llego_lcp: rib.como_llego_lcp || '',
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm('¿Está seguro de eliminar este análisis RIB?')) {
+      try {
+        await RibService.delete(id);
+        showSuccess('Análisis RIB eliminado.');
+        if (searchedFicha) {
+          const ribData = await RibService.getByRuc(searchedFicha.ruc);
+          setExistingRibs(ribData);
+        }
+        resetForm();
+      } catch (err) {
+        showError('Error al eliminar el análisis.');
+      }
+    }
+  };
+
+  return (
+    <Layout>
+      <div className="min-h-screen bg-black">
+        <div className="space-y-6 p-6">
+          <h1 className="text-2xl font-bold text-white">Análisis RIB</h1>
+
+          <Card className="bg-[#121212] border border-gray-800">
+            <CardHeader><CardTitle className="text-white">Buscar Empresa por RUC</CardTitle></CardHeader>
+            <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+              </div>
+              <Button onClick={handleSearch} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                Buscar
+              </Button>
+            </CardContent>
+          </Card>
+
+          {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
+
+          {searchedFicha && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-white">
+                      <span>{selectedRib ? 'Editando Análisis RIB' : 'Nuevo Análisis RIB'}</span>
+                      {selectedRib && isAdmin && (
+                        <Button variant="outline" size="sm" onClick={resetForm} className="border-gray-700 text-gray-300">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Crear Nuevo
+                        </Button>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="direccion">Dirección del Proveedor</Label>
+                      <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                    </div>
+                    <div>
+                      <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
+                      <Textarea
+                        id="como_llego_lcp"
+                        value={formData.como_llego_lcp}
+                        onChange={handleFormChange}
+                        placeholder="Especificar cómo llegó a LCP; si es referido indicar el nombre completo de quien proviene la referencia"
+                        className="bg-gray-900/50 border-gray-700"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    {isAdmin && (
+                      <div className="flex justify-end">
+                        <Button onClick={handleSave} disabled={saving}>
+                          {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                          {selectedRib ? 'Actualizar' : 'Guardar'}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-white">
+                      <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Información de la Empresa
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <p><strong className="text-gray-400">RUC:</strong> <span className="font-mono">{searchedFicha.ruc}</span></p>
+                    <p><strong className="text-gray-400">Razón Social:</strong> {searchedFicha.nombre_empresa}</p>
+                    <p><strong className="text-gray-400">Estado:</strong> {searchedFicha.estado_contribuyente}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader><CardTitle className="text-white">Historial de Análisis</CardTitle></CardHeader>
+                  <CardContent>
+                    {existingRibs.length > 0 ? (
+                      <Table>
+                        <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                          {existingRibs.map(rib => (
+                            <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
+                              <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="icon" onClick={() => handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                                {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <p className="text-center text-gray-400 py-4">No hay análisis previos.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default RibPage;

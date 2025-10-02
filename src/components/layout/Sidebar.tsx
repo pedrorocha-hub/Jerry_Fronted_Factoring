@@ -4,7 +4,8 @@ import {
   Home, 
   Upload, 
   Zap,
-  FileText
+  FileText,
+  ShieldCheck
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -14,6 +15,7 @@ const Sidebar: React.FC = () => {
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
     { to: '/solicitudes-operacion', icon: FileText, label: 'Solicitudes de Operación' },
+    { to: '/rib', icon: ShieldCheck, label: 'Análisis RIB' },
   ];
 
   return (

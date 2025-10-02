@@ -16,6 +16,7 @@ import ReporteTributario from '@/pages/ReporteTributario';
 import SolicitudOperacion from '@/pages/SolicitudOperacion';
 import SolicitudOperacionList from '@/pages/SolicitudOperacionList';
 import SolicitudOperacionCreateEdit from '@/pages/SolicitudOperacionCreateEdit';
+import RibPage from '@/pages/Rib';
 import Login from '@/pages/Login';
 import UsersPage from '@/pages/Admin/Users';
 
@@ -40,6 +41,7 @@ function App() {
               <Route path="/solicitudes-operacion" element={<SolicitudOperacionList />} />
               <Route path="/solicitudes-operacion/new" element={<SolicitudOperacionCreateEdit />} />
               <Route path="/solicitudes-operacion/edit/:id" element={<SolicitudOperacionCreateEdit />} />
+              <Route path="/rib" element={<RibPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
             </Route>
           </Routes>
