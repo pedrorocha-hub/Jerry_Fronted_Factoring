@@ -38,6 +38,8 @@ const RibPage = () => {
   const [formData, setFormData] = useState({
     direccion: '',
     como_llego_lcp: '',
+    telefono: '',
+    grupo_economico: '',
   });
 
   const searchSectionRef = useRef<HTMLDivElement>(null);
@@ -91,7 +93,7 @@ const RibPage = () => {
   };
 
   const resetForm = () => {
-    setFormData({ direccion: '', como_llego_lcp: '' });
+    setFormData({ direccion: '', como_llego_lcp: '', telefono: '', grupo_economico: '' });
     setSelectedRib(null);
   };
 
@@ -158,6 +160,8 @@ const RibPage = () => {
     setFormData({
       direccion: rib.direccion || '',
       como_llego_lcp: rib.como_llego_lcp || '',
+      telefono: rib.telefono || '',
+      grupo_economico: rib.grupo_economico || '',
     });
   };
 
@@ -250,6 +254,14 @@ const RibPage = () => {
                     <div>
                       <Label htmlFor="direccion">Dirección del Proveedor</Label>
                       <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                    </div>
+                    <div>
+                      <Label htmlFor="telefono">Teléfono</Label>
+                      <Input id="telefono" value={formData.telefono || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                    </div>
+                    <div>
+                      <Label htmlFor="grupo_economico">Grupo Económico</Label>
+                      <Input id="grupo_economico" value={formData.grupo_economico || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                     </div>
                     <div>
                       <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
