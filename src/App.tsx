@@ -19,6 +19,7 @@ import SolicitudOperacionCreateEdit from '@/pages/SolicitudOperacionCreateEdit';
 import RibPage from '@/pages/Rib';
 import Login from '@/pages/Login';
 import UsersPage from '@/pages/Admin/Users';
+import ComportamientoCrediticioPage from '@/pages/ComportamientoCrediticio';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
               <Route path="/solicitudes-operacion/edit/:id" element={<SolicitudOperacionCreateEdit />} />
               <Route path="/rib" element={<RibPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
+              <Route path="/comportamiento-crediticio" element={<ComportamientoCrediticioPage />} />
             </Route>
           </Routes>
         </SessionContextProvider>
