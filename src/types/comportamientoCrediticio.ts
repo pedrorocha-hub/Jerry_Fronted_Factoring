@@ -24,6 +24,22 @@ export interface ComportamientoCrediticio {
   validado_por: string | null;
   apefac_descripcion: string | null;
   comentarios: string | null;
+
+  deudor: string | null;
+  deudor_equifax_calificacion: string | null;
+  deudor_sentinel_calificacion: string | null;
+  deudor_equifax_deuda_directa: number | null;
+  deudor_sentinel_deuda_directa: number | null;
+  deudor_equifax_deuda_indirecta: number | null;
+  deudor_sentinel_deuda_indirecta: number | null;
+  deudor_equifax_impagos: number | null;
+  deudor_sentinel_impagos: number | null;
+  deudor_equifax_deuda_sunat: number | null;
+  deudor_sentinel_deuda_sunat: number | null;
+  deudor_equifax_protestos: number | null;
+  deudor_sentinel_protestos: number | null;
+  deudor_apefac_descripcion: string | null;
+  deudor_comentarios: string | null;
 }
 
 export interface ComportamientoCrediticioInsert {
@@ -47,6 +63,22 @@ export interface ComportamientoCrediticioInsert {
   validado_por?: string | null;
   apefac_descripcion?: string | null;
   comentarios?: string | null;
+
+  deudor?: string | null;
+  deudor_equifax_calificacion?: string | null;
+  deudor_sentinel_calificacion?: string | null;
+  deudor_equifax_deuda_directa?: number | null;
+  deudor_sentinel_deuda_directa?: number | null;
+  deudor_equifax_deuda_indirecta?: number | null;
+  deudor_sentinel_deuda_indirecta?: number | null;
+  deudor_equifax_impagos?: number | null;
+  deudor_sentinel_impagos?: number | null;
+  deudor_equifax_deuda_sunat?: number | null;
+  deudor_sentinel_deuda_sunat?: number | null;
+  deudor_equifax_protestos?: number | null;
+  deudor_sentinel_protestos?: number | null;
+  deudor_apefac_descripcion?: string | null;
+  deudor_comentarios?: string | null;
 }
 
 export interface ComportamientoCrediticioUpdate {
@@ -68,4 +100,20 @@ export interface ComportamientoCrediticioUpdate {
   validado_por?: string | null;
   apefac_descripcion?: string | null;
   comentarios?: string | null;
+
+  deudor?: string | null;
+  deudor_equifax_calificacion?: string | null;
+  deudor_sentinel_calificacion?: string | null;
+  deudor_equifax_deuda_directa?: number | null;
+  deudor_sentinel_deuda_directa?: number | null;
+  deudor_equifax_deuda_indirecta?: number | null;
+  deudor_sentinel_deuda_indirecta?: number | null;
+  deudor_equifax_impagos?: number | null;
+  deudor_sentinel_impagos?: number | null;
+  deudor_equifax_deuda_sunat?: number | null;
+  deudor_sentinel_deuda_sunat?: number | null;
+  deudor_equifax_protestos?: number | null;
+  deudor_sentinel_protestos?: number | null;
+  deudor_apefac_descripcion?: string | null;
+  deudor_comentarios?: string | null;
 }

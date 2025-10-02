@@ -50,6 +50,7 @@ const ComportamientoCrediticioPage = () => {
 
   const emptyForm = {
     proveedor: '',
+    deudor: '',
     equifax_calificacion: '',
     sentinel_calificacion: '',
     equifax_deuda_directa: '',
@@ -70,6 +71,8 @@ const ComportamientoCrediticioPage = () => {
 
   const [formData, setFormData] = useState(emptyForm);
   const [initialFormData, setInitialFormData] = useState(emptyForm);
+  const [formDataDeudor, setFormDataDeudor] = useState(emptyForm);
+  const [initialFormDataDeudor, setInitialFormDataDeudor] = useState(emptyForm);
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
@@ -77,8 +80,11 @@ const ComportamientoCrediticioPage = () => {
   }, []);
 
   useEffect(() => {
-    setIsDirty(JSON.stringify(formData) !== JSON.stringify(initialFormData));
-  }, [formData, initialFormData]);
+    setIsDirty(
+      JSON.stringify(formData) !== JSON.stringify(initialFormData) ||
+      JSON.stringify(formDataDeudor) !== JSON.stringify(initialFormDataDeudor)
+    );
+  }, [formData, initialFormData, formDataDeudor, initialFormDataDeudor]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -141,6 +147,8 @@ const ComportamientoCrediticioPage = () => {
           const newForm = { ...emptyForm, proveedor: fichaData.nombre_empresa };
           setFormData(newForm);
           setInitialFormData(newForm);
+          setFormDataDeudor(emptyForm);
+          setInitialFormDataDeudor(emptyForm);
         }
         setView('form');
       } else {
@@ -157,6 +165,7 @@ const ComportamientoCrediticioPage = () => {
     setSelectedReport(report);
     const newFormData = {
       proveedor: report.proveedor || '',
+      deudor: '',
       equifax_calificacion: report.equifax_calificacion || '',
       sentinel_calificacion: report.sentinel_calificacion || '',
       equifax_deuda_directa: report.equifax_deuda_directa?.toString() || '',
@@ -177,6 +186,29 @@ const ComportamientoCrediticioPage = () => {
     setFormData(newFormData);
     setInitialFormData(newFormData);
 
+    const newFormDataDeudor = {
+      proveedor: '',
+      deudor: report.deudor || '',
+      equifax_calificacion: report.deudor_equifax_calificacion || '',
+      sentinel_calificacion: report.deudor_sentinel_calificacion || '',
+      equifax_deuda_directa: report.deudor_equifax_deuda_directa?.toString() || '',
+      sentinel_deuda_directa: report.deudor_sentinel_deuda_directa?.toString() || '',
+      equifax_deuda_indirecta: report.deudor_equifax_deuda_indirecta?.toString() || '',
+      sentinel_deuda_indirecta: report.deudor_sentinel_deuda_indirecta?.toString() || '',
+      equifax_impagos: report.deudor_equifax_impagos?.toString() || '',
+      sentinel_impagos: report.deudor_sentinel_impagos?.toString() || '',
+      equifax_deuda_sunat: report.deudor_equifax_deuda_sunat?.toString() || '',
+      sentinel_deuda_sunat: report.deudor_sentinel_deuda_sunat?.toString() || '',
+      equifax_protestos: report.deudor_equifax_protestos?.toString() || '',
+      sentinel_protestos: report.deudor_sentinel_protestos?.toString() || '',
+      validado_por: '',
+      status: 'Borrador',
+      apefac_descripcion: report.deudor_apefac_descripcion || '',
+      comentarios: report.deudor_comentarios || '',
+    };
+    setFormDataDeudor(newFormDataDeudor);
+    setInitialFormDataDeudor(newFormDataDeudor);
+
     setCreatorDetails(null);
     if (report.user_id) {
       try {
@@ -194,6 +226,12 @@ const ComportamientoCrediticioPage = () => {
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleDeudorFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    const fieldName = id.startsWith('deudor_') ? id.substring(7) : id;
+    setFormDataDeudor(prev => ({ ...prev, [fieldName]: value }));
   };
 
   const handleSave = async () => {
@@ -219,6 +257,22 @@ const ComportamientoCrediticioPage = () => {
         status: formData.status,
         apefac_descripcion: formData.apefac_descripcion || null,
         comentarios: formData.comentarios || null,
+
+        deudor: formDataDeudor.deudor || null,
+        deudor_equifax_calificacion: formDataDeudor.equifax_calificacion || null,
+        deudor_sentinel_calificacion: formDataDeudor.sentinel_calificacion || null,
+        deudor_equifax_deuda_directa: parseFloat(formDataDeudor.equifax_deuda_directa) || null,
+        deudor_sentinel_deuda_directa: parseFloat(formDataDeudor.sentinel_deuda_directa) || null,
+        deudor_equifax_deuda_indirecta: parseFloat(formDataDeudor.equifax_deuda_indirecta) || null,
+        deudor_sentinel_deuda_indirecta: parseFloat(formDataDeudor.sentinel_deuda_indirecta) || null,
+        deudor_equifax_impagos: parseFloat(formDataDeudor.equifax_impagos) || null,
+        deudor_sentinel_impagos: parseFloat(formDataDeudor.sentinel_impagos) || null,
+        deudor_equifax_deuda_sunat: parseFloat(formDataDeudor.equifax_deuda_sunat) || null,
+        deudor_sentinel_deuda_sunat: parseFloat(formDataDeudor.sentinel_deuda_sunat) || null,
+        deudor_equifax_protestos: parseFloat(formDataDeudor.equifax_protestos) || null,
+        deudor_sentinel_protestos: parseFloat(formDataDeudor.sentinel_protestos) || null,
+        deudor_apefac_descripcion: formDataDeudor.apefac_descripcion || null,
+        deudor_comentarios: formDataDeudor.comentarios || null,
       };
 
       if (selectedReport) {
@@ -262,6 +316,8 @@ const ComportamientoCrediticioPage = () => {
     setSelectedReport(null);
     setFormData(emptyForm);
     setInitialFormData(emptyForm);
+    setFormDataDeudor(emptyForm);
+    setInitialFormDataDeudor(emptyForm);
   };
 
   const handleEditFromList = (report: ReporteWithDetails) => {
@@ -317,6 +373,7 @@ const ComportamientoCrediticioPage = () => {
 
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
+              {/* Proveedor Card */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">{selectedReport ? 'Editando' : 'Nuevo'} Reporte para: {searchedFicha.nombre_empresa}</CardTitle>
@@ -328,13 +385,10 @@ const ComportamientoCrediticioPage = () => {
                   </div>
                   <div className="pt-4 mt-4 border-t border-gray-800">
                     <div className="grid grid-cols-4 gap-x-4">
-                      {/* Headers */}
                       <div className="font-medium text-gray-300 mb-2">Concepto</div>
                       <div className="text-white text-center font-medium mb-2">Equifax</div>
                       <div className="text-white text-center font-medium mb-2">Sentinel</div>
                       <div className="text-white text-center font-medium mb-2">Apefac</div>
-
-                      {/* Inputs and Textarea */}
                       <div className="col-span-3 space-y-2">
                         {formFields.map(field => (
                           <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
@@ -345,27 +399,47 @@ const ComportamientoCrediticioPage = () => {
                         ))}
                       </div>
                       <div className="col-span-1">
-                        <Textarea
-                          id="apefac_descripcion"
-                          value={formData.apefac_descripcion}
-                          onChange={handleFormChange}
-                          placeholder="Resumen de Apefac..."
-                          className="bg-gray-900/50 border-gray-700 text-white h-full min-h-[200px]"
-                          disabled={!isAdmin}
-                        />
+                        <Textarea id="apefac_descripcion" value={formData.apefac_descripcion} onChange={handleFormChange} placeholder="Resumen de Apefac..." className="bg-gray-900/50 border-gray-700 text-white h-full min-h-[200px]" disabled={!isAdmin} />
                       </div>
                     </div>
                   </div>
                   <div className="pt-4 mt-4 border-t border-gray-800">
                     <Label htmlFor="comentarios">Comentarios</Label>
-                    <Textarea
-                      id="comentarios"
-                      value={formData.comentarios}
-                      onChange={handleFormChange}
-                      placeholder="(aquí pueden comentar acerca de las morosidades y/o sustentos)"
-                      className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]"
-                      disabled={!isAdmin}
-                    />
+                    <Textarea id="comentarios" value={formData.comentarios} onChange={handleFormChange} placeholder="(aquí pueden comentar acerca de las morosidades y/o sustentos)" className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]" disabled={!isAdmin} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Deudor Card */}
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardContent className="space-y-4 pt-6">
+                  <div>
+                    <Label htmlFor="deudor">Deudor</Label>
+                    <Input id="deudor" value={formDataDeudor.deudor} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} placeholder="Ingrese nombre del Deudor" />
+                  </div>
+                  <div className="pt-4 mt-4 border-t border-gray-800">
+                    <div className="grid grid-cols-4 gap-x-4">
+                      <div className="font-medium text-gray-300 mb-2">Concepto</div>
+                      <div className="text-white text-center font-medium mb-2">Equifax</div>
+                      <div className="text-white text-center font-medium mb-2">Sentinel</div>
+                      <div className="text-white text-center font-medium mb-2">Apefac</div>
+                      <div className="col-span-3 space-y-2">
+                        {formFields.map(field => (
+                          <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
+                            <Label htmlFor={`deudor_equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
+                            <Input id={`deudor_equifax_${field.id}`} type={field.type} value={formDataDeudor[`equifax_${field.id}` as keyof typeof formDataDeudor]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                            <Input id={`deudor_sentinel_${field.id}`} type={field.type} value={formDataDeudor[`sentinel_${field.id}` as keyof typeof formDataDeudor]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="col-span-1">
+                        <Textarea id="deudor_apefac_descripcion" value={formDataDeudor.apefac_descripcion} onChange={handleDeudorFormChange} placeholder="Resumen de Apefac..." className="bg-gray-900/50 border-gray-700 text-white h-full min-h-[200px]" disabled={!isAdmin} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pt-4 mt-4 border-t border-gray-800">
+                    <Label htmlFor="deudor_comentarios">Comentarios</Label>
+                    <Textarea id="deudor_comentarios" value={formDataDeudor.comentarios} onChange={handleDeudorFormChange} placeholder="(aquí pueden comentar acerca de las morosidades y/o sustentos)" className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]" disabled={!isAdmin} />
                   </div>
                 </CardContent>
               </Card>
