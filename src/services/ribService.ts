@@ -5,12 +5,7 @@ export class RibService {
   static async getAll(): Promise<Rib[]> {
     const { data, error } = await supabase
       .from('rib')
-      .select(`
-        *,
-        profiles:user_id (
-          full_name
-        )
-      `)
+      .select(`*`)
       .order('created_at', { ascending: false });
 
     if (error) {

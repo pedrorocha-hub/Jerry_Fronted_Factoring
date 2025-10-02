@@ -12,7 +12,7 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib } from '@/types/rib';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
-import { showSuccess, showError } from '@/utils/toast';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,7 +22,7 @@ interface RibWithDetails extends Rib {
 }
 
 const RibPage = () => {
-  const { isAdmin } = useSession();
+  const { isAdmin, user } = useSession();
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -50,19 +50,33 @@ const RibPage = () => {
     try {
       const ribData = await RibService.getAll();
       if (ribData.length > 0) {
+        // Enrich with Ficha RUC data
         const rucs = [...new Set(ribData.map(r => r.ruc))];
         const { data: fichasData, error: fichasError } = await supabase
           .from('ficha_ruc')
           .select('ruc, nombre_empresa')
           .in('ruc', rucs);
-
         if (fichasError) throw fichasError;
-
         const rucToNameMap = new Map(fichasData.map(f => [f.ruc, f.nombre_empresa]));
+
+        // Enrich with Profile data
+        const userIds = [...new Set(ribData.map(r => r.user_id).filter((id): id is string => !!id))];
+        let userMap = new Map<string, { full_name: string | null }>();
+        if (userIds.length > 0) {
+            const { data: profilesData, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .in('id', userIds);
+            if (profilesError) throw profilesError;
+            profilesData.forEach(p => userMap.set(p.id, { full_name: p.full_name }));
+        }
+
         const enrichedRibs = ribData.map(rib => ({
           ...rib,
           nombre_empresa: rucToNameMap.get(rib.ruc) || 'Razón Social no encontrada',
+          profiles: rib.user_id ? userMap.get(rib.user_id) || null : null,
         }));
+        
         setAllRibs(enrichedRibs);
       } else {
         setAllRibs([]);
@@ -175,6 +189,40 @@ const RibPage = () => {
     setRucInput('');
     setError(null);
     resetForm();
+  };
+
+  const handleCreateTestData = async () => {
+    if (!user) {
+        showError("Debes estar autenticado para crear datos de prueba.");
+        return;
+    }
+
+    const toastId = showLoading("Creando datos de prueba...");
+    try {
+        let testRuc = '20601847341';
+        let ficha = await FichaRucService.getByRuc(testRuc);
+        if (!ficha) {
+            ficha = await FichaRucService.create({
+                ruc: testRuc,
+                nombre_empresa: 'EMPRESA DE PRUEBA RIB S.A.C.',
+                estado_contribuyente: 'Activo',
+            });
+        }
+
+        await RibService.create({
+            ruc: testRuc,
+            direccion: 'AV. DE PRUEBA 123, LIMA',
+            como_llego_lcp: 'Referido por colega',
+        });
+
+        dismissToast(toastId);
+        showSuccess("Datos de prueba para RIB creados exitosamente.");
+        await loadAllRibs();
+
+    } catch (err) {
+        dismissToast(toastId);
+        showError(`Error al crear datos de prueba: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    }
   };
 
   return (
@@ -303,12 +351,25 @@ const RibPage = () => {
           {!searchedFicha && (
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
+                  {isAdmin && allRibs.length === 0 && !loadingAllRibs && (
+                    <Button onClick={handleCreateTestData} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Crear Datos de Prueba
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingAllRibs ? (
                   <div className="flex justify-center items-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                  </div>
+                ) : allRibs.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <p>No hay análisis RIB creados.</p>
+                    <p className="text-sm mt-2">Utilice el buscador para crear uno nuevo o genere datos de prueba.</p>
                   </div>
                 ) : (
                   <RibTable ribs={allRibs} onEdit={handleEditFromList} onDelete={handleDelete} />
