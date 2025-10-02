@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus, ArrowLeft } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, Plus, ArrowLeft, User, Calendar, Clock } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,7 @@ const RibPage = () => {
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [existingRibs, setExistingRibs] = useState<Rib[]>([]);
   const [selectedRib, setSelectedRib] = useState<Rib | null>(null);
+  const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
   const [formData, setFormData] = useState({
     direccion: '',
     como_llego_lcp: '',
@@ -54,7 +55,6 @@ const RibPage = () => {
     try {
       const ribData = await RibService.getAll();
       if (ribData.length > 0) {
-        // Enrich with Ficha RUC data
         const rucs = [...new Set(ribData.map(r => r.ruc))];
         const { data: fichasData, error: fichasError } = await supabase
           .from('ficha_ruc')
@@ -63,7 +63,6 @@ const RibPage = () => {
         if (fichasError) throw fichasError;
         const rucToNameMap = new Map(fichasData.map(f => [f.ruc, f.nombre_empresa]));
 
-        // Enrich with Profile data
         const userIds = [...new Set(ribData.map(r => r.user_id).filter((id): id is string => !!id))];
         let userMap = new Map<string, { full_name: string | null }>();
         if (userIds.length > 0) {
@@ -96,6 +95,7 @@ const RibPage = () => {
   const resetForm = () => {
     setFormData({ direccion: '', como_llego_lcp: '', telefono: '', grupo_economico: '', visita: '' });
     setSelectedRib(null);
+    setCreatorDetails(null);
   };
 
   const handleSearch = async (rucToSearch: string = rucInput) => {
@@ -116,7 +116,7 @@ const RibPage = () => {
         const ribData = await RibService.getByRuc(rucToSearch);
         setExistingRibs(ribData);
         if (ribData.length > 0) {
-          handleSelectRib(ribData[0]);
+          await handleSelectRib(ribData[0]);
         }
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un análisis RIB.');
@@ -148,6 +148,10 @@ const RibPage = () => {
       }
       const ribData = await RibService.getByRuc(searchedFicha.ruc);
       setExistingRibs(ribData);
+      if (selectedRib) {
+        const updatedSelected = ribData.find(r => r.id === selectedRib.id);
+        if (updatedSelected) setSelectedRib(updatedSelected);
+      }
       await loadAllRibs();
     } catch (err) {
       showError('Error al guardar el análisis RIB.');
@@ -156,7 +160,7 @@ const RibPage = () => {
     }
   };
 
-  const handleSelectRib = (rib: Rib) => {
+  const handleSelectRib = async (rib: Rib) => {
     setSelectedRib(rib);
     setFormData({
       direccion: rib.direccion || '',
@@ -165,6 +169,23 @@ const RibPage = () => {
       grupo_economico: rib.grupo_economico || '',
       visita: rib.visita || '',
     });
+
+    setCreatorDetails(null);
+    if (rib.user_id) {
+      try {
+        const { data, error } = await supabase.rpc('get_user_details', { user_id_input: rib.user_id });
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setCreatorDetails({ fullName: data[0].full_name, email: data[0].email });
+        } else {
+          setCreatorDetails({ fullName: 'Usuario no encontrado', email: '' });
+        }
+      } catch (err) {
+        console.error("Error fetching creator details:", err);
+        showError("No se pudieron cargar los detalles del creador.");
+        setCreatorDetails({ fullName: 'Error al cargar', email: '' });
+      }
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -316,6 +337,45 @@ const RibPage = () => {
                 </div>
 
                 <div className="space-y-6">
+                  {selectedRib && (
+                    <Card className="bg-[#121212] border border-gray-800">
+                      <CardHeader>
+                        <CardTitle className="text-white">Detalles del Análisis</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm text-gray-300">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-2 text-gray-400" />
+                          <div>
+                            <strong className="text-gray-400">Creado por:</strong>
+                            {selectedRib.user_id ? (
+                              creatorDetails ? (
+                                <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                              ) : (
+                                <span> Cargando...</span>
+                              )
+                            ) : (
+                              <span> Desconocido</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                          <div>
+                            <strong className="text-gray-400">Fecha de creación:</strong>{' '}
+                            {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                          </div>
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                          <div>
+                            <strong className="text-gray-400">Última modificación:</strong>{' '}
+                            {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card className="bg-[#121212] border border-gray-800">
                     <CardHeader><CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle></CardHeader>
                     <CardContent>
@@ -327,7 +387,7 @@ const RibPage = () => {
                               <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
                                 <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-right">
-                                  <Button variant="ghost" size="icon" onClick={() => handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" onClick={async () => await handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
                                   {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
                                 </TableCell>
                               </TableRow>
