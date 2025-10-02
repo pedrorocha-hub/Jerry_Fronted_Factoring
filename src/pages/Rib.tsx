@@ -334,7 +334,6 @@ const RibPage = () => {
                             ))}
                           </TableBody>
                         </Table>
-                      </Table>
                       ) : (
                         <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
                       )}
