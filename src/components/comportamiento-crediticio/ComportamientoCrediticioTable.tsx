@@ -1,7 +1,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Calendar } from 'lucide-react';
 import { CrediticioStatus, ComportamientoCrediticio } from '@/types/comportamientoCrediticio';
 import { useSession } from '@/contexts/SessionContext';
 
@@ -35,7 +35,6 @@ const ComportamientoCrediticioTable: React.FC<ComportamientoCrediticioTableProps
           <TableRow className="border-gray-800 hover:bg-gray-900/50">
             <TableHead className="text-gray-300">Empresa</TableHead>
             <TableHead className="text-gray-300">Creador</TableHead>
-            <TableHead className="text-gray-300">Fecha Creación</TableHead>
             <TableHead className="text-gray-300">Estado</TableHead>
             <TableHead className="text-right text-gray-300">Acciones</TableHead>
           </TableRow>
@@ -47,8 +46,13 @@ const ComportamientoCrediticioTable: React.FC<ComportamientoCrediticioTableProps
                 <div className="font-medium text-white">{report.nombre_empresa}</div>
                 <div className="text-sm text-gray-400 font-mono">{report.ruc}</div>
               </TableCell>
-              <TableCell className="text-gray-300">{report.creator_name}</TableCell>
-              <TableCell className="text-gray-300">{new Date(report.created_at).toLocaleDateString()}</TableCell>
+              <TableCell>
+                <div className="text-sm text-gray-300">{report.creator_name}</div>
+                <div className="flex items-center text-xs text-gray-500 mt-1">
+                  <Calendar className="h-3 w-3 mr-1.5" />
+                  {new Date(report.created_at).toLocaleDateString('es-ES')}
+                </div>
+              </TableCell>
               <TableCell>
                 <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(report.status)}`}>
                   {report.status || 'Borrador'}
