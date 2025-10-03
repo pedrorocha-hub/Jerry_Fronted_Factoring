@@ -57,6 +57,12 @@ const DOCUMENT_TYPES: { value: DocumentoTipo; label: string; icon: string; descr
     icon: '📊',
     description: 'Estados financieros y reportes tributarios'
   },
+  { 
+    value: 'sentinel', 
+    label: 'Sentinel', 
+    icon: '🛡️',
+    description: 'Reporte de crédito de Sentinel'
+  },
 ];
 
 const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplete }) => {
@@ -99,6 +105,9 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
       } else if (fileName.includes('tributario') || fileName.includes('reporte') || fileName.includes('financiero') || fileName.includes('balance') || fileName.includes('estado')) {
         setDocumentType('reporte_tributario');
         console.log('Auto-selected: reporte_tributario');
+      } else if (fileName.includes('sentinel')) {
+        setDocumentType('sentinel');
+        console.log('Auto-selected: sentinel');
       }
     }
   };
