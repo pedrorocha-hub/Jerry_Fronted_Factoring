@@ -36,23 +36,12 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error fetching profile:', error);
-        return {
-          id: userId,
-          role: 'COMERCIAL',
-          updated_at: new Date().toISOString(),
-          full_name: null
-        };
+        return null;
       }
-
       return profileData;
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      return {
-        id: userId,
-        role: 'COMERCIAL',
-        updated_at: new Date().toISOString(),
-        full_name: null
-      };
+      return null;
     }
   };
 
@@ -65,106 +54,41 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    let mounted = true;
-    let initializationTimeout: NodeJS.Timeout;
+    const initializeSession = async () => {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
-    const initializeAuth = async () => {
-      try {
-        initializationTimeout = setTimeout(() => {
-          if (mounted && loading) {
-            setLoading(false);
-          }
-        }, 5000);
-
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-
-        if (error) {
-          console.error('SessionContext: Error getting session:', error);
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-          return;
-        }
-        
+      if (error) {
+        console.error('Error getting session:', error);
+      } else if (currentSession?.user) {
+        const profileData = await fetchProfile(currentSession.user.id);
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-
-        if (currentSession?.user) {
-          fetchProfile(currentSession.user.id).then(profileData => {
-            if (mounted) {
-              setProfile(profileData);
-            }
-          }).catch(error => {
-            console.error('SessionContext: Background profile load failed:', error);
-            if (mounted) {
-              setProfile({
-                id: currentSession.user.id,
-                role: 'COMERCIAL',
-                updated_at: new Date().toISOString(),
-                full_name: null
-              });
-            }
-          });
-        } else {
-          setProfile(null);
-        }
-
-        setLoading(false);
-
-      } catch (error) {
-        console.error('SessionContext: Fatal error in initialization:', error);
-        if (mounted) {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        }
-      } finally {
-        if (initializationTimeout) {
-          clearTimeout(initializationTimeout);
-        }
+        setUser(currentSession.user);
+        setProfile(profileData);
       }
+      
+      setLoading(false);
     };
 
-    initializeAuth();
+    initializeSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        if (!mounted) return;
-
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
+      async (_event, newSession) => {
+        setLoading(true);
         if (newSession?.user) {
-          fetchProfile(newSession.user.id).then(profileData => {
-            if (mounted) {
-              setProfile(profileData);
-            }
-          }).catch(error => {
-            console.error('SessionContext: Profile load failed on auth change:', error);
-            if (mounted) {
-              setProfile({
-                id: newSession.user.id,
-                role: 'COMERCIAL',
-                updated_at: new Date().toISOString(),
-                full_name: null
-              });
-            }
-          });
+          const profileData = await fetchProfile(newSession.user.id);
+          setSession(newSession);
+          setUser(newSession.user);
+          setProfile(profileData);
         } else {
+          setSession(null);
+          setUser(null);
           setProfile(null);
         }
+        setLoading(false);
       }
     );
 
     return () => {
-      mounted = false;
-      if (initializationTimeout) {
-        clearTimeout(initializationTimeout);
-      }
       subscription.unsubscribe();
     };
   }, []);
