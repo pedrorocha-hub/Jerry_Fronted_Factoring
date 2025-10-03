@@ -24,7 +24,6 @@ const getStatusColor = (status: string | null | undefined) => {
     case 'En revisión':
       return 'bg-yellow-500/20 text-yellow-400';
     case 'Borrador':
-    case 'draft':
     default:
       return 'bg-gray-500/20 text-gray-400';
   }
