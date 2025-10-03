@@ -31,6 +31,8 @@ interface CreatorInfo {
   email: string | null;
 }
 
+type SolicitudStatus = 'Borrador' | 'Completado' | 'En revisión';
+
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 const SolicitudOperacionCreateEditPage = () => {
@@ -47,7 +49,7 @@ const SolicitudOperacionCreateEditPage = () => {
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudOperacion | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   const [solicitudFormData, setSolicitudFormData] = useState({
-    status: 'draft' as 'draft' | 'completed' | 'in_review',
+    status: 'Borrador' as SolicitudStatus,
     direccion: '',
     visita: '',
     contacto: '',
@@ -124,7 +126,7 @@ const SolicitudOperacionCreateEditPage = () => {
     setEditingSolicitud(null);
     setCreatorInfo(null);
     setSolicitudFormData({
-      status: 'draft',
+      status: 'Borrador',
       direccion: '',
       visita: '',
       contacto: '',
@@ -234,7 +236,7 @@ const SolicitudOperacionCreateEditPage = () => {
     setEditingSolicitud(solicitud);
     setRucInput(solicitud.ruc);
     setSolicitudFormData({
-      status: solicitud.status,
+      status: (solicitud.status as SolicitudStatus) || 'Borrador',
       direccion: solicitud.direccion || '',
       visita: solicitud.visita || '',
       contacto: solicitud.contacto || '',
@@ -524,14 +526,14 @@ const SolicitudOperacionCreateEditPage = () => {
                   <CardContent>
                     <div>
                       <Label htmlFor="status" className="text-gray-400">Estado de la Solicitud</Label>
-                      <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as 'draft' | 'completed' | 'in_review' }))} disabled={!isAdmin}>
+                      <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}>
                         <SelectTrigger className="bg-gray-900/50 border-gray-700">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                          <SelectItem value="draft" className="hover:bg-gray-800">Borrador</SelectItem>
-                          <SelectItem value="in_review" className="hover:bg-gray-800">En Revisión</SelectItem>
-                          <SelectItem value="completed" className="hover:bg-gray-800">Completado</SelectItem>
+                          <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
+                          <SelectItem value="En revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
+                          <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
