@@ -19,8 +19,8 @@ const FacturaNegociarPage = lazy(() => import('./pages/FacturaNegociar'));
 const ReporteTributarioPage = lazy(() => import('./pages/ReporteTributario'));
 const SolicitudOperacionListPage = lazy(() => import('./pages/SolicitudOperacionList'));
 const SolicitudOperacionCreateEditPage = lazy(() => import('./pages/SolicitudOperacionCreateEdit'));
-const RibPage = lazy(() => import('./pages/RibPage'));
-const ComportamientoCrediticioPage = lazy(() => import('./pages/ComportamientoCrediticioPage'));
+const RibPage = lazy(() => import('./pages/Rib'));
+const ComportamientoCrediticioPage = lazy(() => import('./pages/ComportamientoCrediticio'));
 const SentinelPage = lazy(() => import('./pages/SentinelPage'));
 
 const LoadingFallback = () => (
