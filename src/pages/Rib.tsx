@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
-import { Rib, RibStatus } from '@/types/rib';
+import { Rib, RibStatus, RibWithDetails } from '@/types/rib';
 import { Accionista } from '@/types/accionista';
 import { Gerente } from '@/types/gerencia';
 import { FichaRucService } from '@/services/fichaRucService';
@@ -22,11 +22,6 @@ import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
 import { supabase } from '@/integrations/supabase/client';
 import { DatePicker } from '@/components/ui/date-picker';
-
-interface RibWithDetails extends Rib {
-  nombre_empresa?: string;
-  profiles?: { full_name: string | null } | null;
-}
 
 const getStatusColor = (status: RibStatus | null | undefined) => {
   switch (status) {
