@@ -36,12 +36,23 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error fetching profile:', error);
-        return null;
+        return {
+          id: userId,
+          role: 'COMERCIAL',
+          updated_at: new Date().toISOString(),
+          full_name: null
+        };
       }
+
       return profileData;
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      return null;
+      return {
+        id: userId,
+        role: 'COMERCIAL',
+        updated_at: new Date().toISOString(),
+        full_name: null
+      };
     }
   };
 
@@ -54,41 +65,106 @@ export const SessionContextProvider: React.FC<{ children: ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    const initializeSession = async () => {
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+    let mounted = true;
+    let initializationTimeout: NodeJS.Timeout;
 
-      if (error) {
-        console.error('Error getting session:', error);
-      } else if (currentSession?.user) {
-        const profileData = await fetchProfile(currentSession.user.id);
-        setSession(currentSession);
-        setUser(currentSession.user);
-        setProfile(profileData);
-      }
-      
-      setLoading(false);
-    };
+    const initializeAuth = async () => {
+      try {
+        initializationTimeout = setTimeout(() => {
+          if (mounted && loading) {
+            setLoading(false);
+          }
+        }, 5000);
 
-    initializeSession();
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        setLoading(true);
-        if (newSession?.user) {
-          const profileData = await fetchProfile(newSession.user.id);
-          setSession(newSession);
-          setUser(newSession.user);
-          setProfile(profileData);
-        } else {
+        if (error) {
+          console.error('SessionContext: Error getting session:', error);
           setSession(null);
           setUser(null);
           setProfile(null);
+          setLoading(false);
+          return;
         }
+        
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+
+        if (currentSession?.user) {
+          fetchProfile(currentSession.user.id).then(profileData => {
+            if (mounted) {
+              setProfile(profileData);
+            }
+          }).catch(error => {
+            console.error('SessionContext: Background profile load failed:', error);
+            if (mounted) {
+              setProfile({
+                id: currentSession.user.id,
+                role: 'COMERCIAL',
+                updated_at: new Date().toISOString(),
+                full_name: null
+              });
+            }
+          });
+        } else {
+          setProfile(null);
+        }
+
         setLoading(false);
+
+      } catch (error) {
+        console.error('SessionContext: Fatal error in initialization:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
+      } finally {
+        if (initializationTimeout) {
+          clearTimeout(initializationTimeout);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        if (!mounted) return;
+
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+
+        if (newSession?.user) {
+          fetchProfile(newSession.user.id).then(profileData => {
+            if (mounted) {
+              setProfile(profileData);
+            }
+          }).catch(error => {
+            console.error('SessionContext: Profile load failed on auth change:', error);
+            if (mounted) {
+              setProfile({
+                id: newSession.user.id,
+                role: 'COMERCIAL',
+                updated_at: new Date().toISOString(),
+                full_name: null
+              });
+            }
+          });
+        } else {
+          setProfile(null);
+        }
       }
     );
 
     return () => {
+      mounted = false;
+      if (initializationTimeout) {
+        clearTimeout(initializationTimeout);
+      }
       subscription.unsubscribe();
     };
   }, []);
