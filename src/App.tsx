@@ -1,67 +1,62 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Toaster } from 'sonner';
+import { lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { SessionContextProvider } from '@/contexts/SessionContext';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import PrivateRoute from '@/components/auth/PrivateRoute';
+import AuthRedirect from '@/components/auth/AuthRedirect';
+import { Toaster } from "@/components/ui/sonner"
 
-// Pages
-import Dashboard from '@/pages/Dashboard';
-import Upload from '@/pages/Upload';
-import FichaRuc from '@/pages/FichaRuc';
-import RepresentanteLegal from '@/pages/RepresentanteLegal';
-import CuentaBancaria from '@/pages/CuentaBancaria';
-import VigenciaPoderes from '@/pages/VigenciaPoderes';
-import FacturaNegociar from '@/pages/FacturaNegociar';
-import ReporteTributario from '@/pages/ReporteTributario';
-import SolicitudOperacion from '@/pages/SolicitudOperacion';
-import SolicitudOperacionList from '@/pages/SolicitudOperacionList';
-import SolicitudOperacionCreateEdit from '@/pages/SolicitudOperacionCreateEdit';
-import RibPage from '@/pages/Rib';
-import Login from '@/pages/Login';
-import UsersPage from '@/pages/Admin/Users';
-import ComportamientoCrediticioPage from '@/pages/ComportamientoCrediticio';
+// Importación normal para componentes de carga rápida
+import LoginPage from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import UploadPage from './pages/Upload';
+
+// Lazy loading para las páginas de CRUD
+const FichaRucPage = lazy(() => import('./pages/FichaRuc'));
+const RepresentanteLegalPage = lazy(() => import('./pages/RepresentanteLegal'));
+const CuentaBancariaPage = lazy(() => import('./pages/CuentaBancaria'));
+const VigenciaPoderesPage = lazy(() => import('./pages/VigenciaPoderes'));
+const FacturaNegociarPage = lazy(() => import('./pages/FacturaNegociar'));
+const ReporteTributarioPage = lazy(() => import('./pages/ReporteTributario'));
+const SolicitudOperacionListPage = lazy(() => import('./pages/SolicitudOperacionList'));
+const SolicitudOperacionCreateEditPage = lazy(() => import('./pages/SolicitudOperacionCreateEdit'));
+const RibPage = lazy(() => import('./pages/RibPage'));
+const ComportamientoCrediticioPage = lazy(() => import('./pages/ComportamientoCrediticioPage'));
+const SentinelPage = lazy(() => import('./pages/SentinelPage'));
+
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center h-screen bg-black">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80]"></div>
+  </div>
+);
 
 function App() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <SessionContextProvider>
       <Router>
-        <SessionContextProvider>
+        <Suspense fallback={<LoadingFallback />}>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            <Route path="/login" element={<AuthRedirect><LoginPage /></AuthRedirect>} />
             
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/ficha-ruc" element={<FichaRuc />} />
-              <Route path="/representante-legal" element={<RepresentanteLegal />} />
-              <Route path="/cuenta-bancaria" element={<CuentaBancaria />} />
-              <Route path="/vigencia-poderes" element={<VigenciaPoderes />} />
-              <Route path="/factura-negociar" element={<FacturaNegociar />} />
-              <Route path="/reporte-tributario" element={<ReporteTributario />} />
-              <Route path="/solicitud-operacion" element={<SolicitudOperacion />} />
-              <Route path="/solicitudes-operacion" element={<SolicitudOperacionList />} />
-              <Route path="/solicitudes-operacion/new" element={<SolicitudOperacionCreateEdit />} />
-              <Route path="/solicitudes-operacion/edit/:id" element={<SolicitudOperacionCreateEdit />} />
-              <Route path="/rib" element={<RibPage />} />
-              <Route path="/admin/users" element={<UsersPage />} />
-              <Route path="/comportamiento-crediticio" element={<ComportamientoCrediticioPage />} />
-            </Route>
+            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+            <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
+            <Route path="/ficha-ruc" element={<PrivateRoute><FichaRucPage /></PrivateRoute>} />
+            <Route path="/representante-legal" element={<PrivateRoute><RepresentanteLegalPage /></PrivateRoute>} />
+            <Route path="/cuenta-bancaria" element={<PrivateRoute><CuentaBancariaPage /></PrivateRoute>} />
+            <Route path="/vigencia-poderes" element={<PrivateRoute><VigenciaPoderesPage /></PrivateRoute>} />
+            <Route path="/factura-negociar" element={<PrivateRoute><FacturaNegociarPage /></PrivateRoute>} />
+            <Route path="/reporte-tributario" element={<PrivateRoute><ReporteTributarioPage /></PrivateRoute>} />
+            <Route path="/solicitudes-operacion" element={<PrivateRoute><SolicitudOperacionListPage /></PrivateRoute>} />
+            <Route path="/solicitudes-operacion/new" element={<PrivateRoute><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
+            <Route path="/solicitudes-operacion/edit/:id" element={<PrivateRoute><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
+            <Route path="/rib" element={<PrivateRoute><RibPage /></PrivateRoute>} />
+            <Route path="/comportamiento-crediticio" element={<PrivateRoute><ComportamientoCrediticioPage /></PrivateRoute>} />
+            <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
+
           </Routes>
-        </SessionContextProvider>
-        
-        <Toaster
-          position="top-right"
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: '#121212',
-              color: '#ffffff',
-              border: '1px solid #374151',
-            },
-          }}
-        />
+        </Suspense>
       </Router>
-    </div>
+      <Toaster richColors theme="dark" />
+    </SessionContextProvider>
   );
 }
 
