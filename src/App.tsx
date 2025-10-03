@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { SessionContextProvider } from '@/contexts/SessionContext';
-import PrivateRoute from '@/components/auth/PrivateRoute';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AuthRedirect from '@/components/auth/AuthRedirect';
 import { Toaster } from "@/components/ui/sonner"
 
@@ -37,20 +37,20 @@ function App() {
           <Routes>
             <Route path="/login" element={<AuthRedirect><LoginPage /></AuthRedirect>} />
             
-            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
-            <Route path="/ficha-ruc" element={<PrivateRoute><FichaRucPage /></PrivateRoute>} />
-            <Route path="/representante-legal" element={<PrivateRoute><RepresentanteLegalPage /></PrivateRoute>} />
-            <Route path="/cuenta-bancaria" element={<PrivateRoute><CuentaBancariaPage /></PrivateRoute>} />
-            <Route path="/vigencia-poderes" element={<PrivateRoute><VigenciaPoderesPage /></PrivateRoute>} />
-            <Route path="/factura-negociar" element={<PrivateRoute><FacturaNegociarPage /></PrivateRoute>} />
-            <Route path="/reporte-tributario" element={<PrivateRoute><ReporteTributarioPage /></PrivateRoute>} />
-            <Route path="/solicitudes-operacion" element={<PrivateRoute><SolicitudOperacionListPage /></PrivateRoute>} />
-            <Route path="/solicitudes-operacion/new" element={<PrivateRoute><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
-            <Route path="/solicitudes-operacion/edit/:id" element={<PrivateRoute><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
-            <Route path="/rib" element={<PrivateRoute><RibPage /></PrivateRoute>} />
-            <Route path="/comportamiento-crediticio" element={<PrivateRoute><ComportamientoCrediticioPage /></PrivateRoute>} />
-            <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+            <Route path="/ficha-ruc" element={<ProtectedRoute><FichaRucPage /></ProtectedRoute>} />
+            <Route path="/representante-legal" element={<ProtectedRoute><RepresentanteLegalPage /></ProtectedRoute>} />
+            <Route path="/cuenta-bancaria" element={<ProtectedRoute><CuentaBancariaPage /></ProtectedRoute>} />
+            <Route path="/vigencia-poderes" element={<ProtectedRoute><VigenciaPoderesPage /></ProtectedRoute>} />
+            <Route path="/factura-negociar" element={<ProtectedRoute><FacturaNegociarPage /></ProtectedRoute>} />
+            <Route path="/reporte-tributario" element={<ProtectedRoute><ReporteTributarioPage /></ProtectedRoute>} />
+            <Route path="/solicitudes-operacion" element={<ProtectedRoute><SolicitudOperacionListPage /></ProtectedRoute>} />
+            <Route path="/solicitudes-operacion/new" element={<ProtectedRoute><SolicitudOperacionCreateEditPage /></ProtectedRoute>} />
+            <Route path="/solicitudes-operacion/edit/:id" element={<ProtectedRoute><SolicitudOperacionCreateEditPage /></ProtectedRoute>} />
+            <Route path="/rib" element={<ProtectedRoute><RibPage /></ProtectedRoute>} />
+            <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticioPage /></ProtectedRoute>} />
+            <Route path="/sentinel" element={<ProtectedRoute><SentinelPage /></ProtectedRoute>} />
 
           </Routes>
         </Suspense>
