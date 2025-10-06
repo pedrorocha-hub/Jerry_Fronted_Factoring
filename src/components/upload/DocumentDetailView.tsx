@@ -32,6 +32,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   'vigencia_poderes': { label: 'Vigencia de Poderes', icon: '⚖️' },
   'factura_negociar': { label: 'Factura a Negociar', icon: '💰' },
   'reporte_tributario': { label: 'Reporte Tributario', icon: '📊' },
+  'sentinel': { label: 'Sentinel', icon: '🛡️' },
 };
 
 const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({

@@ -39,7 +39,8 @@ export class DocumentoService {
       'cuenta_bancaria',
       'vigencia_poderes',
       'factura_negociar',
-      'reporte_tributario'
+      'reporte_tributario',
+      'sentinel'
     ];
   }
 

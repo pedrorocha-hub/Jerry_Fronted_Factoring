@@ -16,7 +16,8 @@ export type DocumentoTipo =
   | 'cuenta_bancaria'
   | 'vigencia_poderes'
   | 'factura_negociar'
-  | 'reporte_tributario';
+  | 'reporte_tributario'
+  | 'sentinel';
 
 export type DocumentoEstado = 'pending' | 'processing' | 'completed' | 'error';
 
