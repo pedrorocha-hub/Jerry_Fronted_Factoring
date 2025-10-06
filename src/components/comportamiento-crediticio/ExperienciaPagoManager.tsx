@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Plus, Edit, Trash2, Loader2, Save, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SolicitudOperacionExpInt, SolicitudOperacionExpIntInsert, SolicitudOperacionExpIntUpdate } from '@/types/solicitudOperacionExpInt';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 interface ExperienciaPagoManagerProps {
   comportamientoCrediticioId: string | undefined;
@@ -27,6 +27,7 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [currentExp, setCurrentExp] = useState<Partial<SolicitudOperacionExpInt> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [tipoCambio, setTipoCambio] = useState(3.75);
 
   // State for date pickers
   const [fechaOtorgamiento, setFechaOtorgamiento] = useState<Date | undefined>();
@@ -127,6 +128,30 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
     }
   };
 
+  const calcularDiasAtraso = (fechaVencimientoStr: string | null, fechaPagoStr: string | null): number | string => {
+    if (!fechaVencimientoStr) return '-';
+    const fechaVencimiento = new Date(`${fechaVencimientoStr}T00:00:00`);
+    if (fechaPagoStr) {
+      const fechaPago = new Date(`${fechaPagoStr}T00:00:00`);
+      const dias = differenceInDays(fechaPago, fechaVencimiento);
+      return dias > 0 ? dias : 0;
+    } else {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      if (hoy > fechaVencimiento) {
+        return differenceInDays(hoy, fechaVencimiento);
+      }
+      return 0;
+    }
+  };
+
+  const totales = useMemo(() => {
+    const totalSoles = experiencias.reduce((acc, exp) => (exp.moneda === 'Soles' && exp.monto ? acc + exp.monto : acc), 0);
+    const totalDolares = experiencias.reduce((acc, exp) => (exp.moneda === 'Dólares' && exp.monto ? acc + exp.monto : acc), 0);
+    const totalGeneralSoles = totalSoles + (totalDolares * tipoCambio);
+    return { totalSoles, totalDolares, totalGeneralSoles };
+  }, [experiencias, tipoCambio]);
+
   return (
     <Card className="bg-[#121212] border border-gray-800">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -145,6 +170,12 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
             <AlertDescription>Guarde el reporte principal para poder agregar la experiencia de pago.</AlertDescription>
           </Alert>
         )}
+        <div className="flex justify-end mb-4">
+          <div className="w-40">
+            <Label htmlFor="tipo_cambio" className="text-gray-300 text-xs">Tipo de Cambio (USD a PEN)</Label>
+            <Input id="tipo_cambio" name="tipo_cambio" type="number" step="0.01" value={tipoCambio} onChange={(e) => setTipoCambio(parseFloat(e.target.value) || 0)} className="bg-gray-900/50 border-gray-700 mt-1 h-8" />
+          </div>
+        </div>
         {loading ? (
           <div className="flex justify-center items-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
         ) : (
@@ -156,36 +187,55 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
                 <TableHead className="text-gray-300">F. Vencimiento</TableHead>
                 <TableHead className="text-gray-300">Moneda</TableHead>
                 <TableHead className="text-gray-300">Monto</TableHead>
+                <TableHead className="text-gray-300">Total (Soles)</TableHead>
                 <TableHead className="text-gray-300">F. Pago</TableHead>
+                <TableHead className="text-gray-300">Días Atraso</TableHead>
                 <TableHead className="text-right text-gray-300">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {experiencias.length > 0 ? (
-                experiencias.map((exp) => (
-                  <TableRow key={exp.id} className="border-gray-800 hover:bg-gray-800/20">
-                    <TableCell>{exp.deudor}</TableCell>
-                    <TableCell>{exp.fecha_otorgamiento ? format(new Date(`${exp.fecha_otorgamiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
-                    <TableCell>{exp.fecha_vencimiento ? format(new Date(`${exp.fecha_vencimiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
-                    <TableCell>{exp.moneda}</TableCell>
-                    <TableCell>{exp.monto ? exp.monto.toLocaleString('es-PE', { style: 'currency', currency: exp.moneda === 'Soles' ? 'PEN' : 'USD' }) : '-'}</TableCell>
-                    <TableCell>{exp.fecha_pago ? format(new Date(`${exp.fecha_pago}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
-                    <TableCell className="text-right">
-                      {isAdmin && (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(exp)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(exp.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
-                        </>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
+                experiencias.map((exp) => {
+                  const montoEnSoles = exp.moneda === 'Dólares' && exp.monto ? exp.monto * tipoCambio : exp.monto;
+                  const diasAtraso = calcularDiasAtraso(exp.fecha_vencimiento, exp.fecha_pago);
+                  return (
+                    <TableRow key={exp.id} className="border-gray-800 hover:bg-gray-800/20">
+                      <TableCell>{exp.deudor}</TableCell>
+                      <TableCell>{exp.fecha_otorgamiento ? format(new Date(`${exp.fecha_otorgamiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{exp.fecha_vencimiento ? format(new Date(`${exp.fecha_vencimiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{exp.moneda}</TableCell>
+                      <TableCell>{exp.monto ? exp.monto.toLocaleString('es-PE', { style: 'currency', currency: exp.moneda === 'Soles' ? 'PEN' : 'USD' }) : '-'}</TableCell>
+                      <TableCell>{montoEnSoles ? montoEnSoles.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' }) : '-'}</TableCell>
+                      <TableCell>{exp.fecha_pago ? format(new Date(`${exp.fecha_pago}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                      <TableCell>{diasAtraso}</TableCell>
+                      <TableCell className="text-right">
+                        {isAdmin && (
+                          <>
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(exp)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(exp.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                          </>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               ) : (
                 <TableRow className="border-gray-800 hover:bg-transparent">
-                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">No hay registros de experiencia de pago.</TableCell>
+                  <TableCell colSpan={9} className="text-center text-gray-500 py-8">No hay registros de experiencia de pago.</TableCell>
                 </TableRow>
               )}
             </TableBody>
+            <TableFooter>
+              <TableRow className="border-gray-800 font-bold text-white hover:bg-gray-800/20">
+                <TableCell colSpan={4} className="text-right">Totales:</TableCell>
+                <TableCell>
+                  <div>{totales.totalSoles.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}</div>
+                  <div>{totales.totalDolares.toLocaleString('es-PE', { style: 'currency', currency: 'USD' })}</div>
+                </TableCell>
+                <TableCell>{totales.totalGeneralSoles.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}</TableCell>
+                <TableCell colSpan={3}></TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
         )}
       </CardContent>
