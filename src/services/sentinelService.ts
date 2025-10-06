@@ -8,18 +8,39 @@ export interface Sentinel {
   user_id?: string;
   created_at: string;
   updated_at: string;
+  score: string | null;
+  comportamiento_calificacion: string | null;
+  deuda_directa: number | null;
+  deuda_indirecta: number | null;
+  impagos: number | null;
+  deudas_sunat: number | null;
+  protestos: number | null;
 }
 
 export interface CreateSentinelData {
   ruc: string;
   file_url?: string;
   status?: string;
+  score?: string | null;
+  comportamiento_calificacion?: string | null;
+  deuda_directa?: number | null;
+  deuda_indirecta?: number | null;
+  impagos?: number | null;
+  deudas_sunat?: number | null;
+  protestos?: number | null;
 }
 
 export interface UpdateSentinelData {
   ruc?: string;
   file_url?: string;
   status?: string;
+  score?: string | null;
+  comportamiento_calificacion?: string | null;
+  deuda_directa?: number | null;
+  deuda_indirecta?: number | null;
+  impagos?: number | null;
+  deudas_sunat?: number | null;
+  protestos?: number | null;
 }
 
 export class SentinelService {

@@ -92,6 +92,16 @@ const SentinelPage = () => {
     }
   };
 
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return '-';
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency: 'PEN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const filteredSentinels = sentinels.filter(sentinel => {
     const matchesSearch = sentinel.ruc.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || sentinel.status === statusFilter;
@@ -258,8 +268,9 @@ const SentinelPage = () => {
                   <TableHeader>
                     <TableRow className="border-gray-800">
                       <TableHead className="text-gray-400">RUC</TableHead>
+                      <TableHead className="text-gray-400">Score</TableHead>
+                      <TableHead className="text-gray-400">Deuda Directa</TableHead>
                       <TableHead className="text-gray-400">Estado</TableHead>
-                      <TableHead className="text-gray-400">Archivo</TableHead>
                       <TableHead className="text-gray-400">Fecha Creación</TableHead>
                       <TableHead className="text-gray-400">Acciones</TableHead>
                     </TableRow>
@@ -273,18 +284,10 @@ const SentinelPage = () => {
                             {sentinel.ruc}
                           </div>
                         </TableCell>
+                        <TableCell className="text-white font-mono">{sentinel.score || '-'}</TableCell>
+                        <TableCell className="text-white font-mono">{formatCurrency(sentinel.deuda_directa)}</TableCell>
                         <TableCell>
                           {getStatusBadge(sentinel.status)}
-                        </TableCell>
-                        <TableCell className="text-gray-300">
-                          {sentinel.file_url ? (
-                            <div className="flex items-center">
-                              <FileText className="h-4 w-4 mr-2 text-[#00FF80]" />
-                              <span className="text-sm">Archivo disponible</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-500 text-sm">Sin archivo</span>
-                          )}
                         </TableCell>
                         <TableCell className="text-gray-300">
                           <div className="flex items-center">

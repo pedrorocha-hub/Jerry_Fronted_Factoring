@@ -12,7 +12,9 @@ import {
   ExternalLink,
   CheckCircle,
   AlertCircle,
-  Clock
+  Clock,
+  TrendingUp,
+  DollarSign
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,6 +77,16 @@ const SentinelDetailPage = () => {
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
+  };
+
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return 'S/ 0';
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency: 'PEN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
   if (loading) {
@@ -157,7 +169,7 @@ const SentinelDetailPage = () => {
 
           {/* Main Info */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
@@ -197,6 +209,49 @@ const SentinelDetailPage = () => {
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    Análisis Crediticio
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Score / Calificación</label>
+                      <div className="mt-1 text-lg font-mono text-white">{sentinel.score || 'N/A'}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Calificación del Comportamiento</label>
+                      <div className="mt-1 text-lg text-white">{sentinel.comportamiento_calificacion || 'N/A'}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-800">
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Deuda Directa</label>
+                      <div className="mt-1 text-lg font-mono text-white">{formatCurrency(sentinel.deuda_directa)}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Deuda Indirecta</label>
+                      <div className="mt-1 text-lg font-mono text-white">{formatCurrency(sentinel.deuda_indirecta)}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Impagos</label>
+                      <div className="mt-1 text-lg font-mono text-red-400">{formatCurrency(sentinel.impagos)}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Deudas SUNAT</label>
+                      <div className="mt-1 text-lg font-mono text-red-400">{formatCurrency(sentinel.deudas_sunat)}</div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Protestos</label>
+                      <div className="mt-1 text-lg font-mono text-red-400">{formatCurrency(sentinel.protestos)}</div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>

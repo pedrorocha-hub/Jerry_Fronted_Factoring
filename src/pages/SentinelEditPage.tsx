@@ -24,7 +24,14 @@ const SentinelEditPage = () => {
   const [formData, setFormData] = useState({
     ruc: '',
     file_url: '',
-    status: 'Borrador'
+    status: 'Borrador',
+    score: '',
+    comportamiento_calificacion: '',
+    deuda_directa: '',
+    deuda_indirecta: '',
+    impagos: '',
+    deudas_sunat: '',
+    protestos: ''
   });
 
   useEffect(() => {
@@ -43,7 +50,14 @@ const SentinelEditPage = () => {
         setFormData({
           ruc: data.ruc,
           file_url: data.file_url || '',
-          status: data.status
+          status: data.status,
+          score: data.score || '',
+          comportamiento_calificacion: data.comportamiento_calificacion || '',
+          deuda_directa: data.deuda_directa?.toString() || '',
+          deuda_indirecta: data.deuda_indirecta?.toString() || '',
+          impagos: data.impagos?.toString() || '',
+          deudas_sunat: data.deudas_sunat?.toString() || '',
+          protestos: data.protestos?.toString() || ''
         });
       }
     } catch (error) {
@@ -72,7 +86,15 @@ const SentinelEditPage = () => {
 
     try {
       setLoading(true);
-      await SentinelService.update(id, formData);
+      const dataToUpdate = {
+        ...formData,
+        deuda_directa: parseFloat(formData.deuda_directa) || null,
+        deuda_indirecta: parseFloat(formData.deuda_indirecta) || null,
+        impagos: parseFloat(formData.impagos) || null,
+        deudas_sunat: parseFloat(formData.deudas_sunat) || null,
+        protestos: parseFloat(formData.protestos) || null,
+      };
+      await SentinelService.update(id, dataToUpdate);
       toast.success('Documento Sentinel actualizado correctamente');
       navigate(`/sentinel/${id}`);
     } catch (error) {
@@ -130,7 +152,7 @@ const SentinelEditPage = () => {
           </div>
 
           {/* Form */}
-          <Card className="bg-[#121212] border border-gray-800 max-w-2xl">
+          <Card className="bg-[#121212] border border-gray-800 max-w-4xl">
             <CardHeader>
               <CardTitle className="text-white flex items-center">
                 <Shield className="h-5 w-5 mr-2 text-[#00FF80]" />
@@ -156,12 +178,44 @@ const SentinelEditPage = () => {
                     maxLength={11}
                     required
                   />
-                  <p className="text-xs text-gray-500">
-                    El RUC debe tener exactamente 11 dígitos
-                  </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-700">
+                    <div className="space-y-2">
+                        <Label htmlFor="score" className="text-gray-300">Score / Calificación</Label>
+                        <Input id="score" value={formData.score} onChange={(e) => handleInputChange('score', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="comportamiento_calificacion" className="text-gray-300">Calificación del Comportamiento</Label>
+                        <Input id="comportamiento_calificacion" value={formData.comportamiento_calificacion} onChange={(e) => handleInputChange('comportamiento_calificacion', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="deuda_directa" className="text-gray-300">Deuda Directa</Label>
+                        <Input id="deuda_directa" type="number" step="0.01" value={formData.deuda_directa} onChange={(e) => handleInputChange('deuda_directa', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="deuda_indirecta" className="text-gray-300">Deuda Indirecta</Label>
+                        <Input id="deuda_indirecta" type="number" step="0.01" value={formData.deuda_indirecta} onChange={(e) => handleInputChange('deuda_indirecta', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="impagos" className="text-gray-300">Impagos</Label>
+                        <Input id="impagos" type="number" step="0.01" value={formData.impagos} onChange={(e) => handleInputChange('impagos', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="deudas_sunat" className="text-gray-300">Deudas SUNAT</Label>
+                        <Input id="deudas_sunat" type="number" step="0.01" value={formData.deudas_sunat} onChange={(e) => handleInputChange('deudas_sunat', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="protestos" className="text-gray-300">Protestos</Label>
+                        <Input id="protestos" type="number" step="0.01" value={formData.protestos} onChange={(e) => handleInputChange('protestos', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
+                    </div>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t border-gray-700">
                   <Label htmlFor="file_url" className="text-gray-300">
                     URL del Archivo
                   </Label>
@@ -173,9 +227,6 @@ const SentinelEditPage = () => {
                     onChange={(e) => handleInputChange('file_url', e.target.value)}
                     className="bg-gray-900 border-gray-700 text-white"
                   />
-                  <p className="text-xs text-gray-500">
-                    URL opcional del archivo PDF asociado
-                  </p>
                 </div>
 
                 <div className="space-y-2">
