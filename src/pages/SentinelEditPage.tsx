@@ -23,8 +23,6 @@ const SentinelEditPage = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [formData, setFormData] = useState({
     ruc: '',
-    file_url: '',
-    status: 'Borrador',
     score: '',
     comportamiento_calificacion: '',
     deuda_directa: '',
@@ -49,8 +47,6 @@ const SentinelEditPage = () => {
       if (data) {
         setFormData({
           ruc: data.ruc,
-          file_url: data.file_url || '',
-          status: data.status,
           score: data.score || '',
           comportamiento_calificacion: data.comportamiento_calificacion || '',
           deuda_directa: data.deuda_directa?.toString() || '',
@@ -213,36 +209,6 @@ const SentinelEditPage = () => {
                         <Label htmlFor="protestos" className="text-gray-300">Protestos</Label>
                         <Input id="protestos" type="number" step="0.01" value={formData.protestos} onChange={(e) => handleInputChange('protestos', e.target.value)} className="bg-gray-900 border-gray-700 text-white" />
                     </div>
-                </div>
-
-                <div className="space-y-2 pt-4 border-t border-gray-700">
-                  <Label htmlFor="file_url" className="text-gray-300">
-                    URL del Archivo
-                  </Label>
-                  <Input
-                    id="file_url"
-                    type="url"
-                    placeholder="https://ejemplo.com/archivo.pdf"
-                    value={formData.file_url}
-                    onChange={(e) => handleInputChange('file_url', e.target.value)}
-                    className="bg-gray-900 border-gray-700 text-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="status" className="text-gray-300">
-                    Estado
-                  </Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                    <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
-                      <SelectValue placeholder="Seleccionar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Borrador">Borrador</SelectItem>
-                      <SelectItem value="Procesado">Procesado</SelectItem>
-                      <SelectItem value="Error">Error</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="flex items-center justify-end space-x-4 pt-6">

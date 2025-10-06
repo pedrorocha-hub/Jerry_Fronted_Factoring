@@ -9,7 +9,7 @@ import {
   Calendar, 
   User,
   Building2,
-  ExternalLink,
+  Download,
   CheckCircle,
   AlertCircle,
   Clock,
@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SentinelService, type Sentinel } from '@/services/sentinelService';
+import { DocumentoService } from '@/services/documentoService';
 import { toast } from 'sonner';
 
 const SentinelDetailPage = () => {
@@ -28,6 +29,7 @@ const SentinelDetailPage = () => {
   const navigate = useNavigate();
   const [sentinel, setSentinel] = useState<Sentinel | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -63,6 +65,31 @@ const SentinelDetailPage = () => {
     } catch (error) {
       console.error('Error deleting sentinel:', error);
       toast.error('Error al eliminar el documento Sentinel');
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!sentinel?.file_url) {
+      toast.error('No hay un archivo asociado para descargar.');
+      return;
+    }
+    try {
+      setDownloading(true);
+      const url = await DocumentoService.getSignedUrl(sentinel.file_url);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `sentinel_${sentinel.ruc}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Descarga iniciada');
+    } catch (error) {
+      console.error('Error descargando archivo:', error);
+      toast.error('Error al descargar el archivo');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -148,6 +175,17 @@ const SentinelDetailPage = () => {
             </div>
             
             <div className="flex items-center space-x-3">
+              {sentinel.file_url && (
+                <Button
+                  variant="outline"
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {downloading ? 'Descargando...' : 'Descargar Documento'}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={() => navigate(`/sentinel/${sentinel.id}/edit`)}
@@ -191,24 +229,6 @@ const SentinelDetailPage = () => {
                       </div>
                     </div>
                   </div>
-
-                  {sentinel.file_url && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-400">Archivo</label>
-                      <div className="mt-1">
-                        <a
-                          href={sentinel.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center text-[#00FF80] hover:text-[#00FF80]/80 transition-colors"
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Ver documento
-                          <ExternalLink className="h-3 w-3 ml-1" />
-                        </a>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
 
