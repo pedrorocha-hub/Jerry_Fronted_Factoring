@@ -14,6 +14,7 @@ import { SolicitudOperacionExpInt, SolicitudOperacionExpIntInsert, SolicitudOper
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import { format, differenceInDays } from 'date-fns';
+import { Textarea } from '@/components/ui/textarea';
 
 interface ExperienciaPagoManagerProps {
   comportamientoCrediticioId: string | undefined;
@@ -27,6 +28,10 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
   const [isDialogOpen, setDialogOpen] = useState(false);
   const [currentExp, setCurrentExp] = useState<Partial<SolicitudOperacionExpInt> | null>(null);
   const [saving, setSaving] = useState(false);
+  const [tipoCambio, setTipoCambio] = useState(3.75);
+  const [comentarios, setComentarios] = useState('');
+  const [isComentariosDirty, setIsComentariosDirty] = useState(false);
+  const [savingComentarios, setSavingComentarios] = useState(false);
 
   // State for date pickers
   const [fechaOtorgamiento, setFechaOtorgamiento] = useState<Date | undefined>();
@@ -44,6 +49,17 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
         .order('created_at', { ascending: false });
       if (error) throw error;
       setExperiencias(data || []);
+
+      const { data: parentReport, error: parentError } = await supabase
+        .from('comportamiento_crediticio')
+        .select('deudor_comentarios')
+        .eq('id', comportamientoCrediticioId)
+        .single();
+      if (parentError) throw parentError;
+      if (parentReport) {
+        setComentarios(parentReport.deudor_comentarios || '');
+      }
+
     } catch (error) {
       showError('Error al cargar la experiencia de pago.');
     } finally {
@@ -150,6 +166,29 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
     return { totalSoles, totalDolares };
   }, [experiencias]);
 
+  const handleComentariosChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setComentarios(e.target.value);
+    setIsComentariosDirty(true);
+  };
+
+  const handleSaveComentarios = async () => {
+      if (!comportamientoCrediticioId) return;
+      setSavingComentarios(true);
+      try {
+          const { error } = await supabase
+              .from('comportamiento_crediticio')
+              .update({ deudor_comentarios: comentarios })
+              .eq('id', comportamientoCrediticioId);
+          if (error) throw error;
+          showSuccess('Comentarios guardados.');
+          setIsComentariosDirty(false);
+      } catch (error) {
+          showError('Error al guardar los comentarios.');
+      } finally {
+          setSavingComentarios(false);
+      }
+  };
+
   return (
     <Card className="bg-[#121212] border border-gray-800">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -171,60 +210,81 @@ const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comport
         {loading ? (
           <div className="flex justify-center items-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-800 hover:bg-gray-800/20">
-                <TableHead className="text-gray-300">Deudor</TableHead>
-                <TableHead className="text-gray-300">F. Otorgamiento</TableHead>
-                <TableHead className="text-gray-300">F. Vencimiento</TableHead>
-                <TableHead className="text-gray-300">Moneda</TableHead>
-                <TableHead className="text-gray-300">Monto</TableHead>
-                <TableHead className="text-gray-300">F. Pago</TableHead>
-                <TableHead className="text-gray-300">Días Atraso</TableHead>
-                <TableHead className="text-right text-gray-300">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {experiencias.length > 0 ? (
-                experiencias.map((exp) => {
-                  const diasAtraso = calcularDiasAtraso(exp.fecha_vencimiento, exp.fecha_pago);
-                  return (
-                    <TableRow key={exp.id} className="border-gray-800 hover:bg-gray-800/20">
-                      <TableCell>{exp.deudor}</TableCell>
-                      <TableCell>{exp.fecha_otorgamiento ? format(new Date(`${exp.fecha_otorgamiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
-                      <TableCell>{exp.fecha_vencimiento ? format(new Date(`${exp.fecha_vencimiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
-                      <TableCell>{exp.moneda}</TableCell>
-                      <TableCell>{exp.monto ? exp.monto.toLocaleString('es-PE', { style: 'currency', currency: exp.moneda === 'Soles' ? 'PEN' : 'USD' }) : '-'}</TableCell>
-                      <TableCell>{exp.fecha_pago ? format(new Date(`${exp.fecha_pago}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
-                      <TableCell>{diasAtraso}</TableCell>
-                      <TableCell className="text-right">
-                        {isAdmin && (
-                          <>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(exp)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(exp.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
-                          </>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow className="border-gray-800 hover:bg-transparent">
-                  <TableCell colSpan={8} className="text-center text-gray-500 py-8">No hay registros de experiencia de pago.</TableCell>
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-800 hover:bg-gray-800/20">
+                  <TableHead className="text-gray-300">Deudor</TableHead>
+                  <TableHead className="text-gray-300">F. Otorgamiento</TableHead>
+                  <TableHead className="text-gray-300">F. Vencimiento</TableHead>
+                  <TableHead className="text-gray-300">Moneda</TableHead>
+                  <TableHead className="text-gray-300">Monto</TableHead>
+                  <TableHead className="text-gray-300">F. Pago</TableHead>
+                  <TableHead className="text-gray-300">Días Atraso</TableHead>
+                  <TableHead className="text-right text-gray-300">Acciones</TableHead>
                 </TableRow>
+              </TableHeader>
+              <TableBody>
+                {experiencias.length > 0 ? (
+                  experiencias.map((exp) => {
+                    const diasAtraso = calcularDiasAtraso(exp.fecha_vencimiento, exp.fecha_pago);
+                    return (
+                      <TableRow key={exp.id} className="border-gray-800 hover:bg-gray-800/20">
+                        <TableCell>{exp.deudor}</TableCell>
+                        <TableCell>{exp.fecha_otorgamiento ? format(new Date(`${exp.fecha_otorgamiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                        <TableCell>{exp.fecha_vencimiento ? format(new Date(`${exp.fecha_vencimiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                        <TableCell>{exp.moneda}</TableCell>
+                        <TableCell>{exp.monto ? exp.monto.toLocaleString('es-PE', { style: 'currency', currency: exp.moneda === 'Soles' ? 'PEN' : 'USD' }) : '-'}</TableCell>
+                        <TableCell>{exp.fecha_pago ? format(new Date(`${exp.fecha_pago}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                        <TableCell>{diasAtraso}</TableCell>
+                        <TableCell className="text-right">
+                          {isAdmin && (
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(exp)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDelete(exp.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                            </>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow className="border-gray-800 hover:bg-transparent">
+                    <TableCell colSpan={8} className="text-center text-gray-500 py-8">No hay registros de experiencia de pago.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+              <TableFooter>
+                <TableRow className="border-gray-800 font-bold text-white hover:bg-gray-800/20">
+                  <TableCell colSpan={4} className="text-right">Totales:</TableCell>
+                  <TableCell>
+                    <div>{totales.totalSoles.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}</div>
+                    <div>{totales.totalDolares.toLocaleString('es-PE', { style: 'currency', currency: 'USD' })}</div>
+                  </TableCell>
+                  <TableCell colSpan={3}></TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+            <div className="mt-6 pt-4 border-t border-gray-800">
+              <Label htmlFor="experiencia-comentarios" className="text-gray-300 font-medium">Comentarios</Label>
+              <Textarea
+                id="experiencia-comentarios"
+                value={comentarios}
+                onChange={handleComentariosChange}
+                placeholder="Comentar en resumen sobre la experiencia del deudor propuesto (número de documentos cancelados, monto total en soles y/o dólares). Si el histórico es muy extenso, detallar sólo los cancelados del último año, pero en el resumen si comentar la experiencia total"
+                className="bg-gray-900/50 border-gray-700 mt-2 min-h-[100px]"
+                disabled={disabled || !isAdmin}
+              />
+              {isAdmin && isComentariosDirty && (
+                <div className="flex justify-end mt-2">
+                  <Button onClick={handleSaveComentarios} disabled={savingComentarios} size="sm" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                    {savingComentarios ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    Guardar Comentarios
+                  </Button>
+                </div>
               )}
-            </TableBody>
-            <TableFooter>
-              <TableRow className="border-gray-800 font-bold text-white hover:bg-gray-800/20">
-                <TableCell colSpan={4} className="text-right">Totales:</TableCell>
-                <TableCell>
-                  <div>{totales.totalSoles.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}</div>
-                  <div>{totales.totalDolares.toLocaleString('es-PE', { style: 'currency', currency: 'USD' })}</div>
-                </TableCell>
-                <TableCell colSpan={3}></TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
+            </div>
+          </>
         )}
       </CardContent>
 

@@ -70,10 +70,30 @@ const ComportamientoCrediticioPage = () => {
     comentarios: '',
   };
 
+  const emptyDeudorForm = {
+    proveedor: '',
+    deudor: '',
+    equifax_calificacion: '',
+    sentinel_calificacion: '',
+    equifax_deuda_directa: '',
+    sentinel_deuda_directa: '',
+    equifax_deuda_indirecta: '',
+    sentinel_deuda_indirecta: '',
+    equifax_impagos: '',
+    sentinel_impagos: '',
+    equifax_deuda_sunat: '',
+    sentinel_deuda_sunat: '',
+    equifax_protestos: '',
+    sentinel_protestos: '',
+    validado_por: '',
+    status: 'Borrador' as CrediticioStatus,
+    apefac_descripcion: '',
+  };
+
   const [formData, setFormData] = useState(emptyForm);
   const [initialFormData, setInitialFormData] = useState(emptyForm);
-  const [formDataDeudor, setFormDataDeudor] = useState(emptyForm);
-  const [initialFormDataDeudor, setInitialFormDataDeudor] = useState(emptyForm);
+  const [formDataDeudor, setFormDataDeudor] = useState(emptyDeudorForm);
+  const [initialFormDataDeudor, setInitialFormDataDeudor] = useState(emptyDeudorForm);
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
@@ -205,9 +225,8 @@ const ComportamientoCrediticioPage = () => {
       equifax_protestos: report.deudor_equifax_protestos?.toString() || '',
       sentinel_protestos: report.deudor_sentinel_protestos?.toString() || '',
       validado_por: '',
-      status: 'Borrador',
+      status: 'Borrador' as CrediticioStatus,
       apefac_descripcion: report.deudor_apefac_descripcion || '',
-      comentarios: report.deudor_comentarios || '',
     };
     setFormDataDeudor(newFormDataDeudor);
     setInitialFormDataDeudor(newFormDataDeudor);
@@ -275,7 +294,6 @@ const ComportamientoCrediticioPage = () => {
         deudor_equifax_protestos: parseFloat(formDataDeudor.equifax_protestos) || null,
         deudor_sentinel_protestos: parseFloat(formDataDeudor.sentinel_protestos) || null,
         deudor_apefac_descripcion: formDataDeudor.apefac_descripcion || null,
-        deudor_comentarios: formDataDeudor.comentarios || null,
       };
 
       if (selectedReport) {
@@ -320,8 +338,8 @@ const ComportamientoCrediticioPage = () => {
     setSelectedReport(null);
     setFormData(emptyForm);
     setInitialFormData(emptyForm);
-    setFormDataDeudor(emptyForm);
-    setInitialFormDataDeudor(emptyForm);
+    setFormDataDeudor(emptyDeudorForm);
+    setInitialFormDataDeudor(emptyDeudorForm);
   };
 
   const handleEditFromList = (report: ReporteWithDetails) => {
@@ -440,10 +458,6 @@ const ComportamientoCrediticioPage = () => {
                         <Textarea id="deudor_apefac_descripcion" value={formDataDeudor.apefac_descripcion} onChange={handleDeudorFormChange} placeholder="Resumen de Apefac..." className="bg-gray-900/50 border-gray-700 text-white h-full min-h-[200px]" disabled={!isAdmin} />
                       </div>
                     </div>
-                  </div>
-                  <div className="pt-4 mt-4 border-t border-gray-800">
-                    <Label htmlFor="deudor_comentarios">Comentarios</Label>
-                    <Textarea id="deudor_comentarios" value={formDataDeudor.comentarios} onChange={handleDeudorFormChange} placeholder="(aquí pueden comentar acerca de las morosidades y/o sustentos)" className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]" disabled={!isAdmin} />
                   </div>
                 </CardContent>
               </Card>
