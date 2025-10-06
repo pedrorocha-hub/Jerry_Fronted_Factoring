@@ -17,6 +17,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import ComportamientoCrediticioTable from '@/components/comportamiento-crediticio/ComportamientoCrediticioTable';
 import { supabase } from '@/integrations/supabase/client';
+import ExperienciaPagoManager from '@/components/comportamiento-crediticio/ExperienciaPagoManager';
 
 interface ReporteWithDetails extends ComportamientoCrediticio {
   nombre_empresa?: string;
@@ -443,6 +444,10 @@ const ComportamientoCrediticioPage = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {selectedReport && (
+                <ExperienciaPagoManager comportamientoCrediticioId={selectedReport.id} />
+              )}
 
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
