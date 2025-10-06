@@ -280,7 +280,8 @@ const ComportamientoCrediticioPage = () => {
         await ComportamientoCrediticioService.update(selectedReport.id, dataToSave);
         showSuccess('Reporte actualizado.');
       } else {
-        await ComportamientoCrediticioService.create(dataToSave);
+        const newReport = await ComportamientoCrediticioService.create(dataToSave);
+        setSelectedReport(newReport);
         showSuccess('Reporte creado.');
       }
       await handleSearch(searchedFicha.ruc);
@@ -445,8 +446,11 @@ const ComportamientoCrediticioPage = () => {
                 </CardContent>
               </Card>
 
-              {selectedReport && (
-                <ExperienciaPagoManager comportamientoCrediticioId={selectedReport.id} />
+              {searchedFicha && (
+                <ExperienciaPagoManager 
+                  comportamientoCrediticioId={selectedReport?.id}
+                  disabled={!selectedReport}
+                />
               )}
 
               <Card className="bg-[#121212] border border-gray-800">
