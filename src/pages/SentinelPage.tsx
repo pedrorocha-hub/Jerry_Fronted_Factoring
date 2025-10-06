@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SentinelService, type Sentinel } from '@/services/sentinelService';
+import SentinelModal from '@/components/sentinel/SentinelModal';
 import { toast } from 'sonner';
 
 const SentinelPage = () => {
@@ -46,6 +47,9 @@ const SentinelPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedSentinel, setSelectedSentinel] = useState<Sentinel | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'view' | 'edit'>('view');
 
   useEffect(() => {
     loadSentinels();
@@ -77,6 +81,27 @@ const SentinelPage = () => {
       console.error('Error deleting sentinel:', error);
       toast.error('Error al eliminar el documento Sentinel');
     }
+  };
+
+  const handleView = (sentinel: Sentinel) => {
+    setSelectedSentinel(sentinel);
+    setModalMode('view');
+    setModalOpen(true);
+  };
+
+  const handleEdit = (sentinel: Sentinel) => {
+    setSelectedSentinel(sentinel);
+    setModalMode('edit');
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setSelectedSentinel(null);
+  };
+
+  const handleModalSave = () => {
+    loadSentinels();
   };
 
   const getStatusBadge = (status: string) => {
@@ -300,7 +325,7 @@ const SentinelPage = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => navigate(`/sentinel/${sentinel.id}`)}
+                              onClick={() => handleView(sentinel)}
                               className="text-gray-400 hover:text-white hover:bg-gray-800"
                             >
                               <Eye className="h-4 w-4" />
@@ -308,7 +333,7 @@ const SentinelPage = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => navigate(`/sentinel/${sentinel.id}/edit`)}
+                              onClick={() => handleEdit(sentinel)}
                               className="text-gray-400 hover:text-white hover:bg-gray-800"
                             >
                               <Edit className="h-4 w-4" />
@@ -331,6 +356,13 @@ const SentinelPage = () => {
             </CardContent>
           </Card>
         </div>
+        <SentinelModal
+          sentinel={selectedSentinel}
+          isOpen={modalOpen}
+          onClose={handleModalClose}
+          onSave={handleModalSave}
+          mode={modalMode}
+        />
       </div>
     </Layout>
   );

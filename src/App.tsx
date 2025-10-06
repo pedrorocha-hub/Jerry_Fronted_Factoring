@@ -22,8 +22,6 @@ import RibPage from '@/pages/Rib';
 import ComportamientoCrediticioPage from '@/pages/ComportamientoCrediticio';
 import SentinelPage from '@/pages/SentinelPage';
 import SentinelCreatePage from '@/pages/SentinelCreatePage';
-import SentinelDetailPage from '@/pages/SentinelDetailPage';
-import SentinelEditPage from '@/pages/SentinelEditPage';
 import UsersPage from '@/pages/Admin/Users';
 
 function App() {
@@ -50,8 +48,6 @@ function App() {
               <Route path="/comportamiento-crediticio" element={<ComportamientoCrediticioPage />} />
               <Route path="/sentinel" element={<SentinelPage />} />
               <Route path="/sentinel/create" element={<SentinelCreatePage />} />
-              <Route path="/sentinel/:id" element={<SentinelDetailPage />} />
-              <Route path="/sentinel/:id/edit" element={<SentinelEditPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
             </Route>
           </Routes>
