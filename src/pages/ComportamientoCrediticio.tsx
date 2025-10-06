@@ -133,30 +133,32 @@ const ComportamientoCrediticioPage = () => {
   };
 
   const handleSearch = async (rucToSearch: string) => {
+    if (!rucToSearch || rucToSearch.length !== 11) {
+      setError('Por favor, ingrese un RUC válido de 11 dígitos.');
+      return;
+    }
     setSearching(true);
     setError(null);
     try {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const reportsForRuc = await ComportamientoCrediticioService.getByRuc(rucToSearch);
-        setExistingReports(reportsForRuc);
-        if (reportsForRuc.length > 0) {
-          await handleSelectReport(reportsForRuc[0]);
-        } else {
-          setSelectedReport(null);
-          const newForm = { ...emptyForm, proveedor: fichaData.nombre_empresa };
-          setFormData(newForm);
-          setInitialFormData(newForm);
-          setFormDataDeudor(emptyForm);
-          setInitialFormDataDeudor(emptyForm);
-        }
+        
+        const report = await ComportamientoCrediticioService.findOrCreateByRuc(rucToSearch, fichaData.nombre_empresa);
+        
+        const allReportsForRuc = await ComportamientoCrediticioService.getByRuc(rucToSearch);
+        setExistingReports(allReportsForRuc);
+
+        await handleSelectReport(report);
+        
         setView('form');
       } else {
-        setError('Ficha RUC no encontrada.');
+        setError('Ficha RUC no encontrada. No se puede crear un reporte.');
+        showError('Ficha RUC no encontrada.');
       }
     } catch (err) {
-      setError('Error al buscar la empresa.');
+      setError('Error al buscar o crear el reporte.');
+      showError('Error al buscar o crear el reporte.');
     } finally {
       setSearching(false);
     }

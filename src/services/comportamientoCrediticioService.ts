@@ -57,4 +57,22 @@ export class ComportamientoCrediticioService {
 
     if (error) throw error;
   }
+
+  static async findOrCreateByRuc(ruc: string, proveedor: string): Promise<ComportamientoCrediticio> {
+    const existingReports = await this.getByRuc(ruc);
+
+    if (existingReports.length > 0) {
+      // Return the most recent one
+      return existingReports[0];
+    } else {
+      // Create a new one
+      const insertData: Omit<ComportamientoCrediticioInsert, 'user_id'> = {
+        ruc,
+        proveedor,
+        status: 'Borrador',
+      };
+      const newReport = await this.create(insertData);
+      return newReport;
+    }
+  }
 }
