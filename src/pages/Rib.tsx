@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib, RibStatus, RibWithDetails } from '@/types/rib';
@@ -293,6 +293,8 @@ const RibPage = () => {
     setGerentes([]);
   };
 
+  const totalPorcentaje = accionistas.reduce((sum, acc) => sum + (Number(acc.porcentaje) || 0), 0);
+
   return (
     <Layout>
       <div className="min-h-screen bg-black">
@@ -466,6 +468,13 @@ const RibPage = () => {
                           </TableRow>
                         ))}
                       </TableBody>
+                      <TableFooter>
+                        <TableRow className="border-gray-800 font-bold text-white hover:bg-gray-900/50">
+                          <TableCell colSpan={2} className="text-right pr-4">Total</TableCell>
+                          <TableCell>{totalPorcentaje.toFixed(2)}%</TableCell>
+                          <TableCell colSpan={2}></TableCell>
+                        </TableRow>
+                      </TableFooter>
                     </Table>
                   </CardContent>
                 </Card>
