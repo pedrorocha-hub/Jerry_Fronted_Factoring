@@ -20,7 +20,7 @@ interface DatePickerProps {
   disabled?: boolean;
 }
 
-export function DatePicker({ date, setDate, disabled }: DatePickerProps) {
+export function DatePicker({ date, setDate, disabled, ...props }: DatePickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -31,6 +31,7 @@ export function DatePicker({ date, setDate, disabled }: DatePickerProps) {
             !date && "text-muted-foreground"
           )}
           disabled={disabled}
+          {...props}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date ? format(date, "PPP", { locale: es }) : <span>Seleccione una fecha</span>}
@@ -42,6 +43,7 @@ export function DatePicker({ date, setDate, disabled }: DatePickerProps) {
           selected={date}
           onSelect={setDate}
           initialFocus
+          locale={es}
         />
       </PopoverContent>
     </Popover>

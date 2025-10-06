@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit, Trash2, DollarSign, Info } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Edit, Trash2, Loader2, Save, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ExperienciaPagoInterna, ExperienciaPagoInternaInsert, ExperienciaPagoInternaUpdate } from '@/types/experienciaPagoInterna';
-import { ExperienciaPagoInternaService } from '@/services/experienciaPagoInternaService';
-import { toast } from 'sonner';
-import { differenceInDays, parseISO } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DatePicker } from '@/components/ui/date-picker';
+import { supabase } from '@/integrations/supabase/client';
+import { SolicitudOperacionExpInt, SolicitudOperacionExpIntInsert, SolicitudOperacionExpIntUpdate } from '@/types/solicitudOperacionExpInt';
+import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
+import { format } from 'date-fns';
 
 interface ExperienciaPagoManagerProps {
   comportamientoCrediticioId: string | undefined;
@@ -20,216 +22,219 @@ interface ExperienciaPagoManagerProps {
 
 const ExperienciaPagoManager: React.FC<ExperienciaPagoManagerProps> = ({ comportamientoCrediticioId, disabled }) => {
   const { isAdmin } = useSession();
-  const [experiencias, setExperiencias] = useState<ExperienciaPagoInterna[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingExperiencia, setEditingExperiencia] = useState<ExperienciaPagoInterna | null>(null);
+  const [experiencias, setExperiencias] = useState<SolicitudOperacionExpInt[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isDialogOpen, setDialogOpen] = useState(false);
+  const [currentExp, setCurrentExp] = useState<Partial<SolicitudOperacionExpInt> | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const emptyForm: ExperienciaPagoInternaInsert = {
-    comportamiento_crediticio_id: comportamientoCrediticioId || '',
-    deudor: '',
-    fecha_otorgamiento: '',
-    fecha_vencimiento: '',
-    moneda: 'PEN',
-    fecha_pago: '',
-    monto: 0,
-  };
-  const [formData, setFormData] = useState<ExperienciaPagoInternaInsert | ExperienciaPagoInternaUpdate>(emptyForm);
+  // State for date pickers
+  const [fechaOtorgamiento, setFechaOtorgamiento] = useState<Date | undefined>();
+  const [fechaVencimiento, setFechaVencimiento] = useState<Date | undefined>();
+  const [fechaPago, setFechaPago] = useState<Date | undefined>();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (comportamientoCrediticioId) {
-        try {
-          setLoading(true);
-          const data = await ExperienciaPagoInternaService.getByComportamientoId(comportamientoCrediticioId);
-          setExperiencias(data);
-        } catch (error) {
-          toast.error('Error al cargar la experiencia de pago interna.');
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-        setExperiencias([]);
-      }
-    };
-    fetchData();
+  const fetchExperiencias = useCallback(async () => {
+    if (!comportamientoCrediticioId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('solicitud_operacion_exp_int')
+        .select('*')
+        .eq('comportamiento_crediticio_id', comportamientoCrediticioId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setExperiencias(data || []);
+    } catch (error) {
+      showError('Error al cargar la experiencia de pago.');
+    } finally {
+      setLoading(false);
+    }
   }, [comportamientoCrediticioId]);
 
-  const handleOpenModal = (experiencia: ExperienciaPagoInterna | null = null) => {
-    setEditingExperiencia(experiencia);
-    if (experiencia) {
-      setFormData({
-        deudor: experiencia.deudor,
-        fecha_otorgamiento: experiencia.fecha_otorgamiento,
-        fecha_vencimiento: experiencia.fecha_vencimiento,
-        moneda: experiencia.moneda,
-        fecha_pago: experiencia.fecha_pago,
-        monto: experiencia.monto,
-      });
-    } else {
-      setFormData(emptyForm);
-    }
-    setIsModalOpen(true);
+  useEffect(() => {
+    fetchExperiencias();
+  }, [fetchExperiencias]);
+
+  const resetForm = () => {
+    setCurrentExp(null);
+    setFechaOtorgamiento(undefined);
+    setFechaVencimiento(undefined);
+    setFechaPago(undefined);
   };
 
-  const handleSave = async () => {
-    if (!comportamientoCrediticioId) return;
-    try {
-      if (editingExperiencia) {
-        await ExperienciaPagoInternaService.update(editingExperiencia.id, formData as ExperienciaPagoInternaUpdate);
-        toast.success('Experiencia de pago actualizada.');
-      } else {
-        await ExperienciaPagoInternaService.create({
-          ...formData,
-          comportamiento_crediticio_id: comportamientoCrediticioId
-        } as ExperienciaPagoInternaInsert);
-        toast.success('Experiencia de pago agregada.');
-      }
-      const data = await ExperienciaPagoInternaService.getByComportamientoId(comportamientoCrediticioId);
-      setExperiencias(data);
-      setIsModalOpen(false);
-    } catch (error) {
-      toast.error('Error al guardar la experiencia de pago.');
-    }
+  const handleAddNew = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const handleEdit = (exp: SolicitudOperacionExpInt) => {
+    setCurrentExp(exp);
+    setFechaOtorgamiento(exp.fecha_otorgamiento ? new Date(`${exp.fecha_otorgamiento}T00:00:00`) : undefined);
+    setFechaVencimiento(exp.fecha_vencimiento ? new Date(`${exp.fecha_vencimiento}T00:00:00`) : undefined);
+    setFechaPago(exp.fecha_pago ? new Date(`${exp.fecha_pago}T00:00:00`) : undefined);
+    setDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('¿Está seguro de eliminar este registro?')) {
       try {
-        await ExperienciaPagoInternaService.delete(id);
-        toast.success('Registro eliminado.');
-        setExperiencias(experiencias.filter(exp => exp.id !== id));
+        const { error } = await supabase.from('solicitud_operacion_exp_int').delete().eq('id', id);
+        if (error) throw error;
+        showSuccess('Registro eliminado.');
+        fetchExperiencias();
       } catch (error) {
-        toast.error('Error al eliminar el registro.');
+        showError('Error al eliminar el registro.');
       }
     }
   };
 
-  const calculateDiasAtraso = (fechaVencimiento: string | null, fechaPago: string | null) => {
-    if (!fechaVencimiento || !fechaPago) return '-';
-    const dias = differenceInDays(parseISO(fechaPago), parseISO(fechaVencimiento));
-    return dias > 0 ? dias : 0;
-  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!comportamientoCrediticioId) return;
+    setSaving(true);
 
-  const totalMontoSoles = useMemo(() => {
-    return experiencias
-      .filter(exp => exp.moneda === 'PEN' && exp.monto)
-      .reduce((sum, exp) => sum + (exp.monto || 0), 0);
-  }, [experiencias]);
+    const formData = new FormData(e.target as HTMLFormElement);
+    const dataToSave = {
+      deudor: formData.get('deudor') as string,
+      moneda: formData.get('moneda') as string,
+      monto: parseFloat(formData.get('monto') as string),
+      fecha_otorgamiento: fechaOtorgamiento ? format(fechaOtorgamiento, 'yyyy-MM-dd') : null,
+      fecha_vencimiento: fechaVencimiento ? format(fechaVencimiento, 'yyyy-MM-dd') : null,
+      fecha_pago: fechaPago ? format(fechaPago, 'yyyy-MM-dd') : null,
+    };
+
+    try {
+      if (currentExp?.id) {
+        const { error } = await supabase
+          .from('solicitud_operacion_exp_int')
+          .update(dataToSave as SolicitudOperacionExpIntUpdate)
+          .eq('id', currentExp.id);
+        if (error) throw error;
+        showSuccess('Registro actualizado.');
+      } else {
+        const { error } = await supabase
+          .from('solicitud_operacion_exp_int')
+          .insert({ ...dataToSave, comportamiento_crediticio_id: comportamientoCrediticioId } as SolicitudOperacionExpIntInsert);
+        if (error) throw error;
+        showSuccess('Registro creado.');
+      }
+      setDialogOpen(false);
+      fetchExperiencias();
+    } catch (error) {
+      showError('Error al guardar el registro.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <Card className="bg-[#121212] border border-gray-800">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-white">Experiencia Interna de pago (Del deudor)</CardTitle>
-          {isAdmin && (
-            <Button onClick={() => handleOpenModal()} disabled={disabled} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar
-            </Button>
-          )}
-        </div>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-white">Experiencia Interna de pago</CardTitle>
+        {isAdmin && (
+          <Button onClick={handleAddNew} disabled={disabled} size="sm" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+            <Plus className="h-4 w-4 mr-2" />
+            Agregar
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
-        {disabled ? (
-          <div className="text-center py-8 text-gray-400 bg-gray-900/50 rounded-lg border border-dashed border-gray-700">
-            <Info className="h-8 w-8 mx-auto mb-2 text-blue-400" />
-            <p>Guarde el reporte principal para poder agregar la experiencia de pago interna.</p>
-          </div>
+        {disabled && (
+          <Alert variant="default" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-300 mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>Guarde el reporte principal para poder agregar la experiencia de pago.</AlertDescription>
+          </Alert>
+        )}
+        {loading ? (
+          <div className="flex justify-center items-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow className="border-gray-800">
+              <TableRow className="border-gray-800 hover:bg-gray-800/20">
                 <TableHead className="text-gray-300">Deudor</TableHead>
-                <TableHead className="text-gray-300">F. Otorg.</TableHead>
-                <TableHead className="text-gray-300">F. Venc.</TableHead>
+                <TableHead className="text-gray-300">F. Otorgamiento</TableHead>
+                <TableHead className="text-gray-300">F. Vencimiento</TableHead>
                 <TableHead className="text-gray-300">Moneda</TableHead>
-                <TableHead className="text-gray-300">F. Pago</TableHead>
                 <TableHead className="text-gray-300">Monto</TableHead>
-                <TableHead className="text-gray-300">Días Atraso</TableHead>
-                {isAdmin && <TableHead className="text-right text-gray-300">Acciones</TableHead>}
+                <TableHead className="text-gray-300">F. Pago</TableHead>
+                <TableHead className="text-right text-gray-300">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-gray-400">Cargando...</TableCell></TableRow>
-              ) : experiencias.length === 0 ? (
-                <TableRow><TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-gray-400">No hay registros.</TableCell></TableRow>
-              ) : (
-                experiencias.map(exp => (
-                  <TableRow key={exp.id} className="border-gray-800">
+              {experiencias.length > 0 ? (
+                experiencias.map((exp) => (
+                  <TableRow key={exp.id} className="border-gray-800 hover:bg-gray-800/20">
                     <TableCell>{exp.deudor}</TableCell>
-                    <TableCell>{exp.fecha_otorgamiento ? new Date(exp.fecha_otorgamiento).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>{exp.fecha_vencimiento ? new Date(exp.fecha_vencimiento).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell>{exp.fecha_otorgamiento ? format(new Date(`${exp.fecha_otorgamiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                    <TableCell>{exp.fecha_vencimiento ? format(new Date(`${exp.fecha_vencimiento}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
                     <TableCell>{exp.moneda}</TableCell>
-                    <TableCell>{exp.fecha_pago ? new Date(exp.fecha_pago).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell>{exp.monto?.toLocaleString('es-PE', { style: 'currency', currency: exp.moneda || 'PEN' })}</TableCell>
-                    <TableCell>{calculateDiasAtraso(exp.fecha_vencimiento, exp.fecha_pago)}</TableCell>
-                    {isAdmin && (
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenModal(exp)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(exp.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
-                      </TableCell>
-                    )}
+                    <TableCell>{exp.monto ? exp.monto.toLocaleString('es-PE', { style: 'currency', currency: exp.moneda === 'Soles' ? 'PEN' : 'USD' }) : '-'}</TableCell>
+                    <TableCell>{exp.fecha_pago ? format(new Date(`${exp.fecha_pago}T00:00:00`), 'dd/MM/yyyy') : '-'}</TableCell>
+                    <TableCell className="text-right">
+                      {isAdmin && (
+                        <>
+                          <Button variant="ghost" size="icon" onClick={() => handleEdit(exp)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(exp.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
+                        </>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))
+              ) : (
+                <TableRow className="border-gray-800 hover:bg-transparent">
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">No hay registros de experiencia de pago.</TableCell>
+                </TableRow>
               )}
             </TableBody>
-            <TableFooter>
-              <TableRow className="border-gray-800 font-bold text-white">
-                <TableCell colSpan={5} className="text-right">Total (Soles)</TableCell>
-                <TableCell>{totalMontoSoles.toLocaleString('es-PE', { style: 'currency', currency: 'PEN' })}</TableCell>
-                <TableCell colSpan={isAdmin ? 2 : 1}></TableCell>
-              </TableRow>
-            </TableFooter>
           </Table>
         )}
       </CardContent>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-[#121212] border-gray-800 text-white">
+      <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-[#1e1e1e] border-gray-700 text-white">
           <DialogHeader>
-            <DialogTitle>{editingExperiencia ? 'Editar' : 'Agregar'} Experiencia de Pago</DialogTitle>
+            <DialogTitle>{currentExp?.id ? 'Editar' : 'Agregar'} Experiencia de Pago</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="deudor">Deudor</Label>
+              <Input id="deudor" name="deudor" defaultValue={currentExp?.deudor || ''} className="bg-gray-900/50 border-gray-700" required />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Deudor</Label>
-                <Input value={formData.deudor || ''} onChange={e => setFormData({...formData, deudor: e.target.value})} className="bg-gray-900/50 border-gray-700" />
+                <Label htmlFor="fecha_otorgamiento">Fecha de Otorgamiento</Label>
+                <DatePicker date={fechaOtorgamiento} setDate={setFechaOtorgamiento} />
               </div>
               <div>
-                <Label>Monto</Label>
-                <Input type="number" value={formData.monto || ''} onChange={e => setFormData({...formData, monto: parseFloat(e.target.value) || 0})} className="bg-gray-900/50 border-gray-700" />
+                <Label htmlFor="fecha_vencimiento">Fecha de Vencimiento</Label>
+                <DatePicker date={fechaVencimiento} setDate={setFechaVencimiento} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Moneda</Label>
-                <Select value={formData.moneda || 'PEN'} onValueChange={value => setFormData({...formData, moneda: value})}>
-                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="PEN">PEN</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>
+                <Label htmlFor="moneda">Moneda</Label>
+                <Select name="moneda" defaultValue={currentExp?.moneda || ''}>
+                  <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                  <SelectContent><SelectItem value="Soles">Soles</SelectItem><SelectItem value="Dólares">Dólares</SelectItem></SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label>Fecha Otorgamiento</Label>
-                <Input type="date" value={formData.fecha_otorgamiento || ''} onChange={e => setFormData({...formData, fecha_otorgamiento: e.target.value})} className="bg-gray-900/50 border-gray-700" />
-              </div>
-              <div>
-                <Label>Fecha Vencimiento</Label>
-                <Input type="date" value={formData.fecha_vencimiento || ''} onChange={e => setFormData({...formData, fecha_vencimiento: e.target.value})} className="bg-gray-900/50 border-gray-700" />
-              </div>
-              <div>
-                <Label>Fecha Pago</Label>
-                <Input type="date" value={formData.fecha_pago || ''} onChange={e => setFormData({...formData, fecha_pago: e.target.value})} className="bg-gray-900/50 border-gray-700" />
+                <Label htmlFor="monto">Monto</Label>
+                <Input id="monto" name="monto" type="number" step="0.01" defaultValue={currentExp?.monto || ''} className="bg-gray-900/50 border-gray-700" />
               </div>
             </div>
-            <div className="flex justify-end pt-4">
-              <Button onClick={handleSave} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">Guardar</Button>
+            <div>
+              <Label htmlFor="fecha_pago">Fecha de Pago</Label>
+              <DatePicker date={fechaPago} setDate={setFechaPago} />
             </div>
-          </div>
+            <DialogFooter>
+              <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
+              <Button type="submit" disabled={saving} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Card>
