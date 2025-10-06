@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Save, Eye, Edit, Download, Calendar, User, Building2 } from 'lucide-react';
+import { Shield, Save, Eye, Edit, Calendar, User, Building2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sentinel, UpdateSentinelData } from '@/services/sentinelService';
-import { DocumentoService } from '@/services/documentoService';
 import { SentinelService } from '@/services/sentinelService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
@@ -34,7 +33,6 @@ const SentinelModal: React.FC<SentinelModalProps> = ({
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
   const [formData, setFormData] = useState<UpdateSentinelData>({});
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   const isReadOnly = mode === 'view' || !isAdmin;
 
@@ -93,31 +91,6 @@ const SentinelModal: React.FC<SentinelModalProps> = ({
     }
   };
 
-  const handleDownload = async () => {
-    if (!sentinel?.file_url) {
-      showError('No hay un archivo asociado para descargar.');
-      return;
-    }
-    try {
-      setDownloading(true);
-      const url = await DocumentoService.getSignedUrl(sentinel.file_url);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `sentinel_${sentinel.ruc}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      showSuccess('Descarga iniciada');
-    } catch (error) {
-      console.error('Error descargando archivo:', error);
-      showError('Error al descargar el archivo');
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   const formatCurrency = (amount?: number | null) => {
     if (amount === null || amount === undefined) return 'S/ 0';
     return new Intl.NumberFormat('es-PE', {
@@ -155,11 +128,6 @@ const SentinelModal: React.FC<SentinelModalProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              {sentinel.file_url && (
-                <Button variant="outline" onClick={handleDownload} disabled={downloading} className="border-gray-700 text-gray-300 hover:bg-gray-800">
-                  <Download className="h-4 w-4 mr-2" /> {downloading ? 'Descargando...' : 'Descargar'}
-                </Button>
-              )}
               {isAdmin && mode === 'view' ? (
                 <Button variant="outline" size="sm" onClick={() => setMode('edit')} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                   <Edit className="h-4 w-4 mr-2" /> Editar

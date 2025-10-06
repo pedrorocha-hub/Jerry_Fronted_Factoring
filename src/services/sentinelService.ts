@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 export interface Sentinel {
   id: string;
   ruc: string;
-  file_url?: string;
   status: string;
   user_id?: string;
   created_at: string;
@@ -19,7 +18,6 @@ export interface Sentinel {
 
 export interface CreateSentinelData {
   ruc: string;
-  file_url?: string;
   status?: string;
   score?: string | null;
   comportamiento_calificacion?: string | null;
@@ -32,7 +30,6 @@ export interface CreateSentinelData {
 
 export interface UpdateSentinelData {
   ruc?: string;
-  file_url?: string;
   status?: string;
   score?: string | null;
   comportamiento_calificacion?: string | null;
