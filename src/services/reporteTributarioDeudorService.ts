@@ -86,6 +86,21 @@ export class ReporteTributarioDeudorService {
     return data;
   }
 
+  static async updateStatus(ruc: string, status: 'Borrador' | 'En revisión' | 'Completado'): Promise<ReporteTributarioDeudor> {
+    const { data, error } = await supabase
+        .from('reporte_tributario_deudor')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('ruc', ruc)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating report status:', error);
+        throw error;
+    }
+    return data;
+  }
+
   static async getAllSummaries(): Promise<ReporteTributarioDeudorSummary[]> {
     try {
       const { data, error } = await supabase.rpc('get_reporte_tributario_deudor_summaries');

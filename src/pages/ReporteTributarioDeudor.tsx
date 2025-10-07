@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, Eye } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { ReporteTributarioDeudor, ReporteTributarioDeudorService, ReporteTributarioDeudorSummary } from '@/services/reporteTributarioDeudorService';
+import { ProfileService } from '@/services/profileService';
 import ReporteTributarioDeudorTable from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorTable';
 import ReporteTributarioDeudorList from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorList';
+import ReporteStatusManager from '@/components/reporte-tributario-deudor/ReporteStatusManager';
 import { showSuccess, showError } from '@/utils/toast';
+
+type Status = 'Borrador' | 'En revisión' | 'Completado';
 
 const ReporteTributarioDeudorPage = () => {
   const [rucInput, setRucInput] = useState('');
@@ -18,15 +22,15 @@ const ReporteTributarioDeudorPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [reportData, setReportData] = useState<ReporteTributarioDeudor | null>(null);
+  const [creatorName, setCreatorName] = useState<string | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [reportSummaries, setReportSummaries] = useState<ReporteTributarioDeudorSummary[]>([]);
   const [loadingSummaries, setLoadingSummaries] = useState(true);
 
   const fetchSummaries = async () => {
     try {
-      console.log('Starting to fetch summaries...');
       setLoadingSummaries(true);
       const summaries = await ReporteTributarioDeudorService.getAllSummaries();
-      console.log('Fetched summaries:', summaries);
       setReportSummaries(summaries);
     } catch (err) {
       console.error('Error fetching summaries:', err);
@@ -50,6 +54,7 @@ const ReporteTributarioDeudorPage = () => {
     setError(null);
     setSearchedFicha(null);
     setReportData(null);
+    setCreatorName(null);
 
     try {
       const fichaData = await FichaRucService.getByRuc(ruc);
@@ -57,6 +62,14 @@ const ReporteTributarioDeudorPage = () => {
         setSearchedFicha(fichaData);
         const existingReport = await ReporteTributarioDeudorService.getByRuc(ruc);
         setReportData(existingReport);
+
+        if (existingReport?.user_id) {
+          const profile = await ProfileService.getProfileById(existingReport.user_id);
+          setCreatorName(profile?.full_name || 'Desconocido');
+        } else if (existingReport) {
+          setCreatorName('Sistema');
+        }
+
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un reporte.');
         showError('Ficha RUC no encontrada.');
@@ -75,9 +88,24 @@ const ReporteTributarioDeudorPage = () => {
       showSuccess('Reporte guardado exitosamente.');
       const updatedReport = await ReporteTributarioDeudorService.getByRuc(rucInput);
       setReportData(updatedReport);
-      await fetchSummaries(); // Refresh the list
+      await fetchSummaries();
     } catch (err) {
       showError('Error al guardar el reporte.');
+    }
+  };
+
+  const handleUpdateStatus = async (newStatus: Status) => {
+    if (!reportData) return;
+    setIsUpdatingStatus(true);
+    try {
+        const updatedReport = await ReporteTributarioDeudorService.updateStatus(reportData.ruc, newStatus);
+        setReportData(updatedReport);
+        showSuccess('Estado actualizado correctamente.');
+        await fetchSummaries();
+    } catch (err) {
+        showError('Error al actualizar el estado.');
+    } finally {
+        setIsUpdatingStatus(false);
     }
   };
 
@@ -86,8 +114,6 @@ const ReporteTributarioDeudorPage = () => {
     handleSearch(ruc);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  console.log('Current state - loadingSummaries:', loadingSummaries, 'reportSummaries:', reportSummaries);
 
   return (
     <Layout>
@@ -129,21 +155,31 @@ const ReporteTributarioDeudorPage = () => {
           )}
 
           {searchedFicha && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                  {searchedFicha.nombre_empresa}: Estado de situación
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ReporteTributarioDeudorTable
-                  ruc={searchedFicha.ruc}
-                  initialData={reportData}
-                  onSave={handleSave}
+            <div className="space-y-6">
+              {reportData && (
+                <ReporteStatusManager
+                  report={reportData}
+                  creatorName={creatorName}
+                  onUpdateStatus={handleUpdateStatus}
+                  isUpdating={isUpdatingStatus}
                 />
-              </CardContent>
-            </Card>
+              )}
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    {searchedFicha.nombre_empresa}: Estado de situación
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ReporteTributarioDeudorTable
+                    ruc={searchedFicha.ruc}
+                    initialData={reportData}
+                    onSave={handleSave}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           <Card className="bg-[#121212] border border-gray-800">
