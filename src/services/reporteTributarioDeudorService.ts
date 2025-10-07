@@ -91,31 +91,8 @@ export class ReporteTributarioDeudorService {
       const { data, error } = await supabase.rpc('get_reporte_tributario_deudor_summaries');
       
       if (error) {
-        console.error('Error calling RPC function, falling back to manual query:', error);
-        // Fallback logic
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('reporte_tributario_deudor')
-          .select(`
-            ruc,
-            updated_at,
-            status,
-            ficha_ruc!inner(nombre_empresa),
-            profiles (full_name)
-          `)
-          .order('updated_at', { ascending: false });
-
-        if (fallbackError) {
-          console.error('Error fetching report summaries with fallback:', fallbackError);
-          throw fallbackError;
-        }
-
-        return (fallbackData || []).map(item => ({
-          ruc: item.ruc,
-          nombre_empresa: (item.ficha_ruc as any)?.nombre_empresa || 'Empresa no encontrada',
-          updated_at: item.updated_at,
-          status: item.status,
-          creator_name: (item.profiles as any)?.full_name || 'Sistema'
-        }));
+        console.error('Error calling RPC function:', error);
+        throw error;
       }
 
       return data as ReporteTributarioDeudorSummary[];
