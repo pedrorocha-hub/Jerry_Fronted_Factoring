@@ -39,6 +39,12 @@ export interface ReporteTributarioDeudor {
 
 export type ReporteTributarioDeudorInsert = Omit<ReporteTributarioDeudor, 'id' | 'created_at' | 'updated_at'>;
 
+export interface ReporteTributarioDeudorSummary {
+  ruc: string;
+  nombre_empresa: string;
+  updated_at: string;
+}
+
 export class ReporteTributarioDeudorService {
   static async getByRuc(ruc: string): Promise<ReporteTributarioDeudor | null> {
     const { data, error } = await supabase
@@ -75,5 +81,15 @@ export class ReporteTributarioDeudorService {
       throw error;
     }
     return data;
+  }
+
+  static async getAllSummaries(): Promise<ReporteTributarioDeudorSummary[]> {
+    const { data, error } = await supabase.rpc('get_reporte_tributario_deudor_summaries');
+
+    if (error) {
+      console.error('Error fetching report summaries:', error);
+      throw error;
+    }
+    return (data as ReporteTributarioDeudorSummary[]) || [];
   }
 }
