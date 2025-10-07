@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ReporteTributarioDeudor {
   id: string;
   ruc: string;
+  status: 'Borrador' | 'En revisión' | 'Completado' | null;
   
   cuentas_por_cobrar_giro_2022?: number | null;
   cuentas_por_cobrar_giro_2023?: number | null;
@@ -43,6 +44,8 @@ export interface ReporteTributarioDeudorSummary {
   ruc: string;
   nombre_empresa: string;
   updated_at: string;
+  status: string | null;
+  creator_name: string | null;
 }
 
 export class ReporteTributarioDeudorService {
@@ -85,54 +88,37 @@ export class ReporteTributarioDeudorService {
 
   static async getAllSummaries(): Promise<ReporteTributarioDeudorSummary[]> {
     try {
-      console.log('Fetching report summaries...');
+      const { data, error } = await supabase.rpc('get_reporte_tributario_deudor_summaries');
       
-      // Consulta simple y directa
-      const { data, error } = await supabase
-        .from('reporte_tributario_deudor')
-        .select('ruc, updated_at')
-        .order('updated_at', { ascending: false });
-
       if (error) {
-        console.error('Error fetching report summaries:', error);
-        throw error;
-      }
+        console.error('Error calling RPC function, falling back to manual query:', error);
+        // Fallback logic
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('reporte_tributario_deudor')
+          .select(`
+            ruc,
+            updated_at,
+            status,
+            ficha_ruc!inner(nombre_empresa),
+            profiles (full_name)
+          `)
+          .order('updated_at', { ascending: false });
 
-      console.log('Raw data from reporte_tributario_deudor:', data);
-
-      if (!data || data.length === 0) {
-        console.log('No reports found in database');
-        return [];
-      }
-
-      // Para cada RUC, buscar el nombre de la empresa
-      const summaries: ReporteTributarioDeudorSummary[] = [];
-      
-      for (const report of data) {
-        try {
-          const { data: fichaData, error: fichaError } = await supabase
-            .from('ficha_ruc')
-            .select('nombre_empresa')
-            .eq('ruc', report.ruc)
-            .single();
-
-          summaries.push({
-            ruc: report.ruc,
-            nombre_empresa: fichaData?.nombre_empresa || 'Empresa no encontrada',
-            updated_at: report.updated_at
-          });
-        } catch (fichaError) {
-          console.warn(`Could not find ficha for RUC ${report.ruc}:`, fichaError);
-          summaries.push({
-            ruc: report.ruc,
-            nombre_empresa: 'Empresa no encontrada',
-            updated_at: report.updated_at
-          });
+        if (fallbackError) {
+          console.error('Error fetching report summaries with fallback:', fallbackError);
+          throw fallbackError;
         }
+
+        return (fallbackData || []).map(item => ({
+          ruc: item.ruc,
+          nombre_empresa: (item.ficha_ruc as any)?.nombre_empresa || 'Empresa no encontrada',
+          updated_at: item.updated_at,
+          status: item.status,
+          creator_name: (item.profiles as any)?.full_name || 'Sistema'
+        }));
       }
 
-      console.log('Final summaries:', summaries);
-      return summaries;
+      return data as ReporteTributarioDeudorSummary[];
 
     } catch (error) {
       console.error('Error in getAllSummaries:', error);
