@@ -397,8 +397,9 @@ const SolicitudOperacionCreateEditPage = () => {
                       Riesgo Vigente del Proveedor
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CardContent className="space-y-6">
+                    {/* Primera fila - Campos principales en formato columnar */}
+                    <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                       <div>
                         <Label htmlFor="lp">L/P</Label>
                         <Input id="lp" value={solicitudFormData.lp} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
@@ -407,12 +408,10 @@ const SolicitudOperacionCreateEditPage = () => {
                         <Label htmlFor="producto">Producto</Label>
                         <Input id="producto" value={solicitudFormData.producto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="deudor">Deudor (es)</Label>
-                      <Input id="deudor" value={solicitudFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="deudor">Deudor</Label>
+                        <Input id="deudor" value={solicitudFormData.deudor} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      </div>
                       <div>
                         <Label htmlFor="lp_vigente_gve">L/P Vigente (GVE)</Label>
                         <Input id="lp_vigente_gve" value={solicitudFormData.lp_vigente_gve} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
@@ -421,28 +420,30 @@ const SolicitudOperacionCreateEditPage = () => {
                         <Label htmlFor="riesgo_aprobado">Riesgo Aprobado</Label>
                         <Input id="riesgo_aprobado" type="number" step="0.01" value={solicitudFormData.riesgo_aprobado} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="propuesta_comercial">Propuesta Comercial</Label>
                         <Input id="propuesta_comercial" type="number" step="0.01" value={solicitudFormData.propuesta_comercial} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
                       </div>
                       <div>
-                        <Label htmlFor="exposicion_total">Exposición total (Soles)</Label>
+                        <Label htmlFor="exposicion_total">Exposición Total (Soles)</Label>
                         <Input id="exposicion_total" value={solicitudFormData.exposicion_total} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
                       </div>
                     </div>
-                    <div>
-                      <Label htmlFor="garantias">Garantías</Label>
-                      <Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                    </div>
-                    <div>
-                      <Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label>
-                      <Textarea id="condiciones_desembolso" value={solicitudFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                    </div>
-                    <div>
-                      <Label htmlFor="comentarios">Comentarios</Label>
-                      <Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+
+                    {/* Segunda sección - Campos de texto más amplios */}
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="garantias">Garantías</Label>
+                        <Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      </div>
+                      <div>
+                        <Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label>
+                        <Textarea id="condiciones_desembolso" value={solicitudFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      </div>
+                      <div>
+                        <Label htmlFor="comentarios">Comentarios</Label>
+                        <Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
