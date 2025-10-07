@@ -23,6 +23,7 @@ import ComportamientoCrediticioPage from '@/pages/ComportamientoCrediticio';
 import SentinelPage from '@/pages/SentinelPage';
 import SentinelCreatePage from '@/pages/SentinelCreatePage';
 import UsersPage from '@/pages/Admin/Users';
+import ReporteTributarioDeudorPage from '@/pages/ReporteTributarioDeudor';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
               <Route path="/sentinel" element={<SentinelPage />} />
               <Route path="/sentinel/create" element={<SentinelCreatePage />} />
               <Route path="/admin/users" element={<UsersPage />} />
+              <Route path="/reporte-tributario-deudor" element={<ReporteTributarioDeudorPage />} />
             </Route>
           </Routes>
           

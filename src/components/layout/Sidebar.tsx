@@ -6,7 +6,8 @@ import {
   Zap,
   FileText,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  ClipboardList
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -18,6 +19,7 @@ const Sidebar: React.FC = () => {
     { to: '/solicitudes-operacion', icon: FileText, label: 'Solicitudes de Operación' },
     { to: '/rib', icon: ShieldCheck, label: 'Análisis RIB' },
     { to: '/comportamiento-crediticio', icon: TrendingUp, label: 'Comportamiento Crediticio' },
+    { to: '/reporte-tributario-deudor', icon: ClipboardList, label: 'Reporte Deudor' },
   ];
 
   return (
