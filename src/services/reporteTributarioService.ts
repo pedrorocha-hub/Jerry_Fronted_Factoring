@@ -38,7 +38,7 @@ export class ReporteTributarioService {
     }
   }
 
-  // NUEVA FUNCIÓN: Obtener todos los reportes agrupados por empresa
+  // Obtener todos los reportes agrupados por empresa
   static async getAllGroupedByEmpresa(): Promise<ReporteTributarioPorEmpresa[]> {
     const reportes = await this.getAll();
     
@@ -63,8 +63,8 @@ export class ReporteTributarioService {
 
     // Ordenar reportes y extraer años/último reporte
     Object.values(grouped).forEach(empresa => {
-      empresa.reportes.sort((a, b) => (b.año_reporte || 0) - (a.año_reporte || 0));
-      empresa.años = empresa.reportes.map(r => r.año_reporte).sort((a, b) => (b || 0) - (a || 0));
+      empresa.reportes.sort((a, b) => (b.anio_reporte || 0) - (a.anio_reporte || 0));
+      empresa.años = empresa.reportes.map(r => r.anio_reporte).sort((a, b) => (b || 0) - (a || 0));
       if (empresa.reportes[0]?.created_at) {
         empresa.ultimoReporte = new Date(empresa.reportes[0].created_at).toLocaleDateString('es-ES');
       }
@@ -188,125 +188,31 @@ export class ReporteTributarioService {
     }
   }
 
-  // Buscar reportes tributarios por texto
-  static async search(searchTerm: string): Promise<ReporteTributarioWithFicha[]> {
-    // Esta función es compleja de implementar con la relación por RUC y búsqueda de texto en la tabla relacionada.
-    // Por ahora, devolverá todos los reportes.
-    return this.getAll();
-  }
-
-  // Obtener estadísticas
+  // Obtener estadísticas simplificadas
   static async getStats() {
     try {
       const { count: totalCount } = await supabase
         .from('reporte_tributario')
         .select('*', { count: 'exact', head: true });
 
-      // Para las estadísticas, necesitamos ver qué columnas existen realmente
-      const { data: sampleData } = await supabase
+      const { data: uniqueRucs, error } = await supabase
         .from('reporte_tributario')
-        .select('*')
-        .limit(5);
+        .select('ruc', { count: 'exact' });
 
-      console.log('Sample data for stats:', sampleData);
+      if (error) throw error;
+
+      const uniqueCompanies = new Set(uniqueRucs.map(item => item.ruc)).size;
 
       return {
         total: totalCount || 0,
-        thisYear: 0, // Por ahora 0 hasta que sepamos la estructura
-        uniqueYears: 0,
-        avgUtilidadNeta: 0,
-        positiveUtilidad: 0,
-        negativeUtilidad: 0,
-        empresasConReportes: 0
+        empresasConReportes: uniqueCompanies,
       };
     } catch (error) {
       console.error('Error in ReporteTributarioService.getStats:', error);
       return {
         total: 0,
-        thisYear: 0,
-        uniqueYears: 0,
-        avgUtilidadNeta: 0,
-        positiveUtilidad: 0,
-        negativeUtilidad: 0,
-        empresasConReportes: 0
+        empresasConReportes: 0,
       };
-    }
-  }
-
-  // Crear datos de prueba - necesitamos ver la estructura real primero
-  static async createTestData(): Promise<void> {
-    try {
-      console.log('ReporteTributarioService: Checking table structure...');
-      
-      // Primero verificar la estructura de la tabla
-      const { data: existingData, error: structureError } = await supabase
-        .from('reporte_tributario')
-        .select('*')
-        .limit(1);
-        
-      if (structureError) {
-        console.error('Error checking table structure:', structureError);
-        throw new Error(`Error verificando estructura de tabla: ${structureError.message}`);
-      }
-      
-      console.log('Table structure sample:', existingData?.[0]);
-      
-      // Verificar si existe al menos una ficha RUC
-      const { data: fichasRuc, error: fichasError } = await supabase
-        .from('ficha_ruc')
-        .select('ruc')
-        .limit(1);
-        
-      if (fichasError) {
-        throw new Error(`Error fetching ficha RUC: ${fichasError.message}`);
-      }
-      
-      let ruc: string;
-      
-      if (fichasRuc && fichasRuc.length > 0) {
-        ruc = fichasRuc[0].ruc;
-      } else {
-        // Crear una ficha RUC de prueba
-        const { data: nuevaFicha, error: createFichaError } = await supabase
-          .from('ficha_ruc')
-          .insert({
-            nombre_empresa: 'EMPRESA DE PRUEBA S.A.C.',
-            ruc: '20123456789',
-            actividad_empresa: 'Actividad de prueba',
-            estado_contribuyente: 'Activo'
-          })
-          .select()
-          .single();
-          
-        if (createFichaError || !nuevaFicha) {
-          throw new Error(`Error creating test ficha RUC: ${createFichaError?.message || 'Unknown error'}`);
-        }
-        
-        ruc = nuevaFicha.ruc;
-      }
-      
-      // Crear un reporte de prueba simple con solo los campos básicos
-      const testReporte = {
-        ruc: ruc,
-        // Agregar otros campos según la estructura real de la tabla
-      };
-      
-      console.log('Creating test reporte:', testReporte);
-      
-      const { data, error } = await supabase
-        .from('reporte_tributario')
-        .insert(testReporte)
-        .select();
-        
-      if (error) {
-        console.error('Error creating test reporte:', error);
-        throw new Error(`Error creating test reporte tributario: ${error.message}`);
-      }
-      
-      console.log(`ReporteTributarioService: Created test reporte tributario:`, data);
-    } catch (error) {
-      console.error('Error in ReporteTributarioService.createTestData:', error);
-      throw error;
     }
   }
 }

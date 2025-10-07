@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Eye, Edit, FileText, Calendar, DollarSign, Building2, Calculator } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Save, Eye, Edit, FileText, Building2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReporteTributarioWithFicha, ReporteTributarioUpdate } from '@/types/reporte-tributario';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
@@ -32,109 +28,72 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
 }) => {
   const { isAdmin } = useSession();
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
-  const [formData, setFormData] = useState<ReporteTributarioUpdate>({});
+  const [formData, setFormData] = useState<Partial<ReporteTributarioUpdate>>({});
   const [loading, setLoading] = useState(false);
 
   const isReadOnly = mode === 'view' || !isAdmin;
 
   useEffect(() => {
     if (reporte) {
-      setFormData({
-        año_reporte: reporte.año_reporte,
-        ingresos_netos: reporte.ingresos_netos || 0,
-        costo_ventas: reporte.costo_ventas || 0,
-        gastos_operativos: reporte.gastos_operativos || 0,
-        utilidad_bruta: reporte.utilidad_bruta || 0,
-        utilidad_operativa: reporte.utilidad_operativa || 0,
-        utilidad_neta: reporte.utilidad_neta || 0,
-        activo_total: reporte.activo_total || 0,
-        pasivo_total: reporte.pasivo_total || 0,
-        patrimonio_total: reporte.patrimonio_total || 0,
-        ratio_endeudamiento: reporte.ratio_endeudamiento || 0,
-        ratio_liquidez: reporte.ratio_liquidez || 0
-      });
+      setFormData(reporte);
     }
     setMode(initialMode);
   }, [reporte, initialMode]);
 
-  const handleInputChange = (field: keyof ReporteTributarioUpdate, value: string | number) => {
-    const numericValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-    
-    setFormData(prev => {
-      const newData = {
-        ...prev,
-        [field]: numericValue
-      };
-
-      // Calcular automáticamente algunos campos
-      if (field === 'ingresos_netos' || field === 'costo_ventas') {
-        const ingresos = field === 'ingresos_netos' ? numericValue : (prev.ingresos_netos || 0);
-        const costos = field === 'costo_ventas' ? numericValue : (prev.costo_ventas || 0);
-        newData.utilidad_bruta = ingresos - costos;
-      }
-
-      if (field === 'utilidad_bruta' || field === 'gastos_operativos') {
-        const utilidadBruta = field === 'utilidad_bruta' ? numericValue : (prev.utilidad_bruta || 0);
-        const gastos = field === 'gastos_operativos' ? numericValue : (prev.gastos_operativos || 0);
-        newData.utilidad_operativa = utilidadBruta - gastos;
-      }
-
-      if (field === 'activo_total' || field === 'pasivo_total') {
-        const activos = field === 'activo_total' ? numericValue : (prev.activo_total || 0);
-        const pasivos = field === 'pasivo_total' ? numericValue : (prev.pasivo_total || 0);
-        newData.patrimonio_total = activos - pasivos;
-        
-        if (activos > 0) {
-          newData.ratio_endeudamiento = pasivos / activos;
-        }
-      }
-
-      return newData;
-    });
+  const handleInputChange = (field: keyof ReporteTributarioUpdate, value: string | number | boolean | null) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSave = async () => {
-    if (!isAdmin) {
-      showError('No tienes permisos para guardar cambios.');
-      return;
-    }
-    if (!reporte) return;
-
+    if (!isAdmin || !reporte) return;
     const loadingToast = showLoading('Guardando cambios...');
     setLoading(true);
-
     try {
       await ReporteTributarioService.update(reporte.id, formData);
       dismissToast(loadingToast);
-      showSuccess('Reporte tributario actualizado exitosamente');
+      showSuccess('Reporte actualizado exitosamente');
       onSave();
       onClose();
     } catch (error) {
       dismissToast(loadingToast);
-      showError(`Error actualizando reporte: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      showError(`Error al actualizar: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (amount === null || amount === undefined) return 'S/ 0.00';
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN'
-    }).format(amount);
-  };
+  const renderField = (id: keyof ReporteTributarioUpdate, label: string, type: 'text' | 'date' | 'number' = 'text') => (
+    <div>
+      <Label htmlFor={id} className="text-gray-300">{label}</Label>
+      {isReadOnly ? (
+        <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md text-white">
+          {String(formData[id] || 'N/A')}
+        </div>
+      ) : (
+        <Input
+          id={id}
+          type={type}
+          value={String(formData[id] || '')}
+          onChange={(e) => handleInputChange(id, type === 'number' ? parseFloat(e.target.value) || null : e.target.value)}
+          className="bg-gray-900/50 border-gray-700 text-white"
+        />
+      )}
+    </div>
+  );
 
-  const formatPercentage = (ratio?: number) => {
-    if (ratio === null || ratio === undefined) return '0.00%';
-    return `${(ratio * 100).toFixed(2)}%`;
-  };
-
-  const getMargenNeto = () => {
-    const ingresos = formData.ingresos_netos || reporte?.ingresos_netos || 0;
-    const utilidadNeta = formData.utilidad_neta || reporte?.utilidad_neta || 0;
-    if (ingresos === 0) return 0;
-    return (utilidadNeta / ingresos) * 100;
+  const renderMonthlyInputs = (prefix: 'ingresos' | 'ventas', title: string) => {
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+    return (
+      <div className="space-y-4">
+        <h4 className="text-md font-semibold text-white">{title}</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {months.map(month => {
+            const fieldId = `${prefix}_${month}` as keyof ReporteTributarioUpdate;
+            return renderField(fieldId, month.charAt(0).toUpperCase() + month.slice(1), 'number');
+          })}
+        </div>
+      </div>
+    );
   };
 
   if (!reporte) return null;
@@ -147,207 +106,121 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
             <div className="flex items-center space-x-3">
               <FileText className="h-6 w-6 text-[#00FF80]" />
               <div>
-                <span className="text-xl font-bold text-white">
-                  {isReadOnly ? 'Ver' : 'Editar'} Reporte Tributario
-                </span>
-                <div className="text-sm text-gray-400">
-                  {reporte.ficha_ruc?.nombre_empresa} - {reporte.año_reporte}
-                </div>
+                <span className="text-xl font-bold text-white">{isReadOnly ? 'Ver' : 'Editar'} Reporte Tributario</span>
+                <div className="text-sm text-gray-400">{reporte.ficha_ruc?.nombre_empresa} - {reporte.anio_reporte}</div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              {isAdmin && mode === 'view' ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setMode('edit')}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
-              ) : isAdmin && mode === 'edit' ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setMode('view')}
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Ver
-                </Button>
-              ) : null}
-            </div>
+            {isAdmin && (
+              <div className="flex items-center space-x-2">
+                {mode === 'view' ? (
+                  <Button variant="outline" size="sm" onClick={() => setMode('edit')} className="border-gray-700 text-gray-300 hover:bg-gray-800"><Edit className="h-4 w-4 mr-2" /> Editar</Button>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={() => setMode('view')} className="border-gray-700 text-gray-300 hover:bg-gray-800"><Eye className="h-4 w-4 mr-2" /> Ver</Button>
+                )}
+              </div>
+            )}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-4">
-          {/* Información General */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center text-white">
-              <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-              Información General
-            </h3>
+        <Tabs defaultValue="general" className="w-full pt-4">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7 bg-gray-900/50">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="ruc">Info RUC</TabsTrigger>
+            <TabsTrigger value="facturacion">Facturación</TabsTrigger>
+            <TabsTrigger value="renta">Declaración Anual</TabsTrigger>
+            <TabsTrigger value="itan">ITAN</TabsTrigger>
+            <TabsTrigger value="mensual">Declaraciones Mensuales</TabsTrigger>
+            <TabsTrigger value="ventas">Ventas</TabsTrigger>
+          </TabsList>
 
-            <div>
-              <Label>Empresa</Label>
-              <div className="mt-1 p-3 bg-blue-500/10 border border-blue-500/20 rounded-md">
-                <div className="font-medium text-blue-300">
-                  {reporte.ficha_ruc?.nombre_empresa || 'N/A'}
-                </div>
-                <div className="text-sm text-blue-400 font-mono">
-                  RUC: {reporte.ficha_ruc?.ruc || 'N/A'}
-                </div>
-              </div>
+          <TabsContent value="general" className="py-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {renderField('anio_reporte', 'Año del Reporte', 'number')}
+              {renderField('razon_social', 'Razón Social')}
+              {renderField('ruc', 'RUC')}
+              {renderField('fecha_emision', 'Fecha de Emisión', 'date')}
             </div>
+          </TabsContent>
 
-            <div>
-              <Label htmlFor="año_reporte">Año del Reporte</Label>
-              {isReadOnly ? (
-                <div className="mt-1 p-3 bg-gray-900/50 border border-gray-800 rounded-md flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                  <span className="font-medium text-white">{reporte.año_reporte}</span>
-                </div>
-              ) : (
-                <Input
-                  id="año_reporte"
-                  type="number"
-                  value={formData.año_reporte || ''}
-                  onChange={(e) => handleInputChange('año_reporte', parseInt(e.target.value) || 0)}
-                  placeholder="2024"
-                  className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
-                />
-              )}
+          <TabsContent value="ruc" className="py-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {renderField('ruc_fecha_informacion', 'Fecha de Información', 'date')}
+              {renderField('ruc_nombre_comercial', 'Nombre Comercial')}
+              {renderField('ruc_fecha_inscripcion', 'Fecha de Inscripción', 'date')}
+              {renderField('ruc_fecha_inicio_actividades', 'Inicio de Actividades', 'date')}
+              {renderField('ruc_estado_contribuyente', 'Estado Contribuyente')}
+              {renderField('ruc_condicion_contribuyente', 'Condición Contribuyente')}
+              {renderField('ruc_domicilio_fiscal', 'Domicilio Fiscal')}
+              {renderField('ruc_actividad_comercio_exterior', 'Actividad Comercio Exterior')}
+              {renderField('ruc_actividad_economica', 'Actividad Económica')}
             </div>
+          </TabsContent>
 
-            <div className="pt-4 border-t border-gray-800">
-              <h4 className="text-sm font-medium text-gray-400 mb-3 flex items-center">
-                <Calculator className="h-4 w-4 mr-2 text-gray-400" />
-                Ratios Calculados
-              </h4>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Margen Neto:</span>
-                  <span className={`text-sm font-medium ${
-                    getMargenNeto() >= 0 ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {getMargenNeto().toFixed(2)}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Endeudamiento:</span>
-                  <span className="text-sm font-medium text-white">
-                    {formatPercentage(formData.ratio_endeudamiento || reporte.ratio_endeudamiento)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-400">Liquidez:</span>
-                  <span className="text-sm font-medium text-white">
-                    {(formData.ratio_liquidez || reporte.ratio_liquidez || 0).toFixed(2)}
-                  </span>
-                </div>
-              </div>
+          <TabsContent value="facturacion" className="py-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {renderField('facturacion_sistema_emision_comprobante', 'Sistema Emisión Comprobante')}
+              {renderField('facturacion_sistema_contabilidad', 'Sistema Contabilidad')}
+              {renderField('facturacion_comprobantes_autorizados', 'Comprobantes Autorizados')}
+              {renderField('facturacion_sistema_emision_electronica', 'Sistema Emisión Electrónica')}
+              {renderField('facturacion_afiliado_ple_desde', 'Afiliado PLE Desde', 'date')}
             </div>
-          </div>
+          </TabsContent>
 
-          {/* Estado de Resultados */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center text-white">
-              <DollarSign className="h-5 w-5 mr-2 text-green-400" />
-              Estado de Resultados
-            </h3>
+          <TabsContent value="renta" className="py-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {renderField('renta_fecha_informacion', 'Fecha de Información', 'date')}
+              {renderField('renta_ingresos_netos', 'Ingresos Netos', 'number')}
+              {renderField('renta_otros_ingresos', 'Otros Ingresos', 'number')}
+              {renderField('renta_total_activos_netos', 'Total Activos Netos', 'number')}
+              {renderField('renta_total_cuentas_por_pagar', 'Total Cuentas por Pagar', 'number')}
+              {renderField('renta_total_patrimonio', 'Total Patrimonio', 'number')}
+              {renderField('renta_capital_social', 'Capital Social', 'number')}
+              {renderField('renta_resultado_bruto', 'Resultado Bruto', 'number')}
+              {renderField('renta_resultado_antes_participaciones', 'Resultado Antes de Participaciones', 'number')}
+              {renderField('renta_importe_pagado', 'Importe Pagado', 'number')}
+            </div>
+          </TabsContent>
 
-            {[
-              { id: 'ingresos_netos', label: 'Ingresos Netos', value: reporte.ingresos_netos },
-              { id: 'costo_ventas', label: 'Costo de Ventas', value: reporte.costo_ventas },
-              { id: 'utilidad_bruta', label: 'Utilidad Bruta', value: reporte.utilidad_bruta },
-              { id: 'gastos_operativos', label: 'Gastos Operativos', value: reporte.gastos_operativos },
-              { id: 'utilidad_operativa', label: 'Utilidad Operativa', value: reporte.utilidad_operativa },
-              { id: 'utilidad_neta', label: 'Utilidad Neta', value: reporte.utilidad_neta },
-            ].map(item => (
-              <div key={item.id}>
-                <Label htmlFor={item.id}>{item.label}</Label>
+          <TabsContent value="itan" className="py-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="itan_presento_declaracion" className="text-gray-300">Presentó Declaración</Label>
                 {isReadOnly ? (
-                  <div className="mt-1 p-3 bg-gray-900/50 border border-gray-800 rounded-md">
-                    <span className={`font-medium ${
-                      (item.value || 0) >= 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {formatCurrency(item.value)}
-                    </span>
+                  <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md text-white">
+                    {formData.itan_presento_declaracion ? 'Sí' : 'No'}
                   </div>
                 ) : (
-                  <Input
-                    id={item.id}
-                    type="number"
-                    step="0.01"
-                    value={formData[item.id as keyof ReporteTributarioUpdate] as number || ''}
-                    onChange={(e) => handleInputChange(item.id as keyof ReporteTributarioUpdate, e.target.value)}
-                    placeholder="0.00"
-                    className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
-                  />
+                  <Select value={String(formData.itan_presento_declaracion || 'false')} onValueChange={(v) => handleInputChange('itan_presento_declaracion', v === 'true')}>
+                    <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="true">Sí</SelectItem><SelectItem value="false">No</SelectItem></SelectContent>
+                  </Select>
                 )}
               </div>
-            ))}
-          </div>
-
-          {/* Balance General */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold flex items-center text-white">
-              <FileText className="h-5 w-5 mr-2 text-purple-400" />
-              Balance General
-            </h3>
-
-            {[
-              { id: 'activo_total', label: 'Activo Total', value: reporte.activo_total },
-              { id: 'pasivo_total', label: 'Pasivo Total', value: reporte.pasivo_total },
-              { id: 'patrimonio_total', label: 'Patrimonio Total', value: reporte.patrimonio_total },
-              { id: 'ratio_endeudamiento', label: 'Ratio de Endeudamiento', value: reporte.ratio_endeudamiento, format: formatPercentage },
-              { id: 'ratio_liquidez', label: 'Ratio de Liquidez', value: reporte.ratio_liquidez, format: (v?: number) => (v || 0).toFixed(4) },
-            ].map(item => (
-              <div key={item.id}>
-                <Label htmlFor={item.id}>{item.label}</Label>
-                {isReadOnly ? (
-                  <div className="mt-1 p-3 bg-gray-900/50 border border-gray-800 rounded-md">
-                    <span className="font-medium text-white">
-                      {item.format ? item.format(item.value) : formatCurrency(item.value)}
-                    </span>
-                  </div>
-                ) : (
-                  <Input
-                    id={item.id}
-                    type="number"
-                    step={item.id.startsWith('ratio') ? "0.0001" : "0.01"}
-                    value={formData[item.id as keyof ReporteTributarioUpdate] as number || ''}
-                    onChange={(e) => handleInputChange(item.id as keyof ReporteTributarioUpdate, e.target.value)}
-                    placeholder="0.00"
-                    className="bg-gray-900/50 border-gray-700 text-white placeholder-gray-500 focus:border-[#00FF80]/50"
-                  />
-                )}
-              </div>
-            ))}
-
-            <div className="pt-4 border-t border-gray-800">
-              <h4 className="text-sm font-medium text-gray-400 mb-2">Información de Registro</h4>
-              <div className="text-xs text-gray-500 space-y-1">
-                <div>
-                  <strong>Creado:</strong> {new Date(reporte.created_at).toLocaleString('es-ES')}
-                </div>
-                <div>
-                  <strong>Actualizado:</strong> {new Date(reporte.updated_at).toLocaleString('es-ES')}
-                </div>
-              </div>
+              {renderField('itan_base_imponible', 'Base Imponible', 'number')}
+              {renderField('itan_itan_a_pagar', 'ITAN a Pagar', 'number')}
+              {renderField('itan_cuotas_cantidad', 'Cantidad de Cuotas', 'number')}
+              {renderField('itan_cuotas_monto', 'Monto de Cuota', 'number')}
             </div>
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="mensual" className="py-6 space-y-4">
+            {renderMonthlyInputs('ingresos', 'Ingresos Mensuales Declarados')}
+          </TabsContent>
+
+          <TabsContent value="ventas" className="py-6 space-y-4">
+            {renderMonthlyInputs('ventas', 'Ventas Mensuales')}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-800">
+              {renderField('ventas_total_ingresos', 'Total Ingresos Anuales', 'number')}
+              {renderField('ventas_total_essalud', 'Total ESSALUD Anual', 'number')}
+            </div>
+          </TabsContent>
+        </Tabs>
 
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-800">
-          <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-            Cancelar
-          </Button>
+          <Button variant="outline" onClick={onClose} className="border-gray-700 text-gray-300 hover:bg-gray-800">Cancelar</Button>
           {mode === 'edit' && isAdmin && (
             <Button onClick={handleSave} disabled={loading} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-              <Save className="h-4 w-4 mr-2" />
-              {loading ? 'Guardando...' : 'Guardar Cambios'}
+              <Save className="h-4 w-4 mr-2" /> {loading ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           )}
         </div>
