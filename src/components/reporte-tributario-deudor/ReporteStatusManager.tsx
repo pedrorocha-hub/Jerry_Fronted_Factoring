@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -11,35 +11,14 @@ type Status = 'Borrador' | 'En revisión' | 'Completado';
 interface ReporteStatusManagerProps {
   report: ReporteTributarioDeudor;
   creatorName: string | null;
-  onUpdateStatus: (newStatus: Status) => Promise<void>;
-  isUpdating: boolean;
+  onStatusChange: (newStatus: Status) => void;
+  onSave: () => Promise<void>;
+  isSaving: boolean;
+  hasUnsavedChanges: boolean;
 }
 
-const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({ report, creatorName, onUpdateStatus, isUpdating }) => {
-  const [selectedStatus, setSelectedStatus] = useState<Status>(report.status || 'Borrador');
-  const hasChanges = selectedStatus !== (report.status || 'Borrador');
-
-  useEffect(() => {
-    setSelectedStatus(report.status || 'Borrador');
-  }, [report.status]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasChanges) {
-        e.preventDefault();
-        e.returnValue = 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [hasChanges]);
-
-  const handleUpdateClick = () => {
-    onUpdateStatus(selectedStatus);
-  };
-
+const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({ report, creatorName, onStatusChange, onSave, isSaving, hasUnsavedChanges }) => {
+  
   const formatDate = (dateString: string) => new Date(dateString).toLocaleString('es-ES');
 
   return (
@@ -48,16 +27,16 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({ report, cre
         <CardTitle className="text-white">Completar datos</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {hasChanges && (
+        {hasUnsavedChanges && (
           <Alert variant="default" className="bg-yellow-500/10 border-yellow-500/20 text-yellow-300">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>Tienes cambios sin guardar en el estado de la solicitud.</AlertDescription>
+            <AlertDescription>Tienes cambios sin guardar en la solicitud.</AlertDescription>
           </Alert>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-400 mb-2 block">Estado de solicitud</label>
-            <Select value={selectedStatus} onValueChange={(value: Status) => setSelectedStatus(value)}>
+            <Select value={report.status || 'Borrador'} onValueChange={(value: Status) => onStatusChange(value)}>
               <SelectTrigger className="w-full bg-gray-900/50 border-gray-700">
                 <SelectValue placeholder="Seleccionar estado" />
               </SelectTrigger>
@@ -84,8 +63,8 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({ report, cre
           </div>
         </div>
         <div className="flex justify-end">
-          <Button onClick={handleUpdateClick} disabled={!hasChanges || isUpdating} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-            {isUpdating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+          <Button onClick={onSave} disabled={!hasUnsavedChanges || isSaving} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+            {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Actualizar Solicitud
           </Button>
         </div>

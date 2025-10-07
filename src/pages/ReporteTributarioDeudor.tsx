@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,9 +21,13 @@ const ReporteTributarioDeudorPage = () => {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
-  const [reportData, setReportData] = useState<ReporteTributarioDeudor | null>(null);
+  
+  const [savedReportData, setSavedReportData] = useState<ReporteTributarioDeudor | null>(null);
+  const [draftReportData, setDraftReportData] = useState<Partial<ReporteTributarioDeudor> | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   const [creatorName, setCreatorName] = useState<string | null>(null);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [reportSummaries, setReportSummaries] = useState<ReporteTributarioDeudorSummary[]>([]);
   const [loadingSummaries, setLoadingSummaries] = useState(true);
 
@@ -44,6 +48,29 @@ const ReporteTributarioDeudorPage = () => {
     fetchSummaries();
   }, []);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  const clearSearch = () => {
+    setRucInput('');
+    setError(null);
+    setSearchedFicha(null);
+    setSavedReportData(null);
+    setDraftReportData(null);
+    setCreatorName(null);
+    setHasUnsavedChanges(false);
+  };
+
   const handleSearch = async (rucToSearch?: string) => {
     const ruc = rucToSearch || rucInput;
     if (!ruc || ruc.length !== 11) {
@@ -51,17 +78,17 @@ const ReporteTributarioDeudorPage = () => {
       return;
     }
     setSearching(true);
-    setError(null);
-    setSearchedFicha(null);
-    setReportData(null);
-    setCreatorName(null);
+    clearSearch();
+    setRucInput(ruc);
 
     try {
       const fichaData = await FichaRucService.getByRuc(ruc);
       if (fichaData) {
         setSearchedFicha(fichaData);
         const existingReport = await ReporteTributarioDeudorService.getByRuc(ruc);
-        setReportData(existingReport);
+        const reportToEdit = existingReport || { ruc, status: 'Borrador', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setSavedReportData(reportToEdit as ReporteTributarioDeudor);
+        setDraftReportData(reportToEdit);
 
         if (existingReport?.user_id) {
           const profile = await ProfileService.getProfileById(existingReport.user_id);
@@ -69,7 +96,6 @@ const ReporteTributarioDeudorPage = () => {
         } else if (existingReport) {
           setCreatorName('Sistema');
         }
-
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un reporte.');
         showError('Ficha RUC no encontrada.');
@@ -82,30 +108,32 @@ const ReporteTributarioDeudorPage = () => {
     }
   };
 
-  const handleSave = async (dataToSave: any) => {
-    try {
-      await ReporteTributarioDeudorService.upsert(dataToSave);
-      showSuccess('Reporte guardado exitosamente.');
-      const updatedReport = await ReporteTributarioDeudorService.getByRuc(rucInput);
-      setReportData(updatedReport);
-      await fetchSummaries();
-    } catch (err) {
-      showError('Error al guardar el reporte.');
+  const handleDataChange = (updatedData: Partial<ReporteTributarioDeudor>) => {
+    setDraftReportData(updatedData);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleStatusChange = (newStatus: Status) => {
+    if (draftReportData) {
+      setDraftReportData({ ...draftReportData, status: newStatus });
+      setHasUnsavedChanges(true);
     }
   };
 
-  const handleUpdateStatus = async (newStatus: Status) => {
-    if (!reportData) return;
-    setIsUpdatingStatus(true);
+  const handleSave = async () => {
+    if (!draftReportData || !draftReportData.ruc) return;
+    setIsSaving(true);
     try {
-        const updatedReport = await ReporteTributarioDeudorService.updateStatus(reportData.ruc, newStatus);
-        setReportData(updatedReport);
-        showSuccess('Estado actualizado correctamente.');
-        await fetchSummaries();
+      const savedData = await ReporteTributarioDeudorService.upsert(draftReportData as any);
+      setSavedReportData(savedData);
+      setDraftReportData(savedData);
+      setHasUnsavedChanges(false);
+      showSuccess('Solicitud actualizada exitosamente.');
+      await fetchSummaries();
     } catch (err) {
-        showError('Error al actualizar el estado.');
+      showError('Error al guardar la solicitud.');
     } finally {
-        setIsUpdatingStatus(false);
+      setIsSaving(false);
     }
   };
 
@@ -144,6 +172,12 @@ const ReporteTributarioDeudorPage = () => {
                 {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                 Buscar
               </Button>
+              {searchedFicha && (
+                <Button onClick={clearSearch} variant="outline" className="w-full sm:w-auto">
+                  <X className="h-4 w-4 mr-2" />
+                  Limpiar
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -154,16 +188,8 @@ const ReporteTributarioDeudorPage = () => {
             </Alert>
           )}
 
-          {searchedFicha && (
+          {searchedFicha ? (
             <div className="space-y-6">
-              {reportData && (
-                <ReporteStatusManager
-                  report={reportData}
-                  creatorName={creatorName}
-                  onUpdateStatus={handleUpdateStatus}
-                  isUpdating={isUpdatingStatus}
-                />
-              )}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
@@ -174,34 +200,45 @@ const ReporteTributarioDeudorPage = () => {
                 <CardContent>
                   <ReporteTributarioDeudorTable
                     ruc={searchedFicha.ruc}
-                    initialData={reportData}
-                    onSave={handleSave}
+                    data={draftReportData}
+                    onDataChange={handleDataChange}
                   />
                 </CardContent>
               </Card>
-            </div>
-          )}
-
-          <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-white">Análisis de Deudores Guardados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingSummaries ? (
-                <div className="flex justify-center items-center p-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
-                </div>
-              ) : reportSummaries.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No hay análisis de deudores guardados</p>
-                  <p className="text-sm mt-2">Busca una empresa y guarda su análisis para verlo aquí</p>
-                </div>
-              ) : (
-                <ReporteTributarioDeudorList reports={reportSummaries} onSelectReport={handleSelectReport} />
+              
+              {savedReportData && (
+                <ReporteStatusManager
+                  report={draftReportData as ReporteTributarioDeudor}
+                  creatorName={creatorName}
+                  onStatusChange={handleStatusChange}
+                  onSave={handleSave}
+                  isSaving={isSaving}
+                  hasUnsavedChanges={hasUnsavedChanges}
+                />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          ) : (
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white">Análisis de Deudores Guardados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingSummaries ? (
+                  <div className="flex justify-center items-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                  </div>
+                ) : reportSummaries.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No hay análisis de deudores guardados</p>
+                    <p className="text-sm mt-2">Busca una empresa para crear su análisis</p>
+                  </div>
+                ) : (
+                  <ReporteTributarioDeudorList reports={reportSummaries} onSelectReport={handleSelectReport} />
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </Layout>
