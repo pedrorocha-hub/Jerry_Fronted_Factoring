@@ -143,7 +143,7 @@ const ReporteTributarioDeudorPage = () => {
 
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Reportes Guardados</CardTitle>
+              <CardTitle className="text-white">Análisis de Deudores Guardados</CardTitle>
             </CardHeader>
             <CardContent>
               {loadingSummaries ? (
