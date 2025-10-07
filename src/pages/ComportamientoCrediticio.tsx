@@ -14,7 +14,8 @@ import { ComportamientoCrediticio, ComportamientoCrediticioInsert, Comportamient
 import { FichaRucService } from '@/services/fichaRucService';
 import { ComportamientoCrediticioService } from '@/services/comportamientoCrediticioService';
 import { Sentinel } from '@/services/sentinelService';
-import { showSuccess, showError, toast } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
+import { toast } from 'sonner';
 import { useSession } from '@/contexts/SessionContext';
 import ComportamientoCrediticioTable from '@/components/comportamiento-crediticio/ComportamientoCrediticioTable';
 import { supabase } from '@/integrations/supabase/client';
