@@ -23,10 +23,13 @@ const ReporteTributarioDeudorPage = () => {
 
   const fetchSummaries = async () => {
     try {
+      console.log('Starting to fetch summaries...');
       setLoadingSummaries(true);
       const summaries = await ReporteTributarioDeudorService.getAllSummaries();
+      console.log('Fetched summaries:', summaries);
       setReportSummaries(summaries);
     } catch (err) {
+      console.error('Error fetching summaries:', err);
       showError('Error al cargar la lista de reportes.');
     } finally {
       setLoadingSummaries(false);
@@ -83,6 +86,8 @@ const ReporteTributarioDeudorPage = () => {
     handleSearch(ruc);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  console.log('Current state - loadingSummaries:', loadingSummaries, 'reportSummaries:', reportSummaries);
 
   return (
     <Layout>
@@ -149,6 +154,12 @@ const ReporteTributarioDeudorPage = () => {
               {loadingSummaries ? (
                 <div className="flex justify-center items-center p-8">
                   <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                </div>
+              ) : reportSummaries.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay análisis de deudores guardados</p>
+                  <p className="text-sm mt-2">Busca una empresa y guarda su análisis para verlo aquí</p>
                 </div>
               ) : (
                 <ReporteTributarioDeudorList reports={reportSummaries} onSelectReport={handleSelectReport} />

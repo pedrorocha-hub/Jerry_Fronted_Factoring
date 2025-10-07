@@ -85,23 +85,12 @@ export class ReporteTributarioDeudorService {
 
   static async getAllSummaries(): Promise<ReporteTributarioDeudorSummary[]> {
     try {
-      // Primero intentamos con la función RPC
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_reporte_tributario_deudor_summaries');
+      console.log('Fetching report summaries...');
       
-      if (!rpcError && rpcData) {
-        return rpcData as ReporteTributarioDeudorSummary[];
-      }
-
-      console.warn('RPC function failed, falling back to direct query:', rpcError);
-
-      // Si la función RPC falla, hacemos una consulta directa
+      // Consulta simple y directa
       const { data, error } = await supabase
         .from('reporte_tributario_deudor')
-        .select(`
-          ruc,
-          updated_at,
-          ficha_ruc!inner(nombre_empresa)
-        `)
+        .select('ruc, updated_at')
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -109,12 +98,41 @@ export class ReporteTributarioDeudorService {
         throw error;
       }
 
-      // Transformar los datos al formato esperado
-      return (data || []).map(item => ({
-        ruc: item.ruc,
-        nombre_empresa: (item.ficha_ruc as any)?.nombre_empresa || 'Empresa no encontrada',
-        updated_at: item.updated_at
-      }));
+      console.log('Raw data from reporte_tributario_deudor:', data);
+
+      if (!data || data.length === 0) {
+        console.log('No reports found in database');
+        return [];
+      }
+
+      // Para cada RUC, buscar el nombre de la empresa
+      const summaries: ReporteTributarioDeudorSummary[] = [];
+      
+      for (const report of data) {
+        try {
+          const { data: fichaData, error: fichaError } = await supabase
+            .from('ficha_ruc')
+            .select('nombre_empresa')
+            .eq('ruc', report.ruc)
+            .single();
+
+          summaries.push({
+            ruc: report.ruc,
+            nombre_empresa: fichaData?.nombre_empresa || 'Empresa no encontrada',
+            updated_at: report.updated_at
+          });
+        } catch (fichaError) {
+          console.warn(`Could not find ficha for RUC ${report.ruc}:`, fichaError);
+          summaries.push({
+            ruc: report.ruc,
+            nombre_empresa: 'Empresa no encontrada',
+            updated_at: report.updated_at
+          });
+        }
+      }
+
+      console.log('Final summaries:', summaries);
+      return summaries;
 
     } catch (error) {
       console.error('Error in getAllSummaries:', error);
