@@ -9,6 +9,8 @@ export interface ComportamientoCrediticio {
   updated_at: string;
   proveedor: string | null;
   
+  equifax_score: string | null;
+  sentinel_score: string | null;
   equifax_calificacion: string | null;
   sentinel_calificacion: string | null;
   equifax_deuda_directa: number | null;
@@ -26,6 +28,8 @@ export interface ComportamientoCrediticio {
   comentarios: string | null;
 
   deudor: string | null;
+  deudor_equifax_score: string | null;
+  deudor_sentinel_score: string | null;
   deudor_equifax_calificacion: string | null;
   deudor_sentinel_calificacion: string | null;
   deudor_equifax_deuda_directa: number | null;
@@ -48,6 +52,8 @@ export interface ComportamientoCrediticioInsert {
   status?: CrediticioStatus;
   proveedor?: string | null;
 
+  equifax_score?: string | null;
+  sentinel_score?: string | null;
   equifax_calificacion?: string | null;
   sentinel_calificacion?: string | null;
   equifax_deuda_directa?: number | null;
@@ -65,6 +71,8 @@ export interface ComportamientoCrediticioInsert {
   comentarios?: string | null;
 
   deudor?: string | null;
+  deudor_equifax_score?: string | null;
+  deudor_sentinel_score?: string | null;
   deudor_equifax_calificacion?: string | null;
   deudor_sentinel_calificacion?: string | null;
   deudor_equifax_deuda_directa?: number | null;
@@ -85,6 +93,8 @@ export interface ComportamientoCrediticioUpdate {
   status?: CrediticioStatus;
   proveedor?: string | null;
 
+  equifax_score?: string | null;
+  sentinel_score?: string | null;
   equifax_calificacion?: string | null;
   sentinel_calificacion?: string | null;
   equifax_deuda_directa?: number | null;
@@ -102,6 +112,8 @@ export interface ComportamientoCrediticioUpdate {
   comentarios?: string | null;
 
   deudor?: string | null;
+  deudor_equifax_score?: string | null;
+  deudor_sentinel_score?: string | null;
   deudor_equifax_calificacion?: string | null;
   deudor_sentinel_calificacion?: string | null;
   deudor_equifax_deuda_directa?: number | null;

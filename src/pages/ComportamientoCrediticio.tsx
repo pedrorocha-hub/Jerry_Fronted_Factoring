@@ -52,9 +52,10 @@ const ComportamientoCrediticioPage = () => {
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
 
   const emptyForm = {
-    score: '',
     proveedor: '',
     deudor: '',
+    equifax_score: '',
+    sentinel_score: '',
     equifax_calificacion: '',
     sentinel_calificacion: '',
     equifax_deuda_directa: '',
@@ -76,6 +77,8 @@ const ComportamientoCrediticioPage = () => {
   const emptyDeudorForm = {
     proveedor: '',
     deudor: '',
+    equifax_score: '',
+    sentinel_score: '',
     equifax_calificacion: '',
     sentinel_calificacion: '',
     equifax_deuda_directa: '',
@@ -197,9 +200,10 @@ const ComportamientoCrediticioPage = () => {
   const handleSelectReport = async (report: ComportamientoCrediticio, sentinelData?: Sentinel | null) => {
     setSelectedReport(report);
     const newFormData = {
-      score: sentinelData?.score || '',
       proveedor: report.proveedor || '',
       deudor: '',
+      equifax_score: report.equifax_score || '',
+      sentinel_score: sentinelData?.score || report.sentinel_score || '',
       equifax_calificacion: report.equifax_calificacion || '',
       sentinel_calificacion: sentinelData?.comportamiento_calificacion || report.sentinel_calificacion || '',
       equifax_deuda_directa: report.equifax_deuda_directa?.toString() || '',
@@ -223,6 +227,8 @@ const ComportamientoCrediticioPage = () => {
     const newFormDataDeudor = {
       proveedor: '',
       deudor: report.deudor || '',
+      equifax_score: report.deudor_equifax_score || '',
+      sentinel_score: report.deudor_sentinel_score || '',
       equifax_calificacion: report.deudor_equifax_calificacion || '',
       sentinel_calificacion: report.deudor_sentinel_calificacion || '',
       equifax_deuda_directa: report.deudor_equifax_deuda_directa?.toString() || '',
@@ -274,6 +280,8 @@ const ComportamientoCrediticioPage = () => {
       const dataToSave = {
         ruc: searchedFicha.ruc,
         proveedor: formData.proveedor,
+        equifax_score: formData.equifax_score || null,
+        sentinel_score: formData.sentinel_score || null,
         equifax_calificacion: formData.equifax_calificacion || null,
         sentinel_calificacion: formData.sentinel_calificacion || null,
         equifax_deuda_directa: parseFloat(formData.equifax_deuda_directa) || null,
@@ -292,6 +300,8 @@ const ComportamientoCrediticioPage = () => {
         comentarios: formData.comentarios || null,
 
         deudor: formDataDeudor.deudor || null,
+        deudor_equifax_score: formDataDeudor.equifax_score || null,
+        deudor_sentinel_score: formDataDeudor.sentinel_score || null,
         deudor_equifax_calificacion: formDataDeudor.equifax_calificacion || null,
         deudor_sentinel_calificacion: formDataDeudor.sentinel_calificacion || null,
         deudor_equifax_deuda_directa: parseFloat(formDataDeudor.equifax_deuda_directa) || null,
@@ -424,15 +434,9 @@ const ComportamientoCrediticioPage = () => {
                       <div className="text-white text-center font-medium mb-2">Apefac</div>
                       <div className="col-span-3 space-y-2">
                         <div className="grid grid-cols-3 gap-x-4 items-center">
-                          <Label htmlFor="sentinel_score" className="text-gray-400">Score</Label>
-                          <div /> {/* Placeholder for Equifax column */}
-                          <Input 
-                            id="sentinel_score" 
-                            type="text" 
-                            value={formData.score} 
-                            className="bg-gray-800 border-gray-700 text-gray-400" 
-                            disabled 
-                          />
+                          <Label htmlFor="equifax_score" className="text-gray-400">Score</Label>
+                          <Input id="equifax_score" type="text" value={formData.equifax_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                          <Input id="sentinel_score" type="text" value={formData.sentinel_score} className="bg-gray-800 border-gray-700 text-gray-400" disabled />
                         </div>
                         {formFields.map(field => (
                           <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
@@ -468,6 +472,11 @@ const ComportamientoCrediticioPage = () => {
                       <div className="text-white text-center font-medium mb-2">Sentinel</div>
                       <div className="text-white text-center font-medium mb-2">Apefac</div>
                       <div className="col-span-3 space-y-2">
+                        <div className="grid grid-cols-3 gap-x-4 items-center">
+                          <Label htmlFor="deudor_equifax_score" className="text-gray-400">Score</Label>
+                          <Input id="deudor_equifax_score" type="text" value={formDataDeudor.equifax_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                          <Input id="deudor_sentinel_score" type="text" value={formDataDeudor.sentinel_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                        </div>
                         {formFields.map(field => (
                           <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
                             <Label htmlFor={`deudor_equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
