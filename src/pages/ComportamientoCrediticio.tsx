@@ -13,7 +13,8 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { ComportamientoCrediticio, ComportamientoCrediticioInsert, ComportamientoCrediticioUpdate, CrediticioStatus } from '@/types/comportamientoCrediticio';
 import { FichaRucService } from '@/services/fichaRucService';
 import { ComportamientoCrediticioService } from '@/services/comportamientoCrediticioService';
-import { showSuccess, showError } from '@/utils/toast';
+import { Sentinel } from '@/services/sentinelService';
+import { showSuccess, showError, toast } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import ComportamientoCrediticioTable from '@/components/comportamiento-crediticio/ComportamientoCrediticioTable';
 import { supabase } from '@/integrations/supabase/client';
@@ -164,12 +165,19 @@ const ComportamientoCrediticioPage = () => {
       if (fichaData) {
         setSearchedFicha(fichaData);
         
-        const report = await ComportamientoCrediticioService.findOrCreateByRuc(rucToSearch, fichaData.nombre_empresa);
+        const [report, { data: sentinelData }] = await Promise.all([
+          ComportamientoCrediticioService.findOrCreateByRuc(rucToSearch, fichaData.nombre_empresa),
+          supabase.from('sentinel').select('*').eq('ruc', rucToSearch).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        ]);
         
+        if (sentinelData) {
+          toast.success('Datos de Sentinel encontrados y cargados.');
+        }
+
         const allReportsForRuc = await ComportamientoCrediticioService.getByRuc(rucToSearch);
         setExistingReports(allReportsForRuc);
 
-        await handleSelectReport(report);
+        await handleSelectReport(report, sentinelData);
         
         setView('form');
       } else {
@@ -184,23 +192,23 @@ const ComportamientoCrediticioPage = () => {
     }
   };
 
-  const handleSelectReport = async (report: ComportamientoCrediticio) => {
+  const handleSelectReport = async (report: ComportamientoCrediticio, sentinelData?: Sentinel | null) => {
     setSelectedReport(report);
     const newFormData = {
       proveedor: report.proveedor || '',
       deudor: '',
       equifax_calificacion: report.equifax_calificacion || '',
-      sentinel_calificacion: report.sentinel_calificacion || '',
+      sentinel_calificacion: sentinelData?.comportamiento_calificacion || report.sentinel_calificacion || '',
       equifax_deuda_directa: report.equifax_deuda_directa?.toString() || '',
-      sentinel_deuda_directa: report.sentinel_deuda_directa?.toString() || '',
+      sentinel_deuda_directa: (sentinelData?.deuda_directa ?? report.sentinel_deuda_directa)?.toString() || '',
       equifax_deuda_indirecta: report.equifax_deuda_indirecta?.toString() || '',
-      sentinel_deuda_indirecta: report.sentinel_deuda_indirecta?.toString() || '',
+      sentinel_deuda_indirecta: (sentinelData?.deuda_indirecta ?? report.sentinel_deuda_indirecta)?.toString() || '',
       equifax_impagos: report.equifax_impagos?.toString() || '',
-      sentinel_impagos: report.sentinel_impagos?.toString() || '',
+      sentinel_impagos: (sentinelData?.impagos ?? report.sentinel_impagos)?.toString() || '',
       equifax_deuda_sunat: report.equifax_deuda_sunat?.toString() || '',
-      sentinel_deuda_sunat: report.sentinel_deuda_sunat?.toString() || '',
+      sentinel_deuda_sunat: (sentinelData?.deudas_sunat ?? report.sentinel_deuda_sunat)?.toString() || '',
       equifax_protestos: report.equifax_protestos?.toString() || '',
-      sentinel_protestos: report.sentinel_protestos?.toString() || '',
+      sentinel_protestos: (sentinelData?.protestos ?? report.sentinel_protestos)?.toString() || '',
       validado_por: report.validado_por || '',
       status: report.status || 'Borrador',
       apefac_descripcion: report.apefac_descripcion || '',
