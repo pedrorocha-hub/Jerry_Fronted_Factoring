@@ -84,12 +84,41 @@ export class ReporteTributarioDeudorService {
   }
 
   static async getAllSummaries(): Promise<ReporteTributarioDeudorSummary[]> {
-    const { data, error } = await supabase.rpc('get_reporte_tributario_deudor_summaries');
+    try {
+      // Primero intentamos con la función RPC
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_reporte_tributario_deudor_summaries');
+      
+      if (!rpcError && rpcData) {
+        return rpcData as ReporteTributarioDeudorSummary[];
+      }
 
-    if (error) {
-      console.error('Error fetching report summaries:', error);
+      console.warn('RPC function failed, falling back to direct query:', rpcError);
+
+      // Si la función RPC falla, hacemos una consulta directa
+      const { data, error } = await supabase
+        .from('reporte_tributario_deudor')
+        .select(`
+          ruc,
+          updated_at,
+          ficha_ruc!inner(nombre_empresa)
+        `)
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching report summaries:', error);
+        throw error;
+      }
+
+      // Transformar los datos al formato esperado
+      return (data || []).map(item => ({
+        ruc: item.ruc,
+        nombre_empresa: (item.ficha_ruc as any)?.nombre_empresa || 'Empresa no encontrada',
+        updated_at: item.updated_at
+      }));
+
+    } catch (error) {
+      console.error('Error in getAllSummaries:', error);
       throw error;
     }
-    return (data as ReporteTributarioDeudorSummary[]) || [];
   }
 }
