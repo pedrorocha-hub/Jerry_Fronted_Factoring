@@ -498,7 +498,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-pink-500/50"
@@ -522,6 +522,14 @@ const Dashboard = () => {
                 >
                   <TrendingUp className="h-6 w-6" />
                   <span className="text-xs">Comportamiento Crediticio</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-rose-500/50"
+                  onClick={() => navigate('/reporte-tributario-deudor')}
+                >
+                  <ClipboardEdit className="h-6 w-6" />
+                  <span className="text-xs">Reporte Tributario del Deudor</span>
                 </Button>
               </div>
             </CardContent>
