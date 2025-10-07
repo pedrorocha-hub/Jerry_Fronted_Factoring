@@ -199,11 +199,18 @@ const ComportamientoCrediticioPage = () => {
 
   const handleSelectReport = async (report: ComportamientoCrediticio, sentinelData?: Sentinel | null) => {
     setSelectedReport(report);
+    
+    // Función para formatear el score de Sentinel
+    const formatSentinelScore = (score: string | null | undefined) => {
+      if (!score) return '';
+      return `${score}/1000`;
+    };
+
     const newFormData = {
       proveedor: report.proveedor || '',
       deudor: '',
       equifax_score: report.equifax_score || '',
-      sentinel_score: sentinelData?.score || report.sentinel_score || '',
+      sentinel_score: formatSentinelScore(sentinelData?.score || report.sentinel_score),
       equifax_calificacion: report.equifax_calificacion || '',
       sentinel_calificacion: sentinelData?.comportamiento_calificacion || report.sentinel_calificacion || '',
       equifax_deuda_directa: report.equifax_deuda_directa?.toString() || '',
@@ -228,7 +235,7 @@ const ComportamientoCrediticioPage = () => {
       proveedor: '',
       deudor: report.deudor || '',
       equifax_score: report.deudor_equifax_score || '',
-      sentinel_score: report.deudor_sentinel_score || '',
+      sentinel_score: formatSentinelScore(report.deudor_sentinel_score),
       equifax_calificacion: report.deudor_equifax_calificacion || '',
       sentinel_calificacion: report.deudor_sentinel_calificacion || '',
       equifax_deuda_directa: report.deudor_equifax_deuda_directa?.toString() || '',
