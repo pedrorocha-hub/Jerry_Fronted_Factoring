@@ -16,7 +16,7 @@ const ReporteTributarioDeudorPage = () => {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
-  const [reportData, setReportData] = useState<ReporteTributarioDeudor[]>([]);
+  const [reportData, setReportData] = useState<ReporteTributarioDeudor | null>(null);
 
   const handleSearch = async () => {
     if (!rucInput || rucInput.length !== 11) {
@@ -26,14 +26,14 @@ const ReporteTributarioDeudorPage = () => {
     setSearching(true);
     setError(null);
     setSearchedFicha(null);
-    setReportData([]);
+    setReportData(null);
 
     try {
       const fichaData = await FichaRucService.getByRuc(rucInput);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const existingReports = await ReporteTributarioDeudorService.getByRuc(rucInput);
-        setReportData(existingReports);
+        const existingReport = await ReporteTributarioDeudorService.getByRuc(rucInput);
+        setReportData(existingReport);
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un reporte.');
         showError('Ficha RUC no encontrada.');
@@ -46,12 +46,12 @@ const ReporteTributarioDeudorPage = () => {
     }
   };
 
-  const handleSave = async (dataToSave: any[]) => {
+  const handleSave = async (dataToSave: any) => {
     try {
       await ReporteTributarioDeudorService.upsert(dataToSave);
       showSuccess('Reporte guardado exitosamente.');
-      const updatedReports = await ReporteTributarioDeudorService.getByRuc(rucInput);
-      setReportData(updatedReports);
+      const updatedReport = await ReporteTributarioDeudorService.getByRuc(rucInput);
+      setReportData(updatedReport);
     } catch (err) {
       showError('Error al guardar el reporte.');
     }

@@ -8,8 +8,8 @@ import { useSession } from '@/contexts/SessionContext';
 
 interface ReporteTributarioDeudorTableProps {
   ruc: string;
-  initialData: ReporteTributarioDeudor[];
-  onSave: (data: any[]) => Promise<void>;
+  initialData: ReporteTributarioDeudor | null;
+  onSave: (data: any) => Promise<void>;
 }
 
 const years = [2022, 2023, 2024];
@@ -24,9 +24,7 @@ const metrics = [
 ];
 
 type TableData = {
-  [year: number]: {
-    [key: string]: string;
-  };
+  [key: string]: string;
 };
 
 const ReporteTributarioDeudorTable: React.FC<ReporteTributarioDeudorTableProps> = ({ ruc, initialData, onSave }) => {
@@ -36,43 +34,36 @@ const ReporteTributarioDeudorTable: React.FC<ReporteTributarioDeudorTableProps> 
 
   useEffect(() => {
     const initialTableData: TableData = {};
-    years.forEach(year => {
-      const yearData = initialData.find(d => d.año === year);
-      initialTableData[year] = {};
-      metrics.forEach(metric => {
-        initialTableData[year][metric.key] = yearData?.[metric.key as keyof typeof yearData]?.toString() || '';
+    metrics.forEach(metric => {
+      years.forEach(year => {
+        const key = `${metric.key}_${year}`;
+        initialTableData[key] = initialData?.[key as keyof typeof initialData]?.toString() || '';
       });
     });
     setTableData(initialTableData);
   }, [initialData]);
 
-  const handleInputChange = (year: number, key: string, value: string) => {
+  const handleInputChange = (key: string, value: string) => {
     setTableData(prev => ({
       ...prev,
-      [year]: {
-        ...prev[year],
-        [key]: value,
-      },
+      [key]: value,
     }));
   };
 
   const handleSaveClick = async () => {
     setSaving(true);
-    const dataToSave = years.map(year => {
-      const yearData: { [key: string]: any } = { ruc, año: year };
-      metrics.forEach(metric => {
-        const value = tableData[year]?.[metric.key];
-        yearData[metric.key] = value === '' ? null : parseFloat(value);
-      });
-      return yearData;
+    const dataToSave: { [key: string]: any } = { ruc };
+    Object.keys(tableData).forEach(key => {
+      const value = tableData[key];
+      dataToSave[key] = value === '' ? null : parseFloat(value);
     });
     await onSave(dataToSave);
     setSaving(false);
   };
 
-  const calculatePercentage = (value: string, total: string) => {
+  const calculatePercentage = (value: string, totalKey: string) => {
     const numValue = parseFloat(value) || 0;
-    const numTotal = parseFloat(total) || 0;
+    const numTotal = parseFloat(tableData[totalKey]) || 0;
     if (numTotal === 0) return '0.00%';
     return `${((numValue / numTotal) * 100).toFixed(2)}%`;
   };
@@ -96,20 +87,21 @@ const ReporteTributarioDeudorTable: React.FC<ReporteTributarioDeudorTableProps> 
             <TableRow key={metric.key} className="border-gray-800">
               <TableCell className="font-medium text-white">{metric.label}</TableCell>
               {years.map(year => {
-                const totalActivos = tableData[year]?.total_activos || '0';
+                const key = `${metric.key}_${year}`;
+                const totalActivosKey = `total_activos_${year}`;
                 return (
                   <React.Fragment key={year}>
                     <TableCell>
                       <Input
                         type="number"
-                        value={tableData[year]?.[metric.key] || ''}
-                        onChange={e => handleInputChange(year, metric.key, e.target.value)}
+                        value={tableData[key] || ''}
+                        onChange={e => handleInputChange(key, e.target.value)}
                         className="bg-gray-900/50 border-gray-700 text-white text-right"
                         disabled={!isAdmin}
                       />
                     </TableCell>
                     <TableCell className="text-center text-gray-400">
-                      {calculatePercentage(tableData[year]?.[metric.key] || '0', totalActivos)}
+                      {calculatePercentage(tableData[key] || '0', totalActivosKey)}
                     </TableCell>
                   </React.Fragment>
                 );

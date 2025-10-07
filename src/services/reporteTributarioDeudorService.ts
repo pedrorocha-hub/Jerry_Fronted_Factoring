@@ -3,14 +3,35 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ReporteTributarioDeudor {
   id: string;
   ruc: string;
-  año: number;
-  cuentas_por_cobrar_giro?: number | null;
-  total_activos?: number | null;
-  cuentas_por_pagar_giro?: number | null;
-  total_pasivos?: number | null;
-  capital_pagado?: number | null;
-  total_patrimonio?: number | null;
-  total_pasivo_patrimonio?: number | null;
+  
+  cuentas_por_cobrar_giro_2022?: number | null;
+  cuentas_por_cobrar_giro_2023?: number | null;
+  cuentas_por_cobrar_giro_2024?: number | null;
+  
+  total_activos_2022?: number | null;
+  total_activos_2023?: number | null;
+  total_activos_2024?: number | null;
+  
+  cuentas_por_pagar_giro_2022?: number | null;
+  cuentas_por_pagar_giro_2023?: number | null;
+  cuentas_por_pagar_giro_2024?: number | null;
+  
+  total_pasivos_2022?: number | null;
+  total_pasivos_2023?: number | null;
+  total_pasivos_2024?: number | null;
+  
+  capital_pagado_2022?: number | null;
+  capital_pagado_2023?: number | null;
+  capital_pagado_2024?: number | null;
+  
+  total_patrimonio_2022?: number | null;
+  total_patrimonio_2023?: number | null;
+  total_patrimonio_2024?: number | null;
+  
+  total_pasivo_patrimonio_2022?: number | null;
+  total_pasivo_patrimonio_2023?: number | null;
+  total_pasivo_patrimonio_2024?: number | null;
+  
   user_id?: string | null;
   created_at: string;
   updated_at: string;
@@ -19,37 +40,40 @@ export interface ReporteTributarioDeudor {
 export type ReporteTributarioDeudorInsert = Omit<ReporteTributarioDeudor, 'id' | 'created_at' | 'updated_at'>;
 
 export class ReporteTributarioDeudorService {
-  static async getByRuc(ruc: string): Promise<ReporteTributarioDeudor[]> {
+  static async getByRuc(ruc: string): Promise<ReporteTributarioDeudor | null> {
     const { data, error } = await supabase
       .from('reporte_tributario_deudor')
       .select('*')
-      .eq('ruc', ruc);
+      .eq('ruc', ruc)
+      .single();
 
-    if (error) {
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
       console.error('Error fetching Reporte Tributario Deudor by RUC:', error);
       throw error;
     }
-    return data || [];
+    return data;
   }
 
-  static async upsert(reports: ReporteTributarioDeudorInsert[]): Promise<ReporteTributarioDeudor[]> {
+  static async upsert(report: ReporteTributarioDeudorInsert): Promise<ReporteTributarioDeudor> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const reportsWithUser = reports.map(report => ({
+    const reportWithUser = {
       ...report,
       user_id: user.id,
-    }));
+      updated_at: new Date().toISOString(),
+    };
 
     const { data, error } = await supabase
       .from('reporte_tributario_deudor')
-      .upsert(reportsWithUser, { onConflict: 'ruc,año' })
-      .select();
+      .upsert(reportWithUser, { onConflict: 'ruc' })
+      .select()
+      .single();
 
     if (error) {
       console.error('Error upserting Reporte Tributario Deudor:', error);
       throw error;
     }
-    return data || [];
+    return data;
   }
 }
