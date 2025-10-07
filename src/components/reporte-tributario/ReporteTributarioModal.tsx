@@ -28,7 +28,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
 }) => {
   const { isAdmin } = useSession();
   const [mode, setMode] = useState<'view' | 'edit'>(initialMode);
-  const [formData, setFormData] = useState<Partial<ReporteTributarioUpdate>>({});
+  const [formData, setFormData] = useState<Partial<ReporteTributarioWithFicha>>({});
   const [loading, setLoading] = useState(false);
 
   const isReadOnly = mode === 'view' || !isAdmin;
@@ -49,7 +49,10 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
     const loadingToast = showLoading('Guardando cambios...');
     setLoading(true);
     try {
-      await ReporteTributarioService.update(reporte.id, formData);
+      // Limpiar los datos antes de enviarlos, eliminando campos que no deben actualizarse.
+      const { id, created_at, updated_at, ficha_ruc, ...updatePayload } = formData;
+
+      await ReporteTributarioService.update(reporte.id, updatePayload);
       dismissToast(loadingToast);
       showSuccess('Reporte actualizado exitosamente');
       onSave();
@@ -67,13 +70,13 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
       <Label htmlFor={id} className="text-gray-300">{label}</Label>
       {isReadOnly ? (
         <div className="mt-1 p-2 bg-gray-900/50 border border-gray-700 rounded-md text-white">
-          {String(formData[id] || 'N/A')}
+          {String(formData[id as keyof typeof formData] || 'N/A')}
         </div>
       ) : (
         <Input
           id={id}
           type={type}
-          value={String(formData[id] || '')}
+          value={String(formData[id as keyof typeof formData] || '')}
           onChange={(e) => handleInputChange(id, type === 'number' ? parseFloat(e.target.value) || null : e.target.value)}
           className="bg-gray-900/50 border-gray-700 text-white"
         />
