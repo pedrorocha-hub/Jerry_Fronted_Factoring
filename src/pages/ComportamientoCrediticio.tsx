@@ -52,6 +52,7 @@ const ComportamientoCrediticioPage = () => {
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
 
   const emptyForm = {
+    score: '',
     proveedor: '',
     deudor: '',
     equifax_calificacion: '',
@@ -196,6 +197,7 @@ const ComportamientoCrediticioPage = () => {
   const handleSelectReport = async (report: ComportamientoCrediticio, sentinelData?: Sentinel | null) => {
     setSelectedReport(report);
     const newFormData = {
+      score: sentinelData?.score || '',
       proveedor: report.proveedor || '',
       deudor: '',
       equifax_calificacion: report.equifax_calificacion || '',
@@ -421,6 +423,17 @@ const ComportamientoCrediticioPage = () => {
                       <div className="text-white text-center font-medium mb-2">Sentinel</div>
                       <div className="text-white text-center font-medium mb-2">Apefac</div>
                       <div className="col-span-3 space-y-2">
+                        <div className="grid grid-cols-3 gap-x-4 items-center">
+                          <Label htmlFor="sentinel_score" className="text-gray-400">Score</Label>
+                          <div /> {/* Placeholder for Equifax column */}
+                          <Input 
+                            id="sentinel_score" 
+                            type="text" 
+                            value={formData.score} 
+                            className="bg-gray-800 border-gray-700 text-gray-400" 
+                            disabled 
+                          />
+                        </div>
                         {formFields.map(field => (
                           <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
                             <Label htmlFor={`equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
