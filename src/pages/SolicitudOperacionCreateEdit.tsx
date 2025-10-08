@@ -216,6 +216,7 @@ const SolicitudOperacionCreateEditPage = () => {
   
     } catch (err) {
       console.error("Error fetching deudor data:", err);
+      showError('Error al buscar datos del deudor.');
       setDeudorTop10kData(null);
       setDeudorFicha(null);
     } finally {
@@ -282,7 +283,6 @@ const SolicitudOperacionCreateEditPage = () => {
         setSearchedFicha(fichaData);
         setSolicitudFormData(prev => ({ ...prev, proveedor: fichaData.nombre_empresa }));
         
-        // Actualizar el campo deudor en la primera fila de riesgos para nuevas solicitudes
         if (!id) {
           const updatedRows = [...riesgoRows];
           if (updatedRows.length > 0) {
@@ -517,7 +517,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
                         <p className="ml-2 text-gray-500">Buscando datos del deudor...</p>
                       </div>
-                    ) : (deudorFicha || deudorTop10kData || riesgoRows[0]?.deudor) ? (
+                    ) : (deudorFicha || deudorTop10kData) ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div><Label className="text-gray-400">RUC Deudor</Label><p className="font-mono text-white">{deudorFicha?.ruc || riesgoRows[0]?.deudor}</p></div>
                         <div><Label className="text-gray-400">Razón Social</Label><p className="text-white">{deudorFicha?.nombre_empresa || 'N/A'}</p></div>
@@ -529,7 +529,11 @@ const SolicitudOperacionCreateEditPage = () => {
                       </div>
                     ) : (
                       <div className="text-center py-4 text-gray-500">
-                        <p>Ingrese el RUC del deudor en la sección "Riesgo Vigente del Proveedor" para ver sus datos.</p>
+                        {riesgoRows[0]?.deudor && riesgoRows[0]?.deudor.length === 11 ? (
+                          <p className="mt-2">No se encontraron datos para este deudor.</p>
+                        ) : (
+                          <p>Ingrese el RUC del deudor en la sección "Riesgo Vigente del Proveedor" para ver sus datos.</p>
+                        )}
                       </div>
                     )}
                   </CardContent>
