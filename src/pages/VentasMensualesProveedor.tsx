@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, ArrowLeft } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { ReporteTributarioService } from '@/services/reporteTributarioService';
+import { VentasMensualesProveedorService } from '@/services/ventasMensualesProveedorService';
 import VentasMensualesTable from '@/components/ventas-mensuales-proveedor/VentasMensualesTable';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
@@ -41,17 +41,17 @@ const VentasMensualesProveedorPage = () => {
       const fichaData = await FichaRucService.getByRuc(rucInput);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const reportes = await ReporteTributarioService.getByRuc(rucInput);
+        const reportes = await VentasMensualesProveedorService.getByRuc(rucInput);
         
         const initialSalesData: SalesData = {};
         const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
         
         reportes.forEach(reporte => {
-          if (reporte.anio_reporte) {
-            initialSalesData[reporte.anio_reporte] = {};
+          if (reporte.anio) {
+            initialSalesData[reporte.anio] = {};
             months.forEach(month => {
-              const key = `ventas_${month}` as keyof typeof reporte;
-              initialSalesData[reporte.anio_reporte][month] = reporte[key] as number | null;
+              const key = month as keyof typeof reporte;
+              initialSalesData[reporte.anio][month] = reporte[key] as number | null;
             });
           }
         });
@@ -83,25 +83,17 @@ const VentasMensualesProveedorPage = () => {
     if (!searchedFicha) return;
     setSaving(true);
     try {
-      for (const year of Object.keys(salesData)) {
-        const yearData = salesData[Number(year)];
-        const payload: any = {
-          ruc: searchedFicha.ruc,
-          anio_reporte: Number(year),
-        };
-        for (const month of Object.keys(yearData)) {
-          payload[`ventas_${month}`] = yearData[month];
-        }
+      for (const yearStr of Object.keys(salesData)) {
+        const year = Number(yearStr);
+        const yearData = salesData[year];
         
-        // Check if a report for this year exists
-        const existingReports = await ReporteTributarioService.getByRuc(searchedFicha.ruc);
-        const reportForYear = existingReports.find(r => r.anio_reporte === Number(year));
-
-        if (reportForYear) {
-          await ReporteTributarioService.update(reportForYear.id, payload);
-        } else {
-          await ReporteTributarioService.create(payload);
-        }
+        const payload = {
+          ruc: searchedFicha.ruc,
+          anio: year,
+          ...yearData
+        };
+        
+        await VentasMensualesProveedorService.upsert(payload);
       }
       showSuccess('Datos de ventas mensuales guardados exitosamente.');
     } catch (err) {
