@@ -501,20 +501,20 @@ const SolicitudOperacionCreateEditPage = () => {
                         <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
                         <p className="ml-2 text-gray-500">Buscando datos del deudor...</p>
                       </div>
-                    ) : deudorTop10kData ? (
+                    ) : (deudorFicha || deudorTop10kData) ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div><Label className="text-gray-400">RUC Deudor</Label><p className="font-mono text-white">{deudorFicha?.ruc}</p></div>
+                        <div><Label className="text-gray-400">RUC Deudor</Label><p className="font-mono text-white">{deudorFicha?.ruc || riesgoRows[0]?.deudor}</p></div>
                         <div><Label className="text-gray-400">Razón Social</Label><p className="text-white">{deudorFicha?.nombre_empresa || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Sector</Label><p className="text-white">{deudorTop10kData.sector || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{deudorTop10kData.ranking_2024 || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(deudorTop10kData.facturado_2024_soles_maximo)}</p></div>
-                        <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(deudorTop10kData.facturado_2023_soles_maximo)}</p></div>
-                        <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{deudorTop10kData.descripcion_ciiu_rev3 || 'N/A'}</p></div>
+                        <div><Label className="text-gray-400">Sector</Label><p className="text-white">{deudorTop10kData?.sector || 'N/A'}</p></div>
+                        <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{deudorTop10kData?.ranking_2024 || 'N/A'}</p></div>
+                        <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(deudorTop10kData?.facturado_2024_soles_maximo)}</p></div>
+                        <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(deudorTop10kData?.facturado_2023_soles_maximo)}</p></div>
+                        <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{deudorTop10kData?.descripcion_ciiu_rev3 || 'N/A'}</p></div>
                       </div>
                     ) : (
                       <div className="text-center py-4 text-gray-500">
                         <p>Ingrese el RUC del deudor en la sección "Riesgo Vigente del Proveedor" para ver sus datos.</p>
-                        {riesgoRows[0]?.deudor && riesgoRows[0]?.deudor.length === 11 && <p className="mt-2">No se encontraron datos de riesgo en la base TOP 10K para este deudor.</p>}
+                        {riesgoRows[0]?.deudor && riesgoRows[0]?.deudor.length === 11 && <p className="mt-2">No se encontraron datos para este deudor.</p>}
                       </div>
                     )}
                   </CardContent>
