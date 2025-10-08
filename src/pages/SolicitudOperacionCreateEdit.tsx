@@ -295,7 +295,7 @@ const SolicitudOperacionCreateEditPage = () => {
         showSuccess('Solicitud actualizada exitosamente.');
       } else {
         const createdData = await SolicitudOperacionService.create(dataToSave);
-        const newSolicitudId = createdData[0].id;
+        const newSolicitudId = createdData.id;
         const riesgosToInsert = riesgoRows.map(row => ({
           solicitud_id: newSolicitudId,
           lp: row.lp,
