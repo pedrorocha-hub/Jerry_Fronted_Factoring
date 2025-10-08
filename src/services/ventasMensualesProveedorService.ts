@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { VentasMensualesProveedor, VentasMensualesProveedorInsert, VentasProveedorStatus } from '@/types/ventasMensualesProveedor';
+import { SalesData } from '@/pages/VentasMensualesProveedor';
 
 export interface VentasMensualesProveedorSummary {
   ruc: string;
@@ -33,26 +34,46 @@ export class VentasMensualesProveedorService {
     return data || [];
   }
 
-  static async upsert(salesData: VentasMensualesProveedorInsert): Promise<VentasMensualesProveedor> {
+  static async saveSalesDataForRuc(
+    ruc: string,
+    salesData: SalesData,
+    status: VentasProveedorStatus | null,
+    validado_por: string | null
+  ): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
-    
-    const dataToUpsert = {
-      ...salesData,
-      user_id: user?.id,
-      updated_at: new Date().toISOString(),
-    };
+    if (!user) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
-      .from('ventas_mensuales_proveedor')
-      .upsert(dataToUpsert, { onConflict: 'ruc, anio' })
-      .select()
-      .single();
+    const existingRecords = await this.getByRuc(ruc);
+    const existingRecordsMap = new Map(existingRecords.map(rec => [rec.anio, rec.id]));
 
-    if (error) {
-      console.error('Error upserting ventas mensuales:', error);
-      throw error;
+    const upsertPayloads = Object.entries(salesData).map(([yearStr, monthData]) => {
+      const year = parseInt(yearStr, 10);
+      const existingId = existingRecordsMap.get(year);
+
+      const record: Partial<VentasMensualesProveedor> & { ruc: string; anio: number } = {
+        ruc,
+        anio: year,
+        ...monthData,
+        status,
+        validado_por,
+        user_id: user.id,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existingId) {
+        record.id = existingId;
+      }
+
+      return record;
+    });
+
+    if (upsertPayloads.length > 0) {
+      const { error } = await supabase.from('ventas_mensuales_proveedor').upsert(upsertPayloads);
+      if (error) {
+        console.error('Error en upsert de ventas mensuales:', error);
+        throw error;
+      }
     }
-    return data;
   }
 
   static async updateStatusForRuc(ruc: string, updateData: { status?: VentasProveedorStatus | null, validado_por?: string | null }): Promise<VentasMensualesProveedor[]> {

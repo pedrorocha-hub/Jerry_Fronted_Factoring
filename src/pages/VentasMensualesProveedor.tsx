@@ -184,42 +184,25 @@ const VentasMensualesProveedorPage = () => {
   };
 
   const handleSaveChanges = async () => {
-      if (!latestReport || !searchedFicha) return;
-      setSavingStatus(true);
-      try {
-          // Upsert all the years currently loaded in the salesData state.
-          // This saves any changes to the numbers and also applies the current status.
-          for (const yearStr of Object.keys(salesData)) {
-              const year = Number(yearStr);
-              const yearData = salesData[year];
-              
-              const payload = {
-                  ruc: searchedFicha.ruc,
-                  anio: year,
-                  ...yearData,
-                  status: latestReport.status,
-                  validado_por: latestReport.validado_por,
-              };
-              
-              await VentasMensualesProveedorService.upsert(payload as any);
-          }
+    if (!latestReport || !searchedFicha) return;
+    setSavingStatus(true);
+    try {
+      await VentasMensualesProveedorService.saveSalesDataForRuc(
+        searchedFicha.ruc,
+        salesData,
+        latestReport.status,
+        latestReport.validado_por
+      );
 
-          // Also, run an update for the whole RUC to catch any years not in salesData state
-          // and to ensure consistency. This is especially important if only the status was changed.
-          await VentasMensualesProveedorService.updateStatusForRuc(searchedFicha.ruc, {
-              status: latestReport.status,
-              validado_por: latestReport.validado_por
-          });
-
-          showSuccess('Cambios guardados exitosamente.');
-          setIsStatusDirty(false);
-          setIsSalesDataDirty(false);
-          await fetchSummaries();
-      } catch (err) {
-          showError('Error al guardar los cambios.');
-      } finally {
-          setSavingStatus(false);
-      }
+      showSuccess('Cambios guardados exitosamente.');
+      setIsStatusDirty(false);
+      setIsSalesDataDirty(false);
+      await fetchSummaries();
+    } catch (err) {
+      showError('Error al guardar los cambios.');
+    } finally {
+      setSavingStatus(false);
+    }
   };
 
   return (
