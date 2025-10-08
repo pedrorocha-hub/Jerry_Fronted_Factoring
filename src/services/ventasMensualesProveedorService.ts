@@ -1,10 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
-import { VentasMensualesProveedor, VentasMensualesProveedorInsert } from '@/types/ventasMensualesProveedor';
+import { VentasMensualesProveedor, VentasMensualesProveedorInsert, VentasProveedorStatus } from '@/types/ventasMensualesProveedor';
 
 export interface VentasMensualesProveedorSummary {
   ruc: string;
   nombre_empresa: string;
   last_updated_at: string;
+  status: VentasProveedorStatus | null;
+  creator_name: string | null;
 }
 
 export class VentasMensualesProveedorService {

@@ -1,3 +1,5 @@
+export type VentasProveedorStatus = 'Borrador' | 'En revisión' | 'Completado';
+
 export interface VentasMensualesProveedor {
   id: string;
   ruc: string;
@@ -17,6 +19,7 @@ export interface VentasMensualesProveedor {
   user_id: string | null;
   created_at: string;
   updated_at: string;
+  status: VentasProveedorStatus | null;
 }
 
 export type VentasMensualesProveedorInsert = Omit<VentasMensualesProveedor, 'id' | 'created_at' | 'updated_at'>;
