@@ -2,15 +2,18 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { VentasMensualesProveedorSummary } from '@/services/ventasMensualesProveedorService';
-import { FilePenLine, Calendar, User, Building2 } from 'lucide-react';
+import { FilePenLine, Calendar, User, Building2, Trash2 } from 'lucide-react';
+import { useSession } from '@/contexts/SessionContext';
 
 interface VentasMensualesProveedorListProps {
   reports: VentasMensualesProveedorSummary[];
   onSelectReport: (ruc: string) => void;
+  onDeleteReport: (ruc: string) => void;
 }
 
-const VentasMensualesProveedorList: React.FC<VentasMensualesProveedorListProps> = ({ reports, onSelectReport }) => {
-  
+const VentasMensualesProveedorList: React.FC<VentasMensualesProveedorListProps> = ({ reports, onSelectReport, onDeleteReport }) => {
+  const { isAdmin } = useSession();
+
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'Borrador':
@@ -31,7 +34,7 @@ const VentasMensualesProveedorList: React.FC<VentasMensualesProveedorListProps> 
         <h3>Empresa</h3>
         <h3>Ejecutivo</h3>
         <h3 className="text-center">Estado</h3>
-        <span className="w-28"></span>
+        <span className="w-36"></span>
       </div>
 
       {reports.map((report) => (
@@ -68,12 +71,27 @@ const VentasMensualesProveedorList: React.FC<VentasMensualesProveedorListProps> 
               {getStatusBadge(report.status)}
             </div>
 
-            {/* Botón de Acción */}
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" className="w-full md:w-28" onClick={() => onSelectReport(report.ruc)}>
+            {/* Botones de Acción */}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" size="sm" className="w-full md:w-24" onClick={() => onSelectReport(report.ruc)}>
                 <FilePenLine className="h-4 w-4 md:mr-2" />
                 <span className="hidden md:inline">Editar</span>
               </Button>
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('¿Seguro deseas eliminar este reporte de ventas?')) {
+                      onDeleteReport(report.ruc);
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
           </CardContent>

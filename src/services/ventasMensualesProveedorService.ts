@@ -68,4 +68,16 @@ export class VentasMensualesProveedorService {
       throw error;
     }
   }
+
+  static async deleteByRuc(ruc: string): Promise<void> {
+    const { error } = await supabase
+      .from('ventas_mensuales_proveedor')
+      .delete()
+      .eq('ruc', ruc);
+
+    if (error) {
+      console.error('Error deleting ventas mensuales by RUC:', error);
+      throw error;
+    }
+  }
 }

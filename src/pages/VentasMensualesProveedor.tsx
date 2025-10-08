@@ -218,6 +218,19 @@ const VentasMensualesProveedorPage = () => {
     }
   };
 
+  const handleDeleteReport = async (ruc: string) => {
+    try {
+      await VentasMensualesProveedorService.deleteByRuc(ruc);
+      showSuccess('Reporte de ventas eliminado exitosamente.');
+      await fetchSummaries();
+      if (searchedFicha && searchedFicha.ruc === ruc) {
+        clearSearch();
+      }
+    } catch (err) {
+      showError('Error al eliminar el reporte de ventas.');
+    }
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-black">
@@ -300,7 +313,11 @@ const VentasMensualesProveedorPage = () => {
                     <p className="text-sm mt-2">Busca un proveedor por su RUC para empezar a registrar sus ventas</p>
                   </div>
                 ) : (
-                  <VentasMensualesProveedorList reports={summaries} onSelectReport={handleSelectReport} />
+                  <VentasMensualesProveedorList
+                    reports={summaries}
+                    onSelectReport={handleSelectReport}
+                    onDeleteReport={handleDeleteReport}
+                  />
                 )}
               </CardContent>
             </Card>
