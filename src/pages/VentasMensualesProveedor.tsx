@@ -93,8 +93,13 @@ const VentasMensualesProveedorPage = () => {
         const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
         const years = [2023, 2024, 2025];
 
-        // Initialize years
-        years.forEach(year => { newSalesData[year] = {}; });
+        // Initialize ALL fields to null to prevent ghost data
+        years.forEach(year => {
+            newSalesData[year] = {};
+            months.forEach(month => {
+                newSalesData[year][month] = null;
+            });
+        });
 
         // 1. Populate from reporte_tributario (lower priority)
         (tributarioReportes || []).forEach(reporte => {
@@ -102,7 +107,9 @@ const VentasMensualesProveedorPage = () => {
           if (year && years.includes(year)) {
             months.forEach(month => {
               const key = `ventas_${month}` as keyof typeof reporte;
-              newSalesData[year][month] = reporte[key] as number | null;
+              if (reporte[key] !== null && reporte[key] !== undefined) {
+                newSalesData[year][month] = reporte[key] as number | null;
+              }
             });
           }
         });
