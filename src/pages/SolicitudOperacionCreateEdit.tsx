@@ -393,10 +393,10 @@ const SolicitudOperacionCreateEditPage = () => {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="proveedor">Proveedor</Label><Input id="proveedor" value={searchedFicha?.nombre_empresa || ''} disabled className="bg-gray-900/50 border-gray-700" /></div>
-                      <div><Label htmlFor="ruc">Número de RUC</Label><Input id="ruc" value={searchedFicha?.ruc || ''} disabled className="bg-gray-900/50 border-gray-700 font-mono" /></div>
+                      <div><Label htmlFor="proveedor">Proveedor</Label><Input id="proveedor" value={searchedFicha?.nombre_empresa || ''} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
+                      <div><Label htmlFor="ruc">Número de RUC</Label><Input id="ruc" value={searchedFicha?.ruc || ''} disabled className="bg-gray-800 border-gray-700 text-gray-400 font-mono" /></div>
                     </div>
-                    <div><Label htmlFor="actividad">Actividad</Label><Input id="actividad" value={searchedFicha?.actividad_empresa || ''} disabled className="bg-gray-900/50 border-gray-700" /></div>
+                    <div><Label htmlFor="actividad">Actividad</Label><Input id="actividad" value={searchedFicha?.actividad_empresa || ''} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div><Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label><Input id="orden_servicio" value={solicitudFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                       <div><Label htmlFor="factura">Factura (Sí/No)</Label><Input id="factura" value={solicitudFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
@@ -478,7 +478,7 @@ const SolicitudOperacionCreateEditPage = () => {
                 </Card>
 
                 <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Información del Pagador</CardTitle></CardHeader>
+                  <CardHeader><CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Datos del deudor</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div><Label htmlFor="direccion">Dirección</Label><Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
@@ -514,26 +514,6 @@ const SolicitudOperacionCreateEditPage = () => {
                         <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 flex-shrink-0" /><span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span></div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-white">
-                      <div className="flex items-center"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Información de Ficha RUC</div>
-                      <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-400"><CheckCircle className="h-3 w-3 mr-1" />Encontrada</Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label className="text-gray-400">RUC</Label><Input value={searchedFicha.ruc} disabled className="bg-gray-900/50 border-gray-700 font-mono" /></div>
-                      <div><Label className="text-gray-400">Razón Social</Label><Input value={searchedFicha.nombre_empresa} disabled className="bg-gray-900/50 border-gray-700" /></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label className="text-gray-400">Estado</Label><Input value={searchedFicha.estado_contribuyente || 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
-                      <div><Label className="text-gray-400">Inicio de Actividades</Label><Input value={searchedFicha.fecha_inicio_actividades ? new Date(searchedFicha.fecha_inicio_actividades).toLocaleDateString() : 'N/A'} disabled className="bg-gray-900/50 border-gray-700" /></div>
-                    </div>
-                    <div><Label className="text-gray-400">Domicilio Fiscal</Label><Textarea value={searchedFicha.domicilio_fiscal || 'N/A'} disabled rows={2} className="bg-gray-900/50 border-gray-700" /></div>
                   </CardContent>
                 </Card>
 
