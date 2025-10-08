@@ -34,6 +34,21 @@ const VentasMensualesTable: React.FC<VentasMensualesTableProps> = ({ data, onDat
     return yearTotals;
   }, [data, years, months]);
 
+  const semesterTotals = useMemo(() => {
+    const result: { [year: number]: { s1: number; s2: number } } = {};
+    const s1Months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio'];
+    const s2Months = ['julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    years.forEach(year => {
+      const s1Total = s1Months.reduce((acc, month) => acc + (data[year]?.[month] || 0), 0);
+      const s2Total = s2Months.reduce((acc, month) => acc + (data[year]?.[month] || 0), 0);
+      result[year] = { s1: s1Total, s2: s2Total };
+    });
+    return result;
+  }, [data, years]);
+
+  const formatCurrency = (value: number) => value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -64,12 +79,44 @@ const VentasMensualesTable: React.FC<VentasMensualesTableProps> = ({ data, onDat
           ))}
         </TableBody>
         <TableFooter>
-          <TableRow className="border-gray-700 bg-gray-800/50">
+          <TableRow className="border-t-2 border-gray-700 bg-gray-800/50">
             <TableHead className="font-bold text-white">Total Anual</TableHead>
             {years.map(year => (
               <TableHead key={year} className="font-bold text-white text-right">
-                {totals[year].toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatCurrency(totals[year])}
               </TableHead>
+            ))}
+          </TableRow>
+          <TableRow className="border-gray-800 bg-gray-800/30">
+            <TableHead className="font-semibold text-gray-300">1er Semestre</TableHead>
+            {years.map(year => (
+              <TableHead key={year} className="font-semibold text-gray-300 text-right">
+                {formatCurrency(semesterTotals[year].s1)}
+              </TableHead>
+            ))}
+          </TableRow>
+          <TableRow className="border-gray-800 bg-gray-800/30">
+            <TableCell className="text-gray-400 pl-8">% s/ Total</TableCell>
+            {years.map(year => (
+              <TableCell key={year} className="text-gray-400 text-right">
+                {totals[year] > 0 ? `${((semesterTotals[year].s1 / totals[year]) * 100).toFixed(2)}%` : '0.00%'}
+              </TableCell>
+            ))}
+          </TableRow>
+          <TableRow className="border-gray-800 bg-gray-800/30">
+            <TableHead className="font-semibold text-gray-300">2do Semestre</TableHead>
+            {years.map(year => (
+              <TableHead key={year} className="font-semibold text-gray-300 text-right">
+                {formatCurrency(semesterTotals[year].s2)}
+              </TableHead>
+            ))}
+          </TableRow>
+          <TableRow className="border-gray-800 bg-gray-800/30">
+            <TableCell className="text-gray-400 pl-8">% s/ Total</TableCell>
+            {years.map(year => (
+              <TableCell key={year} className="text-gray-400 text-right">
+                {totals[year] > 0 ? `${((semesterTotals[year].s2 / totals[year]) * 100).toFixed(2)}%` : '0.00%'}
+              </TableCell>
             ))}
           </TableRow>
         </TableFooter>
