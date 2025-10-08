@@ -89,40 +89,37 @@ const VentasMensualesProveedorPage = () => {
 
         if (tributarioError) throw tributarioError;
 
-        const initialSalesData: SalesData = {};
+        const newSalesData: SalesData = {};
         const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
 
-        // 1. Populate from reporte_tributario (less priority)
-        if (tributarioReportes) {
-          tributarioReportes.forEach(reporte => {
-            const year = reporte.anio_reporte;
-            if (year) {
-              if (!initialSalesData[year]) initialSalesData[year] = {};
-              months.forEach(month => {
-                const key = `ventas_${month}` as keyof typeof reporte;
-                initialSalesData[year][month] = reporte[key] as number | null;
-              });
-            }
-          });
-        }
+        // 1. Populate from reporte_tributario (lower priority)
+        (tributarioReportes || []).forEach(reporte => {
+          const year = reporte.anio_reporte;
+          if (year) {
+            if (!newSalesData[year]) newSalesData[year] = {};
+            months.forEach(month => {
+              const key = `ventas_${month}` as keyof typeof reporte;
+              newSalesData[year][month] = reporte[key] as number | null;
+            });
+          }
+        });
 
         // 2. Populate/overwrite from ventas_mensuales_proveedor (higher priority)
-        ventasReportes.forEach(reporte => {
+        (ventasReportes || []).forEach(reporte => {
           if (reporte.anio) {
-            if (!initialSalesData[reporte.anio]) initialSalesData[reporte.anio] = {};
+            if (!newSalesData[reporte.anio]) newSalesData[reporte.anio] = {};
             months.forEach(month => {
               const key = month as keyof typeof reporte;
-              // Only overwrite if the value is not null, to keep tributario data if ventas data is null
-              if (reporte[key] !== null) {
-                initialSalesData[reporte.anio][month] = reporte[key] as number | null;
+              if (reporte[key] !== null && reporte[key] !== undefined) {
+                newSalesData[reporte.anio][month] = reporte[key] as number | null;
               }
             });
           }
         });
         
-        setSalesData(initialSalesData);
+        setSalesData(newSalesData);
 
-        if (ventasReportes.length > 0) {
+        if (ventasReportes && ventasReportes.length > 0) {
           const latest = ventasReportes.reduce((prev, current) => (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current);
           setLatestReport(latest);
           if (latest.user_id) {
