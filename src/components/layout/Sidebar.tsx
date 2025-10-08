@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   TrendingUp,
   ClipboardList,
-  BarChart3
+  BarChart3,
+  FolderKanban
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -17,6 +18,7 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/upload', icon: Upload, label: 'Subir PDFs' },
+    { to: '/proceso-rib', icon: FolderKanban, label: 'Proceso RIB' },
     { to: '/solicitudes-operacion', icon: FileText, label: 'Solicitudes de Operación' },
     { to: '/rib', icon: ShieldCheck, label: 'Análisis RIB' },
     { to: '/comportamiento-crediticio', icon: TrendingUp, label: 'Comportamiento Crediticio' },
