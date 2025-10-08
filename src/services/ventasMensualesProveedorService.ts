@@ -1,7 +1,23 @@
 import { supabase } from '@/integrations/supabase/client';
 import { VentasMensualesProveedor, VentasMensualesProveedorInsert } from '@/types/ventasMensualesProveedor';
 
+export interface VentasMensualesProveedorSummary {
+  ruc: string;
+  nombre_empresa: string;
+  last_updated_at: string;
+}
+
 export class VentasMensualesProveedorService {
+  static async getAllSummaries(): Promise<VentasMensualesProveedorSummary[]> {
+    const { data, error } = await supabase.rpc('get_ventas_mensuales_summaries');
+
+    if (error) {
+      console.error('Error fetching ventas mensuales summaries:', error);
+      throw error;
+    }
+    return data || [];
+  }
+
   static async getByRuc(ruc: string): Promise<VentasMensualesProveedor[]> {
     const { data, error } = await supabase
       .from('ventas_mensuales_proveedor')
