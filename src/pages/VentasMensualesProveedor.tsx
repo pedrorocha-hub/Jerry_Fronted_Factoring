@@ -26,7 +26,6 @@ const VentasMensualesProveedorPage = () => {
   const { isAdmin } = useSession();
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [salesData, setSalesData] = useState<SalesData>({});
@@ -35,7 +34,9 @@ const VentasMensualesProveedorPage = () => {
 
   const [latestReport, setLatestReport] = useState<VentasMensualesProveedor | null>(null);
   const [creatorName, setCreatorName] = useState<string | null>(null);
+  
   const [isStatusDirty, setIsStatusDirty] = useState(false);
+  const [isSalesDataDirty, setIsSalesDataDirty] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
 
   const fetchSummaries = async () => {
@@ -62,6 +63,7 @@ const VentasMensualesProveedorPage = () => {
     setLatestReport(null);
     setCreatorName(null);
     setIsStatusDirty(false);
+    setIsSalesDataDirty(false);
   };
 
   const handleSearch = async (rucToSearch?: string) => {
@@ -102,7 +104,6 @@ const VentasMensualesProveedorPage = () => {
             setCreatorName(profile?.full_name || 'Desconocido');
           }
         } else {
-          // Create a dummy report object for new entries
           setLatestReport({
             id: '',
             ruc: ruc,
@@ -137,33 +138,7 @@ const VentasMensualesProveedorPage = () => {
         [month]: value,
       },
     }));
-  };
-
-  const handleSave = async () => {
-    if (!searchedFicha) return;
-    setSaving(true);
-    try {
-      for (const yearStr of Object.keys(salesData)) {
-        const year = Number(yearStr);
-        const yearData = salesData[year];
-        
-        const payload = {
-          ruc: searchedFicha.ruc,
-          anio: year,
-          ...yearData,
-          status: latestReport?.status || 'Borrador',
-          validado_por: latestReport?.validado_por || null,
-        };
-        
-        await VentasMensualesProveedorService.upsert(payload as any);
-      }
-      showSuccess('Datos de ventas mensuales guardados exitosamente.');
-      await fetchSummaries();
-    } catch (err) {
-      showError('Error al guardar los datos de ventas.');
-    } finally {
-      setSaving(false);
-    }
+    setIsSalesDataDirty(true);
   };
 
   const handleSelectReport = (ruc: string) => {
@@ -185,19 +160,40 @@ const VentasMensualesProveedorPage = () => {
       }
   };
 
-  const handleSaveStatus = async () => {
+  const handleSaveChanges = async () => {
       if (!latestReport || !searchedFicha) return;
       setSavingStatus(true);
       try {
+          // Upsert all the years currently loaded in the salesData state.
+          // This saves any changes to the numbers and also applies the current status.
+          for (const yearStr of Object.keys(salesData)) {
+              const year = Number(yearStr);
+              const yearData = salesData[year];
+              
+              const payload = {
+                  ruc: searchedFicha.ruc,
+                  anio: year,
+                  ...yearData,
+                  status: latestReport.status,
+                  validado_por: latestReport.validado_por,
+              };
+              
+              await VentasMensualesProveedorService.upsert(payload as any);
+          }
+
+          // Also, run an update for the whole RUC to catch any years not in salesData state
+          // and to ensure consistency. This is especially important if only the status was changed.
           await VentasMensualesProveedorService.updateStatusForRuc(searchedFicha.ruc, {
               status: latestReport.status,
               validado_por: latestReport.validado_por
           });
-          showSuccess('Estado actualizado.');
+
+          showSuccess('Cambios guardados exitosamente.');
           setIsStatusDirty(false);
+          setIsSalesDataDirty(false);
           await fetchSummaries();
       } catch (err) {
-          showError('Error al actualizar el estado.');
+          showError('Error al guardar los cambios.');
       } finally {
           setSavingStatus(false);
       }
@@ -254,14 +250,6 @@ const VentasMensualesProveedorPage = () => {
                 </CardHeader>
                 <CardContent>
                   <VentasMensualesTable data={salesData} onDataChange={handleDataChange} />
-                  {isAdmin && (
-                    <div className="flex justify-end mt-4">
-                      <Button onClick={handleSave} disabled={saving}>
-                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        Guardar Cambios
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
               {latestReport && (
@@ -270,9 +258,9 @@ const VentasMensualesProveedorPage = () => {
                   creatorName={creatorName}
                   onStatusChange={handleStatusChange}
                   onValidatedByChange={handleValidatedByChange}
-                  onSave={handleSaveStatus}
+                  onSave={handleSaveChanges}
                   isSaving={savingStatus}
-                  hasUnsavedChanges={isStatusDirty}
+                  hasUnsavedChanges={isStatusDirty || isSalesDataDirty}
                 />
               )}
             </div>
