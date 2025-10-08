@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users, Briefcase, BarChart3 } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users, Briefcase } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -17,14 +17,11 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { RibService } from '@/services/ribService';
 import { AccionistaService } from '@/services/accionistaService';
 import { GerenciaService } from '@/services/gerenciaService';
-import { VentasMensualesProveedorService } from '@/services/ventasMensualesProveedorService';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
 import { supabase } from '@/integrations/supabase/client';
 import { DatePicker } from '@/components/ui/date-picker';
-import { SalesData } from '@/pages/VentasMensualesProveedor';
-import VentasMensualesDisplayTable from '@/components/rib/VentasMensualesDisplayTable';
 
 const getStatusColor = (status: RibStatus | null | undefined) => {
   switch (status) {
@@ -54,7 +51,6 @@ const RibPage = () => {
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
   const [accionistas, setAccionistas] = useState<Accionista[]>([]);
   const [gerentes, setGerentes] = useState<Gerente[]>([]);
-  const [salesData, setSalesData] = useState<SalesData>({});
   
   const emptyForm = {
     direccion: '',
@@ -143,7 +139,6 @@ const RibPage = () => {
     setInitialFormData(emptyForm);
     setSelectedRib(null);
     setCreatorDetails(null);
-    setSalesData({});
   };
 
   const handleSearch = async (rucToSearch: string = rucInput) => {
@@ -163,50 +158,11 @@ const RibPage = () => {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const [ribData, accionistasData, gerentesData, ventasReporte, tributarioReportesResult] = await Promise.all([
+        const [ribData, accionistasData, gerentesData] = await Promise.all([
           RibService.getByRuc(rucToSearch),
           AccionistaService.getByRuc(rucToSearch),
-          GerenciaService.getAllByRuc(rucToSearch),
-          VentasMensualesProveedorService.getByRuc(rucToSearch),
-          supabase.from('reporte_tributario').select('anio_reporte, ventas_enero, ventas_febrero, ventas_marzo, ventas_abril, ventas_mayo, ventas_junio, ventas_julio, ventas_agosto, ventas_setiembre, ventas_octubre, ventas_noviembre, ventas_diciembre').eq('ruc', rucToSearch)
+          GerenciaService.getAllByRuc(rucToSearch)
         ]);
-
-        const tributarioReportes = tributarioReportesResult.data || [];
-        const newSalesData: SalesData = {};
-        const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
-        const years = [2023, 2024, 2025];
-
-        years.forEach(year => {
-            newSalesData[year] = {};
-            months.forEach(month => {
-                newSalesData[year][month] = null;
-            });
-        });
-
-        (tributarioReportes || []).forEach(reporte => {
-          const year = reporte.anio_reporte;
-          if (year && years.includes(year)) {
-            months.forEach(month => {
-              const key = `ventas_${month}` as keyof typeof reporte;
-              if (reporte[key] !== null && reporte[key] !== undefined) {
-                newSalesData[year][month] = reporte[key] as number | null;
-              }
-            });
-          }
-        });
-
-        if (ventasReporte) {
-          years.forEach(year => {
-            months.forEach(month => {
-              const key = `${month}_${year}`;
-              if (ventasReporte[key] !== null && ventasReporte[key] !== undefined) {
-                newSalesData[year][month] = ventasReporte[key] as number | null;
-              }
-            });
-          });
-        }
-        
-        setSalesData(newSalesData);
         setExistingRibs(ribData);
         setAccionistas(accionistasData);
         setGerentes(gerentesData);
@@ -481,20 +437,6 @@ const RibPage = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {Object.keys(salesData).length > 0 && (
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-white">
-                      <BarChart3 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      Ventas Mensuales del Proveedor
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <VentasMensualesDisplayTable data={salesData} />
-                  </CardContent>
-                </Card>
-              )}
 
               {accionistas.length > 0 && (
                 <Card className="bg-[#121212] border border-gray-800">
