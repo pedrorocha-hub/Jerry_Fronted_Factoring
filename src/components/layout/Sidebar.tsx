@@ -7,7 +7,8 @@ import {
   FileText,
   ShieldCheck,
   TrendingUp,
-  ClipboardList
+  ClipboardList,
+  BarChart3
 } from 'lucide-react';
 
 const Sidebar: React.FC = () => {
@@ -20,6 +21,7 @@ const Sidebar: React.FC = () => {
     { to: '/rib', icon: ShieldCheck, label: 'Análisis RIB' },
     { to: '/comportamiento-crediticio', icon: TrendingUp, label: 'Comportamiento Crediticio' },
     { to: '/reporte-tributario-deudor', icon: ClipboardList, label: 'Reporte Deudor' },
+    { to: '/ventas-mensuales-proveedor', icon: BarChart3, label: 'Ventas Proveedor' },
   ];
 
   return (

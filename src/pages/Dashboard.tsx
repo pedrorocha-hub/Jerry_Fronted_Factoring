@@ -18,7 +18,8 @@ import {
   ClipboardEdit,
   ShieldCheck,
   List,
-  Shield
+  Shield,
+  BarChart3
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -530,6 +531,14 @@ const Dashboard = () => {
                 >
                   <ClipboardEdit className="h-6 w-6" />
                   <span className="text-xs">Reporte Tributario del Deudor</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-lime-500/50"
+                  onClick={() => navigate('/ventas-mensuales-proveedor')}
+                >
+                  <BarChart3 className="h-6 w-6" />
+                  <span className="text-xs">Ventas Mensuales Proveedor</span>
                 </Button>
               </div>
             </CardContent>
