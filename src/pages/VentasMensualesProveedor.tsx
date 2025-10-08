@@ -84,7 +84,7 @@ const VentasMensualesProveedorPage = () => {
 
         const [ventasReporte, { data: tributarioReportes, error: tributarioError }] = await Promise.all([
           VentasMensualesProveedorService.getByRuc(ruc),
-          supabase.from('reporte_tributario').select('anio_reporte, ventas_enero, ventas_febrero, ventas_marzo, ventas_abril, ventas_mayo, ventas_junio, ventas_julio, ventas_agosto, ventas_setiembre, ventas_octubre, ventas_noviembre, ventas_diciembre').eq('ruc', ruc)
+          supabase.from('reporte_tributario').select('anio_reporte, ingresos_enero, ingresos_febrero, ingresos_marzo, ingresos_abril, ingresos_mayo, ingresos_junio, ingresos_julio, ingresos_agosto, ingresos_setiembre, ingresos_octubre, ingresos_noviembre, ingresos_diciembre').eq('ruc', ruc)
         ]);
 
         if (tributarioError) throw tributarioError;
@@ -106,7 +106,7 @@ const VentasMensualesProveedorPage = () => {
           const year = reporte.anio_reporte;
           if (year && years.includes(year)) {
             months.forEach(month => {
-              const key = `ventas_${month}` as keyof typeof reporte;
+              const key = `ingresos_${month}` as keyof typeof reporte;
               if (reporte[key] !== null && reporte[key] !== undefined) {
                 newSalesData[year][month] = reporte[key] as number | null;
               }
