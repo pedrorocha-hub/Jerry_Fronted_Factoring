@@ -255,6 +255,7 @@ const SolicitudOperacionCreateEditPage = () => {
   };
 
   const handleSave = async () => {
+    if (saving) return; // Previene duplicados por doble clic
     if (!isAdmin) {
       showError('No tienes permisos para guardar la solicitud.');
       return;

@@ -21,6 +21,9 @@ export class SolicitudOperacionService {
       console.error('Error creating Solicitud de Operacion:', error);
       throw new Error(`Error creating Solicitud de Operacion: ${error.message}`);
     }
+    if (!data) {
+      throw new Error('Insert succeeded but no data was returned.');
+    }
     return data;
   }
 
