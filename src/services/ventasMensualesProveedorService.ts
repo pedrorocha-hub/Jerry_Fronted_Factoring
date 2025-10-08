@@ -21,37 +21,15 @@ export class VentasMensualesProveedorService {
     return data || [];
   }
 
-  static async getByRuc(ruc: string): Promise<VentasMensualesProveedor[]> {
+  static async getByRuc(ruc: string): Promise<VentasMensualesProveedor | null> {
     const { data, error } = await supabase
       .from('ventas_mensuales_proveedor')
       .select('*')
-      .eq('ruc', ruc);
-
-    if (error) {
-      console.error('Error fetching ventas mensuales by RUC:', error);
-      throw error;
-    }
-    return data || [];
-  }
-
-  static async upsert(payload: Partial<VentasMensualesProveedorInsert>): Promise<VentasMensualesProveedor> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const dataToUpsert = {
-      ...payload,
-      user_id: user.id,
-      updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('ventas_mensuales_proveedor')
-      .upsert(dataToUpsert, { onConflict: 'ruc, anio' })
-      .select()
+      .eq('ruc', ruc)
       .single();
-    
-    if (error) {
-      console.error('Error en upsert de ventas mensuales:', error);
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error fetching ventas mensuales by RUC:', error);
       throw error;
     }
     return data;
@@ -66,41 +44,27 @@ export class VentasMensualesProveedorService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const recordsToUpsert = Object.entries(salesData).map(([yearStr, monthData]) => {
-      const year = parseInt(yearStr, 10);
-      return {
-        ruc,
-        anio: year,
-        ...monthData,
-        status,
-        validado_por,
-        user_id: user.id,
-      };
-    });
+    const flatData: Partial<VentasMensualesProveedor> = {
+      ruc,
+      status,
+      validado_por,
+      user_id: user.id,
+    };
 
-    if (recordsToUpsert.length > 0) {
-      const { error } = await supabase
-        .from('ventas_mensuales_proveedor')
-        .upsert(recordsToUpsert, { onConflict: 'ruc, anio' });
-
-      if (error) {
-        console.error('Error en upsert masivo de ventas mensuales:', error);
-        throw error;
+    for (const year in salesData) {
+      for (const month in salesData[year]) {
+        const key = `${month}_${year}`;
+        flatData[key] = salesData[year][month];
       }
     }
-  }
 
-  static async updateStatusForRuc(ruc: string, updateData: { status?: VentasProveedorStatus | null, validado_por?: string | null }): Promise<VentasMensualesProveedor[]> {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('ventas_mensuales_proveedor')
-      .update({ ...updateData, updated_at: new Date().toISOString() })
-      .eq('ruc', ruc)
-      .select();
+      .upsert(flatData, { onConflict: 'ruc' });
 
     if (error) {
-      console.error('Error updating status for RUC:', error);
+      console.error('Error en upsert de ventas mensuales:', error);
       throw error;
     }
-    return data;
   }
 }

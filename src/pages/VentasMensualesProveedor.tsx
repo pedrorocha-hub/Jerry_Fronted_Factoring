@@ -82,7 +82,7 @@ const VentasMensualesProveedorPage = () => {
       if (fichaData) {
         setSearchedFicha(fichaData);
 
-        const [ventasReportes, { data: tributarioReportes, error: tributarioError }] = await Promise.all([
+        const [ventasReporte, { data: tributarioReportes, error: tributarioError }] = await Promise.all([
           VentasMensualesProveedorService.getByRuc(ruc),
           supabase.from('reporte_tributario').select('anio_reporte, ventas_enero, ventas_febrero, ventas_marzo, ventas_abril, ventas_mayo, ventas_junio, ventas_julio, ventas_agosto, ventas_setiembre, ventas_octubre, ventas_noviembre, ventas_diciembre').eq('ruc', ruc)
         ]);
@@ -91,12 +91,15 @@ const VentasMensualesProveedorPage = () => {
 
         const newSalesData: SalesData = {};
         const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+        const years = [2023, 2024, 2025];
+
+        // Initialize years
+        years.forEach(year => { newSalesData[year] = {}; });
 
         // 1. Populate from reporte_tributario (lower priority)
         (tributarioReportes || []).forEach(reporte => {
           const year = reporte.anio_reporte;
-          if (year) {
-            if (!newSalesData[year]) newSalesData[year] = {};
+          if (year && years.includes(year)) {
             months.forEach(month => {
               const key = `ventas_${month}` as keyof typeof reporte;
               newSalesData[year][month] = reporte[key] as number | null;
@@ -105,38 +108,34 @@ const VentasMensualesProveedorPage = () => {
         });
 
         // 2. Populate/overwrite from ventas_mensuales_proveedor (higher priority)
-        (ventasReportes || []).forEach(reporte => {
-          if (reporte.anio) {
-            if (!newSalesData[reporte.anio]) newSalesData[reporte.anio] = {};
+        if (ventasReporte) {
+          years.forEach(year => {
             months.forEach(month => {
-              const key = month as keyof typeof reporte;
-              if (reporte[key] !== null && reporte[key] !== undefined) {
-                newSalesData[reporte.anio][month] = reporte[key] as number | null;
+              const key = `${month}_${year}`;
+              if (ventasReporte[key] !== null && ventasReporte[key] !== undefined) {
+                newSalesData[year][month] = ventasReporte[key] as number | null;
               }
             });
-          }
-        });
+          });
+        }
         
         setSalesData(newSalesData);
 
-        if (ventasReportes && ventasReportes.length > 0) {
-          const latest = ventasReportes.reduce((prev, current) => (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current);
-          setLatestReport(latest);
-          if (latest.user_id) {
-            const profile = await ProfileService.getProfileById(latest.user_id);
+        if (ventasReporte) {
+          setLatestReport(ventasReporte);
+          if (ventasReporte.user_id) {
+            const profile = await ProfileService.getProfileById(ventasReporte.user_id);
             setCreatorName(profile?.full_name || 'Desconocido');
           }
         } else {
           setLatestReport({
             id: '',
             ruc: ruc,
-            anio: new Date().getFullYear(),
             status: 'Borrador',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             validado_por: '',
             user_id: '',
-            enero: null, febrero: null, marzo: null, abril: null, mayo: null, junio: null, julio: null, agosto: null, setiembre: null, octubre: null, noviembre: null, diciembre: null
           });
           setCreatorName('Nuevo Reporte');
         }
