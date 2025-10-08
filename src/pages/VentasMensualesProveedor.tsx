@@ -93,7 +93,7 @@ const VentasMensualesProveedorPage = () => {
         const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
         const years = [2023, 2024, 2025];
 
-        // Initialize ALL fields to null to prevent ghost data
+        // 1. Initialize ALL fields to null to prevent ghost data
         years.forEach(year => {
             newSalesData[year] = {};
             months.forEach(month => {
@@ -101,7 +101,7 @@ const VentasMensualesProveedorPage = () => {
             });
         });
 
-        // 1. Populate from reporte_tributario (lower priority)
+        // 2. Populate from reporte_tributario (lower priority)
         (tributarioReportes || []).forEach(reporte => {
           const year = reporte.anio_reporte;
           if (year && years.includes(year)) {
@@ -114,7 +114,7 @@ const VentasMensualesProveedorPage = () => {
           }
         });
 
-        // 2. Populate/overwrite from ventas_mensuales_proveedor (higher priority)
+        // 3. Populate/overwrite from ventas_mensuales_proveedor (higher priority)
         if (ventasReporte) {
           years.forEach(year => {
             months.forEach(month => {
