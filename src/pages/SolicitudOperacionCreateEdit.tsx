@@ -192,11 +192,18 @@ const SolicitudOperacionCreateEditPage = () => {
   const fetchDeudorData = async (ruc: string) => {
     setFetchingDeudorData(true);
     try {
+      const rucAsNumber = parseInt(ruc, 10);
+      if (isNaN(rucAsNumber)) {
+        setDeudorTop10kData(null);
+        setDeudorFicha(null);
+        return;
+      }
+
       const [topDataRes, fichaDataRes] = await Promise.all([
         supabase
           .from('top_10k')
           .select('descripcion_ciiu_rev3, sector, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
-          .eq('ruc', ruc)
+          .eq('ruc', rucAsNumber)
           .single(),
         FichaRucService.getByRuc(ruc)
       ]);
