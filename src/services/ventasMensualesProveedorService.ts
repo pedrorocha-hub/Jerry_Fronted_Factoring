@@ -44,11 +44,12 @@ export class VentasMensualesProveedorService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const flatData: Partial<VentasMensualesProveedor> = {
+    const flatData: { [key: string]: any } = {
       ruc,
       status,
       validado_por,
       user_id: user.id,
+      updated_at: new Date().toISOString(),
     };
 
     for (const year in salesData) {
