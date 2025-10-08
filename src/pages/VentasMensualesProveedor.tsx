@@ -145,6 +145,13 @@ const VentasMensualesProveedorPage = () => {
             user_id: '',
           });
           setCreatorName('Nuevo Reporte');
+          // If this is a new report and we found data, mark it as dirty to enable saving.
+          const hasTributarioData = Object.values(newSalesData).some(yearData => 
+            Object.values(yearData).some(value => value !== null)
+          );
+          if (hasTributarioData) {
+            setIsSalesDataDirty(true);
+          }
         }
 
       } else {
