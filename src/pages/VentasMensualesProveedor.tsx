@@ -73,95 +73,79 @@ const VentasMensualesProveedorPage = () => {
       setError('Por favor, ingrese un RUC válido de 11 dígitos.');
       return;
     }
-
     setSearching(true);
-    setError(null);
-    
-    // LIMPIAR COMPLETAMENTE EL ESTADO ANTES DE BUSCAR
-    setSearchedFicha(null);
-    setSalesData({});
-    setLatestReport(null);
-    setCreatorName(null);
-    setIsStatusDirty(false);
-    setIsSalesDataDirty(false);
+    clearSearch();
     setRucInput(ruc);
 
     try {
       const fichaData = await FichaRucService.getByRuc(ruc);
-      if (!fichaData) {
-        setError('Ficha RUC no encontrada. No se puede continuar.');
-        showError('Ficha RUC no encontrada.');
-        return;
-      }
+      if (fichaData) {
+        setSearchedFicha(fichaData);
 
-      setSearchedFicha(fichaData);
+        const [ventasReportes, { data: tributarioReportes, error: tributarioError }] = await Promise.all([
+          VentasMensualesProveedorService.getByRuc(ruc),
+          supabase.from('reporte_tributario').select('anio_reporte, ventas_enero, ventas_febrero, ventas_marzo, ventas_abril, ventas_mayo, ventas_junio, ventas_julio, ventas_agosto, ventas_setiembre, ventas_octubre, ventas_noviembre, ventas_diciembre').eq('ruc', ruc)
+        ]);
 
-      // Obtener datos del Reporte Tributario SOLAMENTE
-      const { data: tributarioReportes, error: tributarioError } = await supabase
-        .from('reporte_tributario')
-        .select('anio_reporte, ventas_enero, ventas_febrero, ventas_marzo, ventas_abril, ventas_mayo, ventas_junio, ventas_julio, ventas_agosto, ventas_setiembre, ventas_octubre, ventas_noviembre, ventas_diciembre')
-        .eq('ruc', ruc);
+        if (tributarioError) throw tributarioError;
 
-      if (tributarioError) {
-        console.error('Error fetching reporte tributario:', tributarioError);
-        throw tributarioError;
-      }
+        const newSalesData: SalesData = {};
+        const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
 
-      // Construir salesData SOLO desde reporte_tributario
-      const newSalesData: SalesData = {};
-      const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
-
-      console.log('Datos del Reporte Tributario:', tributarioReportes);
-
-      if (tributarioReportes && tributarioReportes.length > 0) {
-        tributarioReportes.forEach(reporte => {
+        // 1. Populate from reporte_tributario (lower priority)
+        (tributarioReportes || []).forEach(reporte => {
           const year = reporte.anio_reporte;
           if (year) {
-            newSalesData[year] = {};
+            if (!newSalesData[year]) newSalesData[year] = {};
             months.forEach(month => {
               const key = `ventas_${month}` as keyof typeof reporte;
-              const value = reporte[key];
-              newSalesData[year][month] = value !== null && value !== undefined ? Number(value) : null;
+              newSalesData[year][month] = reporte[key] as number | null;
             });
           }
         });
-      }
 
-      console.log('SalesData construido:', newSalesData);
-      setSalesData(newSalesData);
-
-      // Obtener datos de ventas_mensuales_proveedor para el status
-      const ventasReportes = await VentasMensualesProveedorService.getByRuc(ruc);
-      
-      if (ventasReportes && ventasReportes.length > 0) {
-        const latest = ventasReportes.reduce((prev, current) => 
-          (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current
-        );
-        setLatestReport(latest);
-        
-        if (latest.user_id) {
-          const profile = await ProfileService.getProfileById(latest.user_id);
-          setCreatorName(profile?.full_name || 'Desconocido');
-        }
-      } else {
-        // Crear un reporte nuevo con status por defecto
-        setLatestReport({
-          id: '',
-          ruc: ruc,
-          anio: new Date().getFullYear(),
-          status: 'Borrador',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          validado_por: '',
-          user_id: '',
-          enero: null, febrero: null, marzo: null, abril: null, mayo: null, junio: null, 
-          julio: null, agosto: null, setiembre: null, octubre: null, noviembre: null, diciembre: null
+        // 2. Populate/overwrite from ventas_mensuales_proveedor (higher priority)
+        (ventasReportes || []).forEach(reporte => {
+          if (reporte.anio) {
+            if (!newSalesData[reporte.anio]) newSalesData[reporte.anio] = {};
+            months.forEach(month => {
+              const key = month as keyof typeof reporte;
+              if (reporte[key] !== null && reporte[key] !== undefined) {
+                newSalesData[reporte.anio][month] = reporte[key] as number | null;
+              }
+            });
+          }
         });
-        setCreatorName('Nuevo Reporte');
-      }
+        
+        setSalesData(newSalesData);
 
+        if (ventasReportes && ventasReportes.length > 0) {
+          const latest = ventasReportes.reduce((prev, current) => (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current);
+          setLatestReport(latest);
+          if (latest.user_id) {
+            const profile = await ProfileService.getProfileById(latest.user_id);
+            setCreatorName(profile?.full_name || 'Desconocido');
+          }
+        } else {
+          setLatestReport({
+            id: '',
+            ruc: ruc,
+            anio: new Date().getFullYear(),
+            status: 'Borrador',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            validado_por: '',
+            user_id: '',
+            enero: null, febrero: null, marzo: null, abril: null, mayo: null, junio: null, julio: null, agosto: null, setiembre: null, octubre: null, noviembre: null, diciembre: null
+          });
+          setCreatorName('Nuevo Reporte');
+        }
+
+      } else {
+        setError('Ficha RUC no encontrada. No se puede continuar.');
+        showError('Ficha RUC no encontrada.');
+      }
     } catch (err) {
-      console.error('Error en handleSearch:', err);
       setError('Ocurrió un error al buscar la empresa.');
       showError('Error al buscar la empresa.');
     } finally {
@@ -202,7 +186,6 @@ const VentasMensualesProveedorPage = () => {
   const handleSaveChanges = async () => {
     if (!latestReport || !searchedFicha) return;
     setSavingStatus(true);
-    
     try {
       await VentasMensualesProveedorService.saveSalesDataForRuc(
         searchedFicha.ruc,
@@ -216,7 +199,6 @@ const VentasMensualesProveedorPage = () => {
       setIsSalesDataDirty(false);
       await fetchSummaries();
     } catch (err) {
-      console.error('Error al guardar:', err);
       showError('Error al guardar los cambios.');
     } finally {
       setSavingStatus(false);

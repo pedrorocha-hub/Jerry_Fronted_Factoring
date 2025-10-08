@@ -34,6 +34,29 @@ export class VentasMensualesProveedorService {
     return data || [];
   }
 
+  static async upsert(payload: Partial<VentasMensualesProveedorInsert>): Promise<VentasMensualesProveedor> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const dataToUpsert = {
+      ...payload,
+      user_id: user.id,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('ventas_mensuales_proveedor')
+      .upsert(dataToUpsert, { onConflict: 'ruc, anio' })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error en upsert de ventas mensuales:', error);
+      throw error;
+    }
+    return data;
+  }
+
   static async saveSalesDataForRuc(
     ruc: string,
     salesData: SalesData,
@@ -43,49 +66,26 @@ export class VentasMensualesProveedorService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // PRIMERO: Eliminar TODOS los registros existentes para este RUC
-    const { error: deleteError } = await supabase
-      .from('ventas_mensuales_proveedor')
-      .delete()
-      .eq('ruc', ruc);
-
-    if (deleteError) {
-      console.error('Error eliminando registros existentes:', deleteError);
-      throw deleteError;
-    }
-
-    // SEGUNDO: Crear UN SOLO registro consolidado con TODOS los años
-    if (Object.keys(salesData).length > 0) {
-      // Consolidar todos los años en un solo objeto
-      const consolidatedRecord: any = {
+    const recordsToUpsert = Object.entries(salesData).map(([yearStr, monthData]) => {
+      const year = parseInt(yearStr, 10);
+      return {
         ruc,
-        anio: new Date().getFullYear(), // Año actual como referencia
+        anio: year,
+        ...monthData,
         status,
         validado_por,
         user_id: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       };
+    });
 
-      // Agregar todos los meses de todos los años con prefijos
-      Object.entries(salesData).forEach(([yearStr, monthData]) => {
-        const year = yearStr;
-        Object.entries(monthData).forEach(([month, value]) => {
-          // Crear campos como: 2023_enero, 2023_febrero, 2024_enero, etc.
-          const fieldName = `${year}_${month}`;
-          consolidatedRecord[fieldName] = value;
-        });
-      });
-
-      console.log('Guardando registro consolidado:', consolidatedRecord);
-
-      const { error: insertError } = await supabase
+    if (recordsToUpsert.length > 0) {
+      const { error } = await supabase
         .from('ventas_mensuales_proveedor')
-        .insert([consolidatedRecord]);
+        .upsert(recordsToUpsert, { onConflict: 'ruc, anio' });
 
-      if (insertError) {
-        console.error('Error insertando registro consolidado:', insertError);
-        throw insertError;
+      if (error) {
+        console.error('Error en upsert masivo de ventas mensuales:', error);
+        throw error;
       }
     }
   }
