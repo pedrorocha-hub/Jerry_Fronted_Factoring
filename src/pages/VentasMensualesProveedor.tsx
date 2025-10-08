@@ -15,6 +15,7 @@ import VentasStatusManager from '@/components/ventas-mensuales-proveedor/VentasS
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import { ProfileService } from '@/services/profileService';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface SalesData {
   [year: number]: {
@@ -80,24 +81,49 @@ const VentasMensualesProveedorPage = () => {
       const fichaData = await FichaRucService.getByRuc(ruc);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const reportes = await VentasMensualesProveedorService.getByRuc(ruc);
-        
+
+        const [ventasReportes, { data: tributarioReportes, error: tributarioError }] = await Promise.all([
+          VentasMensualesProveedorService.getByRuc(ruc),
+          supabase.from('reporte_tributario').select('anio_reporte, ventas_enero, ventas_febrero, ventas_marzo, ventas_abril, ventas_mayo, ventas_junio, ventas_julio, ventas_agosto, ventas_setiembre, ventas_octubre, ventas_noviembre, ventas_diciembre').eq('ruc', ruc)
+        ]);
+
+        if (tributarioError) throw tributarioError;
+
         const initialSalesData: SalesData = {};
         const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
-        
-        reportes.forEach(reporte => {
+
+        // 1. Populate from reporte_tributario (less priority)
+        if (tributarioReportes) {
+          tributarioReportes.forEach(reporte => {
+            const year = reporte.anio_reporte;
+            if (year) {
+              if (!initialSalesData[year]) initialSalesData[year] = {};
+              months.forEach(month => {
+                const key = `ventas_${month}` as keyof typeof reporte;
+                initialSalesData[year][month] = reporte[key] as number | null;
+              });
+            }
+          });
+        }
+
+        // 2. Populate/overwrite from ventas_mensuales_proveedor (higher priority)
+        ventasReportes.forEach(reporte => {
           if (reporte.anio) {
-            initialSalesData[reporte.anio] = {};
+            if (!initialSalesData[reporte.anio]) initialSalesData[reporte.anio] = {};
             months.forEach(month => {
               const key = month as keyof typeof reporte;
-              initialSalesData[reporte.anio][month] = reporte[key] as number | null;
+              // Only overwrite if the value is not null, to keep tributario data if ventas data is null
+              if (reporte[key] !== null) {
+                initialSalesData[reporte.anio][month] = reporte[key] as number | null;
+              }
             });
           }
         });
+        
         setSalesData(initialSalesData);
 
-        if (reportes.length > 0) {
-          const latest = reportes.reduce((prev, current) => (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current);
+        if (ventasReportes.length > 0) {
+          const latest = ventasReportes.reduce((prev, current) => (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current);
           setLatestReport(latest);
           if (latest.user_id) {
             const profile = await ProfileService.getProfileById(latest.user_id);
