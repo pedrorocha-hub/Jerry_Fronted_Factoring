@@ -43,35 +43,49 @@ export class VentasMensualesProveedorService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const existingRecords = await this.getByRuc(ruc);
-    const existingRecordsMap = new Map(existingRecords.map(rec => [rec.anio, rec.id]));
+    // PRIMERO: Eliminar TODOS los registros existentes para este RUC
+    const { error: deleteError } = await supabase
+      .from('ventas_mensuales_proveedor')
+      .delete()
+      .eq('ruc', ruc);
 
-    const upsertPayloads = Object.entries(salesData).map(([yearStr, monthData]) => {
-      const year = parseInt(yearStr, 10);
-      const existingId = existingRecordsMap.get(year);
+    if (deleteError) {
+      console.error('Error eliminando registros existentes:', deleteError);
+      throw deleteError;
+    }
 
-      const record: Partial<VentasMensualesProveedor> & { ruc: string; anio: number } = {
+    // SEGUNDO: Crear UN SOLO registro consolidado con TODOS los años
+    if (Object.keys(salesData).length > 0) {
+      // Consolidar todos los años en un solo objeto
+      const consolidatedRecord: any = {
         ruc,
-        anio: year,
-        ...monthData,
+        anio: new Date().getFullYear(), // Año actual como referencia
         status,
         validado_por,
         user_id: user.id,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      if (existingId) {
-        record.id = existingId;
-      }
+      // Agregar todos los meses de todos los años con prefijos
+      Object.entries(salesData).forEach(([yearStr, monthData]) => {
+        const year = yearStr;
+        Object.entries(monthData).forEach(([month, value]) => {
+          // Crear campos como: 2023_enero, 2023_febrero, 2024_enero, etc.
+          const fieldName = `${year}_${month}`;
+          consolidatedRecord[fieldName] = value;
+        });
+      });
 
-      return record;
-    });
+      console.log('Guardando registro consolidado:', consolidatedRecord);
 
-    if (upsertPayloads.length > 0) {
-      const { error } = await supabase.from('ventas_mensuales_proveedor').upsert(upsertPayloads);
-      if (error) {
-        console.error('Error en upsert de ventas mensuales:', error);
-        throw error;
+      const { error: insertError } = await supabase
+        .from('ventas_mensuales_proveedor')
+        .insert([consolidatedRecord]);
+
+      if (insertError) {
+        console.error('Error insertando registro consolidado:', insertError);
+        throw insertError;
       }
     }
   }
