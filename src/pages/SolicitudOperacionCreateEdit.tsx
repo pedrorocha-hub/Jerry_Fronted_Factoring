@@ -282,6 +282,15 @@ const SolicitudOperacionCreateEditPage = () => {
       if (fichaData) {
         setSearchedFicha(fichaData);
         setSolicitudFormData(prev => ({ ...prev, proveedor: fichaData.nombre_empresa }));
+        
+        if (!id) {
+            const updatedRows = [...riesgoRows];
+            if (updatedRows.length > 0) {
+                updatedRows[0] = { ...updatedRows[0], deudor: rucToSearch };
+                setRiesgoRows(updatedRows);
+            }
+        }
+        
         if (!editingSolicitud) showSuccess('Ficha RUC encontrada.');
       } else {
         setError('Ficha RUC no encontrada. Asegúrese de que exista antes de crear una solicitud.');
