@@ -25,8 +25,6 @@ import SentinelCreatePage from '@/pages/SentinelCreatePage';
 import UsersPage from '@/pages/Admin/Users';
 import ReporteTributarioDeudorPage from '@/pages/ReporteTributarioDeudor';
 import VentasMensualesProveedorPage from '@/pages/VentasMensualesProveedor';
-import RibProcessListPage from '@/pages/RibProcessListPage';
-import RibProcessDetailPage from '@/pages/RibProcessDetailPage';
 
 function App() {
   return (
@@ -55,8 +53,6 @@ function App() {
               <Route path="/admin/users" element={<UsersPage />} />
               <Route path="/reporte-tributario-deudor" element={<ReporteTributarioDeudorPage />} />
               <Route path="/ventas-mensuales-proveedor" element={<VentasMensualesProveedorPage />} />
-              <Route path="/proceso-rib" element={<RibProcessListPage />} />
-              <Route path="/proceso-rib/:id" element={<RibProcessDetailPage />} />
             </Route>
           </Routes>
           

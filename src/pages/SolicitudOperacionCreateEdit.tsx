@@ -56,13 +56,10 @@ const SolicitudOperacionCreateEditPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
+  const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudOperacion | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   
-  const [deudorTop10kData, setDeudorTop10kData] = useState<Top10kData | null>(null);
-  const [deudorFicha, setDeudorFicha] = useState<FichaRuc | null>(null);
-  const [fetchingDeudorData, setFetchingDeudorData] = useState(false);
-
   const [riesgoRows, setRiesgoRows] = useState<RiesgoRow[]>([
     { lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }
   ]);
@@ -189,61 +186,13 @@ const SolicitudOperacionCreateEditPage = () => {
     setSolicitudFormData(prev => ({ ...prev, exposicion_total: formattedGrandTotal }));
   }, [riesgoRows]);
 
-  const fetchDeudorData = async (ruc: string) => {
-    setFetchingDeudorData(true);
-    try {
-      const rucAsNumber = parseInt(ruc, 10);
-      if (isNaN(rucAsNumber)) {
-        setDeudorTop10kData(null);
-        setDeudorFicha(null);
-        return;
-      }
-
-      const [topDataRes, fichaDataRes] = await Promise.all([
-        supabase
-          .from('top_10k')
-          .select('descripcion_ciiu_rev3, sector, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
-          .eq('ruc', rucAsNumber)
-          .single(),
-        FichaRucService.getByRuc(ruc)
-      ]);
-  
-      const { data: topData, error: topError } = topDataRes;
-      if (topError && topError.code !== 'PGRST116') throw topError;
-      setDeudorTop10kData(topData || null);
-  
-      setDeudorFicha(fichaDataRes || null);
-  
-    } catch (err) {
-      console.error("Error fetching deudor data:", err);
-      setDeudorTop10kData(null);
-      setDeudorFicha(null);
-    } finally {
-      setFetchingDeudorData(false);
-    }
-  };
-
-  useEffect(() => {
-    const deudorRuc = riesgoRows[0]?.deudor;
-    const handler = setTimeout(() => {
-      if (deudorRuc && deudorRuc.length === 11) {
-        fetchDeudorData(deudorRuc);
-      } else {
-        setDeudorTop10kData(null);
-        setDeudorFicha(null);
-      }
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [riesgoRows[0]?.deudor]);
-
   const resetStateAndForm = () => {
     setRucInput('');
     setSearching(false);
     setSaving(false);
     setError(null);
     setSearchedFicha(null);
-    setDeudorTop10kData(null);
-    setDeudorFicha(null);
+    setTop10kData(null);
     setEditingSolicitud(null);
     setCreatorInfo(null);
     setRiesgoRows([{ lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }]);
@@ -275,23 +224,24 @@ const SolicitudOperacionCreateEditPage = () => {
     setSearching(true);
     setError(null);
     setSearchedFicha(null);
+    setTop10kData(null);
 
     try {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
         setSolicitudFormData(prev => ({ ...prev, proveedor: fichaData.nombre_empresa }));
-        
-        // Actualizar el campo deudor en la primera fila de riesgos para nuevas solicitudes
-        if (!id) {
-          const updatedRows = [...riesgoRows];
-          if (updatedRows.length > 0) {
-            updatedRows[0] = { ...updatedRows[0], deudor: rucToSearch };
-            setRiesgoRows(updatedRows);
-          }
-        }
-        
         if (!editingSolicitud) showSuccess('Ficha RUC encontrada.');
+
+        const { data: topData, error: topError } = await supabase
+          .from('top_10k')
+          .select('descripcion_ciiu_rev3, sector, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
+          .eq('ruc', rucToSearch)
+          .single();
+
+        if (topError && topError.code !== 'PGRST116') throw topError;
+        if (topData) setTop10kData(topData);
+
       } else {
         setError('Ficha RUC no encontrada. Asegúrese de que exista antes de crear una solicitud.');
         showError('Ficha RUC no encontrada.');
@@ -481,7 +431,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
                           <div><Label>L/P</Label><Input value={row.lp} onChange={(e) => handleRiesgoChange(index, 'lp', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                           <div><Label>Producto</Label><Input value={row.producto} onChange={(e) => handleRiesgoChange(index, 'producto', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Deudor (RUC)</Label><Input value={row.deudor} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label>Deudor</Label><Input value={row.deudor} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                           <div><Label>L/P Vigente (GVE)</Label><Input value={row.lp_vigente_gve} onChange={(e) => handleRiesgoChange(index, 'lp_vigente_gve', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                           <div><Label>Riesgo Aprobado</Label><Input type="number" step="0.01" value={row.riesgo_aprobado} onChange={(e) => handleRiesgoChange(index, 'riesgo_aprobado', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                           <div><Label>Propuesta Comercial</Label><Input type="number" step="0.01" value={row.propuesta_comercial} onChange={(e) => handleRiesgoChange(index, 'propuesta_comercial', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
@@ -512,25 +462,17 @@ const SolicitudOperacionCreateEditPage = () => {
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader><CardTitle className="flex items-center text-white"><ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Deudor</CardTitle></CardHeader>
                   <CardContent>
-                    {fetchingDeudorData ? (
-                      <div className="flex justify-center items-center py-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-                        <p className="ml-2 text-gray-500">Buscando datos del deudor...</p>
-                      </div>
-                    ) : (deudorFicha || deudorTop10kData || riesgoRows[0]?.deudor) ? (
+                    {top10kData ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div><Label className="text-gray-400">RUC Deudor</Label><p className="font-mono text-white">{deudorFicha?.ruc || riesgoRows[0]?.deudor}</p></div>
-                        <div><Label className="text-gray-400">Razón Social</Label><p className="text-white">{deudorFicha?.nombre_empresa || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Sector</Label><p className="text-white">{deudorTop10kData?.sector || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{deudorTop10kData?.ranking_2024 || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(deudorTop10kData?.facturado_2024_soles_maximo)}</p></div>
-                        <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(deudorTop10kData?.facturado_2023_soles_maximo)}</p></div>
-                        <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{deudorTop10kData?.descripcion_ciiu_rev3 || 'N/A'}</p></div>
+                        <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{searchedFicha?.ruc}</p></div>
+                        <div><Label className="text-gray-400">Sector</Label><p className="text-white">{top10kData.sector || 'N/A'}</p></div>
+                        <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2024_soles_maximo)}</p></div>
+                        <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2023_soles_maximo)}</p></div>
+                        <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p></div>
+                        <div className="md:col-span-2"><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2024 || 'N/A'}</p></div>
                       </div>
                     ) : (
-                      <div className="text-center py-4 text-gray-500">
-                        <p>Ingrese el RUC del deudor en la sección "Riesgo Vigente del Proveedor" para ver sus datos.</p>
-                      </div>
+                      <div className="text-center py-4 text-gray-500"><p>No se encontraron datos de riesgo en la base TOP 10K para este RUC.</p></div>
                     )}
                   </CardContent>
                 </Card>
