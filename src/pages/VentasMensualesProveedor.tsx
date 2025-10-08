@@ -8,10 +8,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { VentasMensualesProveedorService, VentasMensualesProveedorSummary } from '@/services/ventasMensualesProveedorService';
+import { VentasMensualesProveedor, VentasProveedorStatus } from '@/types/ventasMensualesProveedor';
 import VentasMensualesTable from '@/components/ventas-mensuales-proveedor/VentasMensualesTable';
 import VentasMensualesProveedorList from '@/components/ventas-mensuales-proveedor/VentasMensualesProveedorList';
+import VentasStatusManager from '@/components/ventas-mensuales-proveedor/VentasStatusManager';
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
+import { ProfileService } from '@/services/profileService';
 
 export interface SalesData {
   [year: number]: {
@@ -29,6 +32,11 @@ const VentasMensualesProveedorPage = () => {
   const [salesData, setSalesData] = useState<SalesData>({});
   const [summaries, setSummaries] = useState<VentasMensualesProveedorSummary[]>([]);
   const [loadingSummaries, setLoadingSummaries] = useState(true);
+
+  const [latestReport, setLatestReport] = useState<VentasMensualesProveedor | null>(null);
+  const [creatorName, setCreatorName] = useState<string | null>(null);
+  const [isStatusDirty, setIsStatusDirty] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const fetchSummaries = async () => {
     try {
@@ -51,6 +59,9 @@ const VentasMensualesProveedorPage = () => {
     setError(null);
     setSearchedFicha(null);
     setSalesData({});
+    setLatestReport(null);
+    setCreatorName(null);
+    setIsStatusDirty(false);
   };
 
   const handleSearch = async (rucToSearch?: string) => {
@@ -60,9 +71,7 @@ const VentasMensualesProveedorPage = () => {
       return;
     }
     setSearching(true);
-    setError(null);
-    setSearchedFicha(null);
-    setSalesData({});
+    clearSearch();
     setRucInput(ruc);
 
     try {
@@ -84,6 +93,30 @@ const VentasMensualesProveedorPage = () => {
           }
         });
         setSalesData(initialSalesData);
+
+        if (reportes.length > 0) {
+          const latest = reportes.reduce((prev, current) => (new Date(prev.updated_at) > new Date(current.updated_at)) ? prev : current);
+          setLatestReport(latest);
+          if (latest.user_id) {
+            const profile = await ProfileService.getProfileById(latest.user_id);
+            setCreatorName(profile?.full_name || 'Desconocido');
+          }
+        } else {
+          // Create a dummy report object for new entries
+          setLatestReport({
+            id: '',
+            ruc: ruc,
+            anio: new Date().getFullYear(),
+            status: 'Borrador',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            validado_por: '',
+            user_id: '',
+            enero: null, febrero: null, marzo: null, abril: null, mayo: null, junio: null, julio: null, agosto: null, setiembre: null, octubre: null, noviembre: null, diciembre: null
+          });
+          setCreatorName('Nuevo Reporte');
+        }
+
       } else {
         setError('Ficha RUC no encontrada. No se puede continuar.');
         showError('Ficha RUC no encontrada.');
@@ -117,7 +150,9 @@ const VentasMensualesProveedorPage = () => {
         const payload = {
           ruc: searchedFicha.ruc,
           anio: year,
-          ...yearData
+          ...yearData,
+          status: latestReport?.status || 'Borrador',
+          validado_por: latestReport?.validado_por || null,
         };
         
         await VentasMensualesProveedorService.upsert(payload as any);
@@ -134,6 +169,38 @@ const VentasMensualesProveedorPage = () => {
   const handleSelectReport = (ruc: string) => {
     handleSearch(ruc);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStatusChange = (newStatus: VentasProveedorStatus) => {
+    if (latestReport) {
+        setLatestReport({ ...latestReport, status: newStatus });
+        setIsStatusDirty(true);
+    }
+  };
+
+  const handleValidatedByChange = (name: string) => {
+      if (latestReport) {
+          setLatestReport({ ...latestReport, validado_por: name });
+          setIsStatusDirty(true);
+      }
+  };
+
+  const handleSaveStatus = async () => {
+      if (!latestReport || !searchedFicha) return;
+      setSavingStatus(true);
+      try {
+          await VentasMensualesProveedorService.updateStatusForRuc(searchedFicha.ruc, {
+              status: latestReport.status,
+              validado_por: latestReport.validado_por
+          });
+          showSuccess('Estado actualizado.');
+          setIsStatusDirty(false);
+          await fetchSummaries();
+      } catch (err) {
+          showError('Error al actualizar el estado.');
+      } finally {
+          setSavingStatus(false);
+      }
   };
 
   return (
@@ -177,25 +244,38 @@ const VentasMensualesProveedorPage = () => {
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
           {searchedFicha ? (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <CardTitle className="flex items-center text-white">
-                  <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                  {searchedFicha.nombre_empresa}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VentasMensualesTable data={salesData} onDataChange={handleDataChange} />
-                {isAdmin && (
-                  <div className="flex justify-end mt-4">
-                    <Button onClick={handleSave} disabled={saving}>
-                      {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                      Guardar Cambios
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-white">
+                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    {searchedFicha.nombre_empresa}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <VentasMensualesTable data={salesData} onDataChange={handleDataChange} />
+                  {isAdmin && (
+                    <div className="flex justify-end mt-4">
+                      <Button onClick={handleSave} disabled={saving}>
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        Guardar Cambios
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              {latestReport && (
+                <VentasStatusManager
+                  report={latestReport}
+                  creatorName={creatorName}
+                  onStatusChange={handleStatusChange}
+                  onValidatedByChange={handleValidatedByChange}
+                  onSave={handleSaveStatus}
+                  isSaving={savingStatus}
+                  hasUnsavedChanges={isStatusDirty}
+                />
+              )}
+            </div>
           ) : (
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader>

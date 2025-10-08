@@ -54,4 +54,18 @@ export class VentasMensualesProveedorService {
     }
     return data;
   }
+
+  static async updateStatusForRuc(ruc: string, updateData: { status?: VentasProveedorStatus | null, validado_por?: string | null }): Promise<VentasMensualesProveedor[]> {
+    const { data, error } = await supabase
+      .from('ventas_mensuales_proveedor')
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq('ruc', ruc)
+      .select();
+
+    if (error) {
+      console.error('Error updating status for RUC:', error);
+      throw error;
+    }
+    return data;
+  }
 }

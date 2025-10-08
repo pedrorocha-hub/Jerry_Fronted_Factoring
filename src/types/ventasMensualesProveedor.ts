@@ -20,6 +20,7 @@ export interface VentasMensualesProveedor {
   created_at: string;
   updated_at: string;
   status: VentasProveedorStatus | null;
+  validado_por: string | null;
 }
 
 export type VentasMensualesProveedorInsert = Omit<VentasMensualesProveedor, 'id' | 'created_at' | 'updated_at'>;
