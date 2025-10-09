@@ -30,7 +30,7 @@ export interface ReporteTributarioDeudor {
   total_pasivo_patrimonio_2023?: number | null;
   total_pasivo_patrimonio_2024?: number | null;
   
-  // Estados de resultados - NUEVOS CAMPOS
+  // Estados de resultados
   ingreso_ventas_2022?: number | null;
   ingreso_ventas_2023?: number | null;
   ingreso_ventas_2024?: number | null;
@@ -40,6 +40,14 @@ export interface ReporteTributarioDeudor {
   utilidad_antes_impuesto_2022?: number | null;
   utilidad_antes_impuesto_2023?: number | null;
   utilidad_antes_impuesto_2024?: number | null;
+  
+  // Índices financieros - NUEVOS CAMPOS
+  solvencia_2022?: number | null;
+  solvencia_2023?: number | null;
+  solvencia_2024?: number | null;
+  gestion_2022?: number | null;
+  gestion_2023?: number | null;
+  gestion_2024?: number | null;
   
   user_id?: string | null;
   status?: 'Borrador' | 'En revisión' | 'Completado';
