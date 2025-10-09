@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Loader2 } from 'lucide-react';
+import { Building2, Loader2, Copy } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -8,8 +8,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 import { ReporteTributarioBalanceService, ReporteTributarioBalanceData } from '@/services/reporteTributarioBalanceService';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface RibReporteTributarioTableProps {
   ruc: string;
@@ -46,13 +48,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   const getSuffix = () => isProveedor ? '_proveedor' : '';
 
   const formatCurrency = (value: number | null | undefined) => {
-    if (value === null || value === undefined) return '-';
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    if (value === null || value === undefined) return '';
+    return value.toString();
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -91,30 +88,51 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     }
   };
 
+  const copyFromReporteTributario = (field: string, year: string) => {
+    const yearNum = parseInt(year);
+    const balanceValue = getBalanceValue(yearNum, field);
+    
+    if (balanceValue !== null) {
+      handleInputChange(`${field}_${year}`, balanceValue.toString());
+      showSuccess(`Valor copiado desde reporte tributario ${year}`);
+    } else {
+      showError(`No hay datos disponibles en reporte tributario para ${year}`);
+    }
+  };
+
   const InputCell = ({ field, year }: { field: string; year: string }) => {
     const fieldName = `${field}_${year}${getSuffix()}`;
     const value = data?.[fieldName as keyof RibReporteTributario] as number | null;
+    const yearNum = parseInt(year);
+    const balanceValue = getBalanceValue(yearNum, field);
     
     return (
       <TableCell className="p-2">
-        <input
-          type="text"
-          value={value?.toString() || ''}
-          onChange={(e) => handleInputChange(`${field}_${year}`, e.target.value)}
-          className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
-          placeholder="0"
-        />
-      </TableCell>
-    );
-  };
-
-  const DisplayCell = ({ field, year }: { field: string; year: number }) => {
-    const value = getBalanceValue(year, field);
-    
-    return (
-      <TableCell className="p-2 text-center">
-        <div className="text-white font-mono">
-          {formatCurrency(value)}
+        <div className="space-y-2">
+          <input
+            type="number"
+            value={formatCurrency(value)}
+            onChange={(e) => handleInputChange(`${field}_${year}`, e.target.value)}
+            className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
+            placeholder="0"
+            step="0.01"
+          />
+          {balanceValue !== null && (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400">
+                RT: {new Intl.NumberFormat('es-PE').format(balanceValue)}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => copyFromReporteTributario(field, year)}
+                className="h-6 px-2 text-xs text-[#00FF80] hover:bg-[#00FF80]/10"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
         </div>
       </TableCell>
     );
@@ -123,6 +141,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   const sections = [
     {
       title: 'ACTIVOS',
+      color: 'text-green-400',
+      bgColor: 'bg-green-500/5',
       rows: [
         {
           label: 'Cuentas por cobrar del giro',
@@ -138,6 +158,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     },
     {
       title: 'PASIVOS',
+      color: 'text-red-400',
+      bgColor: 'bg-red-500/5',
       rows: [
         {
           label: 'Cuentas por pagar del giro',
@@ -153,6 +175,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     },
     {
       title: 'PATRIMONIO',
+      color: 'text-blue-400',
+      bgColor: 'bg-blue-500/5',
       rows: [
         {
           label: 'Capital pagado',
@@ -199,8 +223,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
 
       {sections.map((section) => (
         <div key={section.title} className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
-          <div className="bg-gray-900/50 px-4 py-2 border-b border-gray-800">
-            <h3 className="text-sm font-semibold text-[#00FF80] flex items-center">
+          <div className={`${section.bgColor} px-4 py-2 border-b border-gray-800`}>
+            <h3 className={`text-sm font-semibold ${section.color} flex items-center`}>
               <Building2 className="h-4 w-4 mr-2" />
               {section.title}
             </h3>
@@ -224,9 +248,9 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
                       <div className="text-xs text-gray-400">{row.description}</div>
                     </div>
                   </TableCell>
-                  <DisplayCell field={row.field} year={2022} />
-                  <DisplayCell field={row.field} year={2023} />
-                  <DisplayCell field={row.field} year={2024} />
+                  <InputCell field={row.field} year="2022" />
+                  <InputCell field={row.field} year="2023" />
+                  <InputCell field={row.field} year="2024" />
                 </TableRow>
               ))}
             </TableBody>
@@ -236,8 +260,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
       
       <div className="p-4 bg-gray-900/30 border border-gray-800 rounded-lg">
         <p className="text-xs text-gray-400">
-          <strong>Nota:</strong> Los datos mostrados provienen de los reportes tributarios guardados en el sistema.
-          Los valores de "Total pasivos" y "Total pasivo + patrimonio" son calculados automáticamente.
+          <strong>Instrucciones:</strong> Los campos son editables. Puedes ingresar valores manualmente o copiar desde el reporte tributario (RT) usando el botón <Copy className="h-3 w-3 inline mx-1" />.
+          Los valores se guardarán en el reporte RIB cuando presiones "Guardar".
           {balanceData?.empresa_nombre && (
             <span className="block mt-1">
               <strong>Empresa:</strong> {balanceData.empresa_nombre}
