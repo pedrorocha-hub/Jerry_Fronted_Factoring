@@ -1,15 +1,158 @@
-import React from 'react';
-import { TrendingUp, Calendar } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { TrendingUp, Calendar, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { DossierRib } from '@/types/dossier';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VentasMensualesSectionProps {
   dossier: DossierRib;
 }
 
+interface VentasMensualesData {
+  id: string;
+  proveedor_ruc: string;
+  deudor_ruc?: string;
+  status: string;
+  validado_por?: string;
+  created_at: string;
+  updated_at: string;
+  user_id?: string;
+  // Datos 2023 Proveedor
+  enero_2023_proveedor?: number;
+  febrero_2023_proveedor?: number;
+  marzo_2023_proveedor?: number;
+  abril_2023_proveedor?: number;
+  mayo_2023_proveedor?: number;
+  junio_2023_proveedor?: number;
+  julio_2023_proveedor?: number;
+  agosto_2023_proveedor?: number;
+  setiembre_2023_proveedor?: number;
+  octubre_2023_proveedor?: number;
+  noviembre_2023_proveedor?: number;
+  diciembre_2023_proveedor?: number;
+  // Datos 2024 Proveedor
+  enero_2024_proveedor?: number;
+  febrero_2024_proveedor?: number;
+  marzo_2024_proveedor?: number;
+  abril_2024_proveedor?: number;
+  mayo_2024_proveedor?: number;
+  junio_2024_proveedor?: number;
+  julio_2024_proveedor?: number;
+  agosto_2024_proveedor?: number;
+  setiembre_2024_proveedor?: number;
+  octubre_2024_proveedor?: number;
+  noviembre_2024_proveedor?: number;
+  diciembre_2024_proveedor?: number;
+  // Datos 2023 Deudor
+  enero_2023_deudor?: number;
+  febrero_2023_deudor?: number;
+  marzo_2023_deudor?: number;
+  abril_2023_deudor?: number;
+  mayo_2023_deudor?: number;
+  junio_2023_deudor?: number;
+  julio_2023_deudor?: number;
+  agosto_2023_deudor?: number;
+  setiembre_2023_deudor?: number;
+  octubre_2023_deudor?: number;
+  noviembre_2023_deudor?: number;
+  diciembre_2023_deudor?: number;
+  // Datos 2024 Deudor
+  enero_2024_deudor?: number;
+  febrero_2024_deudor?: number;
+  marzo_2024_deudor?: number;
+  abril_2024_deudor?: number;
+  mayo_2024_deudor?: number;
+  junio_2024_deudor?: number;
+  julio_2024_deudor?: number;
+  agosto_2024_deudor?: number;
+  setiembre_2024_deudor?: number;
+  octubre_2024_deudor?: number;
+  noviembre_2024_deudor?: number;
+  diciembre_2024_deudor?: number;
+}
+
 const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier }) => {
+  const [ventasData, setVentasData] = useState<VentasMensualesData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const ruc = dossier.solicitudOperacion.ruc;
+
+  useEffect(() => {
+    const fetchVentasMensuales = async () => {
+      if (!ruc) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        console.log('Buscando ventas mensuales para RUC:', ruc);
+
+        // Usar la función que ya existe en la base de datos
+        const { data, error: fetchError } = await supabase
+          .rpc('get_ventas_mensuales_summaries');
+
+        console.log('Resultado get_ventas_mensuales_summaries:', { data, fetchError });
+
+        if (fetchError) {
+          console.error('Error en get_ventas_mensuales_summaries:', fetchError);
+          // Fallback: consulta directa
+          const { data: directData, error: directError } = await supabase
+            .from('ventas_mensuales')
+            .select('*')
+            .or(`proveedor_ruc.eq.${ruc},deudor_ruc.eq.${ruc}`)
+            .limit(1)
+            .single();
+
+          console.log('Resultado consulta directa:', { directData, directError });
+
+          if (directError) {
+            console.error('Error en consulta directa:', directError);
+            setError('No se encontraron datos de ventas mensuales');
+            return;
+          }
+
+          setVentasData(directData);
+        } else {
+          // Buscar en los resultados de la función
+          const ventasRecord = data?.find((item: any) => item.ruc === ruc);
+          
+          if (!ventasRecord) {
+            console.log('No se encontró registro para RUC:', ruc);
+            setError('No se encontraron datos de ventas mensuales para este RUC');
+            return;
+          }
+
+          // Obtener los datos completos
+          const { data: fullData, error: fullError } = await supabase
+            .from('ventas_mensuales')
+            .select('*')
+            .eq('proveedor_ruc', ruc)
+            .single();
+
+          console.log('Datos completos:', { fullData, fullError });
+
+          if (fullError) {
+            console.error('Error obteniendo datos completos:', fullError);
+            setError('Error al obtener datos completos de ventas mensuales');
+            return;
+          }
+
+          setVentasData(fullData);
+        }
+      } catch (err) {
+        console.error('Error inesperado:', err);
+        setError('Error inesperado al cargar datos de ventas mensuales');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVentasMensuales();
+  }, [ruc]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completado':
@@ -35,13 +178,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     }).format(num);
   };
 
-  const ventasData = dossier.ventasMensuales;
-
-  // Debug logging
-  console.log('VentasMensualesSection - dossier:', dossier);
-  console.log('VentasMensualesSection - ventasData:', ventasData);
-
-  if (!ventasData) {
+  if (loading) {
     return (
       <Card className="bg-[#121212] border border-gray-800">
         <CardHeader>
@@ -52,10 +189,29 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <TrendingUp className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No hay datos de ventas mensuales disponibles</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80] mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando datos de ventas mensuales...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !ventasData) {
+    return (
+      <Card className="bg-[#121212] border border-gray-800">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center">
+            <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+            5. Ventas Mensuales
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400">{error || 'No hay datos de ventas mensuales disponibles'}</p>
             <p className="text-gray-500 text-xs mt-2">
-              Debug: RUC buscado = {dossier.solicitudOperacion.ruc}
+              Debug: RUC buscado = {ruc}
             </p>
           </div>
         </CardContent>
