@@ -527,18 +527,18 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-rose-500/50"
-                  onClick={() => navigate('/reporte-tributario-deudor')}
+                  onClick={() => navigate('/rib-reporte-tributario')}
                 >
                   <ClipboardEdit className="h-6 w-6" />
-                  <span className="text-xs">Reporte Tributario del Deudor</span>
+                  <span className="text-xs">RIB - Reporte Tributario</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-lime-500/50"
-                  onClick={() => navigate('/ventas-mensuales-proveedor')}
+                  onClick={() => navigate('/ventas-mensuales')}
                 >
                   <BarChart3 className="h-6 w-6" />
-                  <span className="text-xs">Ventas Mensuales Proveedor</span>
+                  <span className="text-xs">Ventas Mensuales</span>
                 </Button>
               </div>
             </CardContent>
