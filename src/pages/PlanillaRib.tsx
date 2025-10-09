@@ -58,7 +58,7 @@ const PlanillaRibPage = () => {
         .select(`
           *,
           solicitud_operacion_riesgos(*),
-          profiles(full_name, email)
+          profiles(full_name)
         `)
         .eq('ruc', rucInput)
         .order('created_at', { ascending: false })
@@ -131,8 +131,7 @@ const PlanillaRibPage = () => {
         riesgos: solicitud.solicitud_operacion_riesgos || [],
         fichaRuc: getData(fichaRucResult),
         creatorInfo: solicitud.profiles ? {
-          fullName: solicitud.profiles.full_name,
-          email: solicitud.profiles.email
+          fullName: solicitud.profiles.full_name
         } : null,
         
         // 2. Análisis RIB
