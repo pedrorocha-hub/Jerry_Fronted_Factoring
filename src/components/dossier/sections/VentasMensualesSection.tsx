@@ -3,7 +3,7 @@ import { TrendingUp, Building2, AlertCircle, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DossierRib } from '@/types/dossier';
-import { VentasMensualesService, VentasMensualesSummary } from '@/services/ventasMensualesService';
+import { supabase } from '@/integrations/supabase/client';
 import VentasMensualesTable from '@/components/ventas-mensuales/VentasMensualesTable';
 import { SalesData } from '@/pages/VentasMensuales';
 
@@ -36,45 +36,53 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
   };
 
   const fetchVentasMensuales = async () => {
-    if (!ruc) return;
+    if (!ruc) {
+      setError("No se proporcionó un RUC en el dossier.");
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     setError(null);
+    setVentasData(null);
 
     try {
-      console.log('🔍 Buscando ventas mensuales para RUC:', ruc);
+      console.log(`[VentasMensualesSection] 🔍 Buscando datos para RUC: ${ruc}`);
 
-      // Usar exactamente el mismo método que VentasMensuales.tsx
-      const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
-      
-      console.log('📊 Resultado VentasMensualesService.getByProveedorRuc:', ventasReporte);
+      // Consulta directa a la base de datos. Buscamos el RUC en ambas columnas.
+      const { data, error: dbError } = await supabase
+        .from('ventas_mensuales')
+        .select('*')
+        .or(`proveedor_ruc.eq.${ruc},deudor_ruc.eq.${ruc}`)
+        .limit(1)
+        .maybeSingle(); // .maybeSingle() devuelve null en lugar de un error si no se encuentra nada.
 
-      if (ventasReporte) {
-        console.log('✅ Datos encontrados, extrayendo información...');
-        
-        // Extraer datos del proveedor
-        const proveedorData = extractSalesData(ventasReporte, 'proveedor');
-        setProveedorSalesData(proveedorData);
-        
-        // Extraer datos del deudor si existen
-        if (ventasReporte.deudor_ruc) {
-          const deudorData = extractSalesData(ventasReporte, 'deudor');
-          setDeudorSalesData(deudorData);
-        }
-        
-        setVentasData(ventasReporte);
-        console.log('🎉 Datos cargados exitosamente:', {
-          proveedor: proveedorData,
-          deudor: ventasReporte.deudor_ruc ? extractSalesData(ventasReporte, 'deudor') : null
-        });
-      } else {
-        console.log('❌ No se encontraron datos para RUC:', ruc);
-        setError('No se encontraron datos de ventas mensuales para este RUC');
+      console.log(`[VentasMensualesSection] 📊 Resultado de la consulta:`, { data, dbError });
+
+      if (dbError) {
+        throw dbError;
       }
 
-    } catch (err) {
-      console.error('💥 Error al cargar ventas mensuales:', err);
-      setError('Error al cargar datos de ventas mensuales');
+      if (data) {
+        console.log('[VentasMensualesSection] ✅ Datos encontrados. Procesando...');
+        setVentasData(data);
+        
+        const proveedorData = extractSalesData(data, 'proveedor');
+        setProveedorSalesData(proveedorData);
+        
+        if (data.deudor_ruc) {
+          const deudorData = extractSalesData(data, 'deudor');
+          setDeudorSalesData(deudorData);
+        }
+        console.log('[VentasMensualesSection] 🎉 Datos procesados exitosamente.');
+      } else {
+        console.log(`[VentasMensualesSection] ❌ No se encontraron registros para el RUC ${ruc}.`);
+        setError('No se encontraron datos de ventas mensuales para este RUC.');
+      }
+
+    } catch (err: any) {
+      console.error('[VentasMensualesSection] 💥 Error al cargar ventas mensuales:', err);
+      setError(`Error al cargar datos: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -119,7 +127,6 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
             <p className="text-gray-500 text-xs mt-2">
               Debug: RUC buscado = {ruc}
             </p>
-            
             <Button 
               onClick={fetchVentasMensuales}
               variant="outline" 
@@ -145,7 +152,6 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Información del reporte */}
           <div className="flex items-center justify-between mb-6">
             <div>
               <h4 className="text-white font-medium">Análisis de Ventas Mensuales</h4>
@@ -159,7 +165,6 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
             </div>
           </div>
 
-          {/* Ventas del Proveedor */}
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader>
               <CardTitle className="flex items-center text-white">
@@ -170,13 +175,12 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
             <CardContent>
               <VentasMensualesTable 
                 data={proveedorSalesData} 
-                onDataChange={() => {}} // Solo lectura en el dossier
+                onDataChange={() => {}}
               />
             </CardContent>
           </Card>
 
-          {/* Ventas del Deudor (si existen) */}
-          {ventasData.deudor_ruc && Object.keys(deudorSalesData).length > 0 && (
+          {ventasData.deudor_ruc && Object.values(deudorSalesData).some(year => Object.values(year).some(month => month !== null)) && (
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader>
                 <CardTitle className="flex items-center text-white">
@@ -187,13 +191,12 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
               <CardContent>
                 <VentasMensualesTable 
                   data={deudorSalesData} 
-                  onDataChange={() => {}} // Solo lectura en el dossier
+                  onDataChange={() => {}}
                 />
               </CardContent>
             </Card>
           )}
 
-          {/* Información adicional */}
           {ventasData.validado_por && (
             <div className="border-t border-gray-800 pt-4">
               <p className="text-gray-400 text-sm">
