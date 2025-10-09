@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { VentasMensualesService, VentasMensualesSummary } from '@/services/ventasMensualesService';
+import { ReporteTributarioService } from '@/services/reporteTributarioService';
 import { VentasMensuales, VentasStatus } from '@/types/ventasMensuales';
 import VentasMensualesTable from '@/components/ventas-mensuales/VentasMensualesTable';
 import VentasMensualesList from '@/components/ventas-mensuales/VentasMensualesList';
@@ -16,7 +17,6 @@ import VentasStatusManager from '@/components/ventas-mensuales/VentasStatusManag
 import { showSuccess, showError } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
 import { ProfileService } from '@/services/profileService';
-import { supabase } from '@/integrations/supabase/client';
 
 export interface SalesData {
   [year: number]: {
@@ -112,9 +112,9 @@ const VentasMensualesPage = () => {
 
       const ventasReporte = await VentasMensualesService.getByProveedorRuc(provRuc);
       
-      setProveedorSalesData(extractSalesData(ventasReporte, 'proveedor'));
-      
       if (ventasReporte) {
+        // Si existe un reporte de ventas, cargamos sus datos
+        setProveedorSalesData(extractSalesData(ventasReporte, 'proveedor'));
         setLatestReport(ventasReporte);
         if (ventasReporte.user_id) {
           const profile = await ProfileService.getProfileById(ventasReporte.user_id);
@@ -127,11 +127,30 @@ const VentasMensualesPage = () => {
           setDeudorSalesData(extractSalesData(ventasReporte, 'deudor'));
         }
       } else {
+        // Si NO existe, intentamos autocompletar desde el reporte tributario
+        const reportesTributarios = await ReporteTributarioService.getReportesByRuc(provRuc);
+        const initialSalesData: SalesData = {};
+        const monthsMap: { [key: string]: string } = {
+          enero: 'ventas_enero', febrero: 'ventas_febrero', marzo: 'ventas_marzo', abril: 'ventas_abril',
+          mayo: 'ventas_mayo', junio: 'ventas_junio', julio: 'ventas_julio', agosto: 'ventas_agosto',
+          setiembre: 'ventas_setiembre', octubre: 'ventas_octubre', noviembre: 'ventas_noviembre', diciembre: 'ventas_diciembre'
+        };
+
+        reportesTributarios.forEach(rt => {
+          const year = rt.anio_reporte;
+          if (!initialSalesData[year]) initialSalesData[year] = {};
+          Object.keys(monthsMap).forEach(month => {
+            initialSalesData[year][month] = rt[monthsMap[month] as keyof typeof rt] as number | null ?? null;
+          });
+        });
+        
+        setProveedorSalesData(initialSalesData);
         setLatestReport({
           id: '', proveedor_ruc: provRuc, deudor_ruc: null, status: 'Borrador', created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(), validado_por: '', user_id: '',
         });
-        setCreatorName('Nuevo Reporte');
+        setCreatorName('Nuevo Reporte (Autocompletado)');
+        setIsDirty(true); // Marcar como sucio para que se pueda guardar
       }
 
     } catch (err) {
@@ -150,8 +169,6 @@ const VentasMensualesPage = () => {
     const deudorFichaData = await FichaRucService.getByRuc(deudorRucInput);
     if (deudorFichaData) {
       setDeudorFicha(deudorFichaData);
-      // No cargamos datos de ventas aquí, solo establecemos la ficha.
-      // Los datos se cargarán/inicializarán al guardar o si ya existen en el reporte del proveedor.
       setIsDirty(true);
     } else {
       showError('Ficha RUC del deudor no encontrada.');
