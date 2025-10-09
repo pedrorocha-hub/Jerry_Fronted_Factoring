@@ -39,6 +39,7 @@ const RibReporteTributarioPage = () => {
     try {
       setLoadingSummaries(true);
       const summaries = await RibReporteTributarioService.getAllSummaries();
+      console.log('Summaries cargados:', summaries);
       setReportSummaries(summaries);
     } catch (err) {
       console.error('Error fetching summaries:', err);
@@ -86,10 +87,17 @@ const RibReporteTributarioPage = () => {
     setRucInput(ruc);
 
     try {
+      console.log('Buscando ficha RUC para:', ruc);
       const fichaData = await FichaRucService.getByRuc(ruc);
+      console.log('Ficha RUC encontrada:', fichaData);
+      
       if (fichaData) {
         setSearchedFicha(fichaData);
+        
+        console.log('Buscando reporte RIB existente para:', ruc);
         const existingReport = await RibReporteTributarioService.getByRuc(ruc);
+        console.log('Reporte RIB existente:', existingReport);
+        
         const reportToEdit = existingReport || { 
           ruc, 
           status: 'Borrador' as Status, 
@@ -97,13 +105,18 @@ const RibReporteTributarioPage = () => {
           updated_at: new Date().toISOString() 
         };
         
-        console.log('Reporte cargado:', reportToEdit); // Debug
+        console.log('Reporte a editar:', reportToEdit);
         setSavedReportData(reportToEdit as RibReporteTributario);
         setDraftReportData(reportToEdit);
 
         if (existingReport?.user_id) {
-          const profile = await ProfileService.getProfileById(existingReport.user_id);
-          setCreatorName(profile?.full_name || 'Desconocido');
+          try {
+            const profile = await ProfileService.getProfileById(existingReport.user_id);
+            setCreatorName(profile?.full_name || 'Desconocido');
+          } catch (profileError) {
+            console.error('Error cargando perfil:', profileError);
+            setCreatorName('Desconocido');
+          }
         } else if (existingReport) {
           setCreatorName('Sistema');
         }
@@ -112,15 +125,16 @@ const RibReporteTributarioPage = () => {
         showError('Ficha RUC no encontrada.');
       }
     } catch (err) {
-      setError('Ocurrió un error al buscar la empresa.');
-      showError('Error al buscar la empresa.');
+      console.error('Error completo en handleSearch:', err);
+      setError(`Ocurrió un error al buscar la empresa: ${err.message || 'Error desconocido'}`);
+      showError(`Error al buscar la empresa: ${err.message || 'Error desconocido'}`);
     } finally {
       setSearching(false);
     }
   };
 
   const handleDataChange = (updatedData: Partial<RibReporteTributario>) => {
-    console.log('Datos cambiados en página principal:', updatedData); // Debug
+    console.log('Datos cambiados en página principal:', updatedData);
     setDraftReportData(updatedData);
     setHasUnsavedChanges(true);
   };
@@ -139,12 +153,12 @@ const RibReporteTributarioPage = () => {
       return;
     }
     
-    console.log('Guardando datos:', draftReportData); // Debug
+    console.log('Guardando datos:', draftReportData);
     setIsSaving(true);
     
     try {
       const savedData = await RibReporteTributarioService.upsert(draftReportData as any);
-      console.log('Datos guardados:', savedData); // Debug
+      console.log('Datos guardados:', savedData);
       setSavedReportData(savedData);
       setDraftReportData(savedData);
       setHasUnsavedChanges(false);
@@ -152,7 +166,7 @@ const RibReporteTributarioPage = () => {
       await fetchSummaries();
     } catch (err) {
       console.error('Error guardando:', err);
-      showError('Error al guardar el reporte RIB.');
+      showError(`Error al guardar el reporte RIB: ${err.message || 'Error desconocido'}`);
     } finally {
       setIsSaving(false);
     }
