@@ -20,7 +20,7 @@ const Sidebar: React.FC = () => {
     { to: '/solicitudes-operacion', icon: FileText, label: 'Solicitudes de Operación' },
     { to: '/rib', icon: ShieldCheck, label: 'Análisis RIB' },
     { to: '/comportamiento-crediticio', icon: TrendingUp, label: 'Comportamiento Crediticio' },
-    { to: '/reporte-tributario-deudor', icon: ClipboardList, label: 'Reporte Deudor' },
+    { to: '/rib-reporte-tributario', icon: ClipboardList, label: 'RIB - Reporte Tributario' },
     { to: '/ventas-mensuales', icon: BarChart3, label: 'Ventas Mensuales' },
   ];
 
