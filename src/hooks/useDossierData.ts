@@ -88,8 +88,8 @@ export const useDossierData = () => {
         // RIB - Reporte Tributario
         supabase.from('rib_reporte_tributario').select('*').eq('ruc', rucInput),
         
-        // Ventas Mensuales
-        supabase.from('ventas_mensuales').select('*').eq('proveedor_ruc', rucInput).single(),
+        // Ventas Mensuales - Buscar tanto por proveedor_ruc como por deudor_ruc
+        supabase.from('ventas_mensuales').select('*').or(`proveedor_ruc.eq.${rucInput},deudor_ruc.eq.${rucInput}`).single(),
         
         // TOP 10K
         supabase.from('top_10k').select('*').eq('ruc', parseInt(rucInput)).single(),
@@ -120,6 +120,26 @@ export const useDossierData = () => {
         return null;
       };
 
+      // Manejo especial para ventas mensuales
+      let ventasMensualesData = null;
+      if (ventasMensualesResult.status === 'fulfilled' && !ventasMensualesResult.value.error) {
+        ventasMensualesData = ventasMensualesResult.value.data;
+      } else {
+        // Si no encontramos con .single(), intentar con array y tomar el primero
+        console.log('Intentando búsqueda alternativa de ventas mensuales...');
+        const { data: ventasArray, error: ventasArrayError } = await supabase
+          .from('ventas_mensuales')
+          .select('*')
+          .or(`proveedor_ruc.eq.${rucInput},deudor_ruc.eq.${rucInput}`)
+          .limit(1);
+        
+        if (!ventasArrayError && ventasArray && ventasArray.length > 0) {
+          ventasMensualesData = ventasArray[0];
+        }
+      }
+
+      console.log('Datos de ventas mensuales encontrados:', ventasMensualesData);
+
       const dossierData: DossierRib = {
         // 1. Solicitud de operación
         solicitudOperacion: solicitud,
@@ -139,7 +159,7 @@ export const useDossierData = () => {
         ribReporteTributario: getData(ribReporteTributarioResult) || [],
         
         // 5. Ventas Mensuales
-        ventasMensuales: getData(ventasMensualesResult),
+        ventasMensuales: ventasMensualesData,
         
         // Datos adicionales
         top10kData: getData(top10kResult)

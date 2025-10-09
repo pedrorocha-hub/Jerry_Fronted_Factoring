@@ -37,6 +37,10 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
 
   const ventasData = dossier.ventasMensuales;
 
+  // Debug logging
+  console.log('VentasMensualesSection - dossier:', dossier);
+  console.log('VentasMensualesSection - ventasData:', ventasData);
+
   if (!ventasData) {
     return (
       <Card className="bg-[#121212] border border-gray-800">
@@ -50,6 +54,9 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
           <div className="text-center py-8">
             <TrendingUp className="h-12 w-12 text-gray-600 mx-auto mb-4" />
             <p className="text-gray-400">No hay datos de ventas mensuales disponibles</p>
+            <p className="text-gray-500 text-xs mt-2">
+              Debug: RUC buscado = {dossier.solicitudOperacion.ruc}
+            </p>
           </div>
         </CardContent>
       </Card>
