@@ -7,56 +7,29 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { SolicitudOperacion } from '@/types/solicitud-operacion';
-import { SolicitudOperacionService } from '@/services/solicitudOperacionService';
-import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 
-interface RiesgoData {
-  lp: string;
-  producto: string;
-  deudor: string;
-  lp_vigente_gve: string;
-  riesgo_aprobado: number | null;
-  propuesta_comercial: number | null;
-}
-
-interface Top10kData {
-  descripcion_ciiu_rev3: string | null;
-  sector: string | null;
-  ranking_2024: number | null;
-  facturado_2024_soles_maximo: number | null;
-  facturado_2023_soles_maximo: string | null;
-}
-
-interface RibData {
-  id: string;
-  ruc: string;
-  direccion: string | null;
-  como_llego_lcp: string | null;
-  telefono: string | null;
-  grupo_economico: string | null;
-  visita: string | null;
-  status: string;
-  descripcion_empresa: string | null;
-  inicio_actividades: string | null;
-  relacion_comercial_deudor: string | null;
-  validado_por: string | null;
-  created_at: string;
-  updated_at: string;
+interface PlanillaData {
+  // Solicitud de operación
+  solicitud: any;
+  // Ficha RUC
+  fichaRuc: any;
+  // Riesgos
+  riesgos: any[];
+  // TOP 10K
+  top10kData: any;
+  // Información del creador
+  creatorInfo: any;
+  // RIB Data
+  ribData: any;
 }
 
 const PlanillaRibPage = () => {
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [solicitud, setSolicitud] = useState<SolicitudOperacion | null>(null);
-  const [fichaRuc, setFichaRuc] = useState<any>(null);
-  const [riesgos, setRiesgos] = useState<RiesgoData[]>([]);
-  const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
-  const [creatorInfo, setCreatorInfo] = useState<{ fullName: string; email: string } | null>(null);
-  const [ribData, setRibData] = useState<RibData | null>(null);
+  const [planillaData, setPlanillaData] = useState<PlanillaData | null>(null);
 
   const handleSearch = async () => {
     if (!rucInput || rucInput.length !== 11) {
@@ -66,94 +39,108 @@ const PlanillaRibPage = () => {
 
     setSearching(true);
     setError(null);
-    setSolicitud(null);
-    setFichaRuc(null);
-    setRiesgos([]);
-    setTop10kData(null);
-    setCreatorInfo(null);
-    setRibData(null);
+    setPlanillaData(null);
 
     try {
-      // Buscar solicitud de operación
-      const solicitudes = await SolicitudOperacionService.getByRuc(rucInput);
+      // Una sola consulta para obtener toda la información necesaria
+      const { data: solicitudes, error: solicitudError } = await supabase
+        .from('solicitudes_operacion')
+        .select(`
+          *,
+          solicitud_operacion_riesgos(*),
+          profiles!solicitudes_operacion_user_id_fkey(full_name)
+        `)
+        .eq('ruc', rucInput)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (solicitudError) {
+        console.error('Error buscando solicitud:', solicitudError);
+        setError('Error al buscar la solicitud de operación.');
+        return;
+      }
+
       if (!solicitudes || solicitudes.length === 0) {
         setError('No se encontró ninguna solicitud de operación para este RUC.');
         return;
       }
 
-      const solicitudData = solicitudes[0]; // Tomar la primera solicitud
-      setSolicitud(solicitudData);
+      const solicitud = solicitudes[0];
 
-      // Buscar ficha RUC
-      const fichaData = await FichaRucService.getByRuc(rucInput);
-      setFichaRuc(fichaData);
+      // Consultas paralelas para el resto de la información
+      const [
+        fichaRucResult,
+        top10kResult,
+        ribResult,
+        creatorResult
+      ] = await Promise.allSettled([
+        // Ficha RUC
+        supabase
+          .from('ficha_ruc')
+          .select('*')
+          .eq('ruc', rucInput)
+          .single(),
+        
+        // TOP 10K
+        supabase
+          .from('top_10k')
+          .select('descripcion_ciiu_rev3, sector, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
+          .eq('ruc', rucInput)
+          .single(),
+        
+        // RIB
+        supabase
+          .from('rib')
+          .select('*')
+          .eq('ruc', rucInput)
+          .single(),
+        
+        // Información del creador
+        solicitud.user_id ? supabase
+          .rpc('get_user_details', { user_id_input: solicitud.user_id })
+          .single() : Promise.resolve({ data: null, error: null })
+      ]);
 
-      // Buscar datos de riesgo
-      const { data: riesgosData, error: riesgosError } = await supabase
-        .from('solicitud_operacion_riesgos')
-        .select('*')
-        .eq('solicitud_id', solicitudData.id);
+      // Procesar resultados
+      const fichaRuc = fichaRucResult.status === 'fulfilled' && !fichaRucResult.value.error 
+        ? fichaRucResult.value.data : null;
+      
+      const top10kData = top10kResult.status === 'fulfilled' && !top10kResult.value.error 
+        ? top10kResult.value.data : null;
+      
+      const ribData = ribResult.status === 'fulfilled' && !ribResult.value.error 
+        ? ribResult.value.data : null;
+      
+      const creatorInfo = creatorResult.status === 'fulfilled' && !creatorResult.value.error && creatorResult.value.data
+        ? {
+            fullName: creatorResult.value.data.full_name,
+            email: creatorResult.value.data.email
+          } : null;
 
-      if (riesgosError) {
-        console.error('Error cargando riesgos:', riesgosError);
-      } else if (riesgosData && riesgosData.length > 0) {
-        setRiesgos(riesgosData.map(r => ({
-          lp: r.lp || '',
-          producto: r.producto || '',
-          deudor: r.deudor || '',
-          lp_vigente_gve: r.lp_vigente_gve || '',
-          riesgo_aprobado: r.riesgo_aprobado,
-          propuesta_comercial: r.propuesta_comercial,
-        })));
-      }
+      // Procesar riesgos
+      const riesgos = solicitud.solicitud_operacion_riesgos?.map((r: any) => ({
+        lp: r.lp || '',
+        producto: r.producto || '',
+        deudor: r.deudor || '',
+        lp_vigente_gve: r.lp_vigente_gve || '',
+        riesgo_aprobado: r.riesgo_aprobado,
+        propuesta_comercial: r.propuesta_comercial,
+      })) || [];
 
-      // Buscar datos TOP 10K
-      const { data: topData, error: topError } = await supabase
-        .from('top_10k')
-        .select('descripcion_ciiu_rev3, sector, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
-        .eq('ruc', rucInput)
-        .single();
+      setPlanillaData({
+        solicitud,
+        fichaRuc,
+        riesgos,
+        top10kData,
+        creatorInfo,
+        ribData
+      });
 
-      if (topError && topError.code !== 'PGRST116') {
-        console.error('Error cargando TOP 10K:', topError);
-      } else if (topData) {
-        setTop10kData(topData);
-      }
-
-      // Buscar información del creador
-      if (solicitudData.user_id) {
-        const { data: creatorData, error: creatorError } = await supabase
-          .rpc('get_user_details', { user_id_input: solicitudData.user_id })
-          .single();
-
-        if (creatorError) {
-          console.error("Error fetching creator details:", creatorError);
-        } else if (creatorData) {
-          setCreatorInfo({
-            fullName: creatorData.full_name,
-            email: creatorData.email
-          });
-        }
-      }
-
-      // Buscar datos del RIB
-      const { data: ribDataResult, error: ribError } = await supabase
-        .from('rib')
-        .select('*')
-        .eq('ruc', rucInput)
-        .single();
-
-      if (ribError && ribError.code !== 'PGRST116') {
-        console.error('Error cargando RIB:', ribError);
-      } else if (ribDataResult) {
-        setRibData(ribDataResult);
-      }
-
-      showSuccess('Solicitud de operación encontrada.');
+      showSuccess('Planilla RIB cargada exitosamente.');
     } catch (err) {
       console.error('Error en búsqueda:', err);
-      setError('Ocurrió un error al buscar la solicitud de operación.');
-      showError('Error al buscar la solicitud.');
+      setError('Ocurrió un error al cargar la planilla RIB.');
+      showError('Error al cargar la planilla.');
     } finally {
       setSearching(false);
     }
@@ -238,7 +225,7 @@ const PlanillaRibPage = () => {
             </Alert>
           )}
 
-          {solicitud && (
+          {planillaData && (
             <div className="space-y-6">
               {/* Header con información básica y botón de descarga */}
               <Card className="bg-[#121212] border border-gray-800">
@@ -247,13 +234,13 @@ const PlanillaRibPage = () => {
                     <div>
                       <CardTitle className="text-white flex items-center">
                         <Eye className="h-5 w-5 mr-2 text-[#00FF80]" />
-                        Solicitud de Operación - {fichaRuc?.nombre_empresa || 'Empresa'}
+                        Solicitud de Operación - {planillaData.fichaRuc?.nombre_empresa || 'Empresa'}
                       </CardTitle>
-                      <p className="text-gray-400 text-sm mt-1">RUC: {solicitud.ruc}</p>
+                      <p className="text-gray-400 text-sm mt-1">RUC: {planillaData.solicitud.ruc}</p>
                     </div>
                     <div className="flex items-center gap-4">
-                      <Badge variant="outline" className={getStatusColor(solicitud.status || 'Borrador')}>
-                        {solicitud.status || 'Borrador'}
+                      <Badge variant="outline" className={getStatusColor(planillaData.solicitud.status || 'Borrador')}>
+                        {planillaData.solicitud.status || 'Borrador'}
                       </Badge>
                       <Button 
                         onClick={handleDownloadPDF}
@@ -269,15 +256,15 @@ const PlanillaRibPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <Label className="text-gray-400">Fecha de Creación</Label>
-                      <p className="text-white">{new Date(solicitud.created_at).toLocaleDateString('es-PE')}</p>
+                      <p className="text-white">{new Date(planillaData.solicitud.created_at).toLocaleDateString('es-PE')}</p>
                     </div>
                     <div>
                       <Label className="text-gray-400">Última Actualización</Label>
-                      <p className="text-white">{new Date(solicitud.updated_at).toLocaleDateString('es-PE')}</p>
+                      <p className="text-white">{new Date(planillaData.solicitud.updated_at).toLocaleDateString('es-PE')}</p>
                     </div>
                     <div>
                       <Label className="text-gray-400">Creado por</Label>
-                      <p className="text-white">{creatorInfo?.fullName || 'N/A'}</p>
+                      <p className="text-white">{planillaData.creatorInfo?.fullName || 'N/A'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -296,33 +283,33 @@ const PlanillaRibPage = () => {
                     <div className="space-y-4">
                       <div>
                         <Label className="text-gray-400">Nombre de la Empresa</Label>
-                        <p className="text-white font-medium">{fichaRuc?.nombre_empresa || 'N/A'}</p>
+                        <p className="text-white font-medium">{planillaData.fichaRuc?.nombre_empresa || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">RUC</Label>
-                        <p className="text-white font-mono">{solicitud.ruc}</p>
+                        <p className="text-white font-mono">{planillaData.solicitud.ruc}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Actividad</Label>
-                        <p className="text-white">{fichaRuc?.actividad_empresa || 'N/A'}</p>
+                        <p className="text-white">{planillaData.fichaRuc?.actividad_empresa || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Estado del Contribuyente</Label>
-                        <p className="text-white">{fichaRuc?.estado_contribuyente || 'N/A'}</p>
+                        <p className="text-white">{planillaData.fichaRuc?.estado_contribuyente || 'N/A'}</p>
                       </div>
                     </div>
                     <div className="space-y-4">
                       <div>
                         <Label className="text-gray-400">Fecha de Inicio de Actividades</Label>
-                        <p className="text-white">{fichaRuc?.fecha_inicio_actividades || 'N/A'}</p>
+                        <p className="text-white">{planillaData.fichaRuc?.fecha_inicio_actividades || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Domicilio Fiscal</Label>
-                        <p className="text-white">{fichaRuc?.domicilio_fiscal || 'N/A'}</p>
+                        <p className="text-white">{planillaData.fichaRuc?.domicilio_fiscal || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Representante Legal</Label>
-                        <p className="text-white">{fichaRuc?.nombre_representante_legal || 'N/A'}</p>
+                        <p className="text-white">{planillaData.fichaRuc?.nombre_representante_legal || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
@@ -339,60 +326,60 @@ const PlanillaRibPage = () => {
                     <div className="space-y-4">
                       <div>
                         <Label className="text-gray-400">Fecha de la Ficha</Label>
-                        <p className="text-white">{solicitud.fecha_ficha || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.fecha_ficha || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Orden de Servicio</Label>
-                        <p className="text-white">{solicitud.orden_servicio || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.orden_servicio || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Factura</Label>
-                        <p className="text-white">{solicitud.factura || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.factura || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Tipo de Cambio</Label>
-                        <p className="text-white">{solicitud.tipo_cambio || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.tipo_cambio || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Moneda de Operación</Label>
-                        <p className="text-white">{solicitud.moneda_operacion || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.moneda_operacion || 'N/A'}</p>
                       </div>
                     </div>
                     <div className="space-y-4">
                       <div>
                         <Label className="text-gray-400">Dirección</Label>
-                        <p className="text-white">{solicitud.direccion || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.direccion || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Visita</Label>
-                        <p className="text-white">{solicitud.visita || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.visita || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Contacto</Label>
-                        <p className="text-white">{solicitud.contacto || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.contacto || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Fianza</Label>
-                        <p className="text-white">{solicitud.fianza || 'N/A'}</p>
+                        <p className="text-white">{planillaData.solicitud.fianza || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Exposición Total</Label>
-                        <p className="text-white font-mono">{solicitud.exposicion_total || 'N/A'}</p>
+                        <p className="text-white font-mono">{planillaData.solicitud.exposicion_total || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
                   
-                  {solicitud.resumen_solicitud && (
+                  {planillaData.solicitud.resumen_solicitud && (
                     <div className="mt-6">
                       <Label className="text-gray-400">Resumen de Solicitud</Label>
-                      <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{solicitud.resumen_solicitud}</p>
+                      <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.resumen_solicitud}</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
               {/* Riesgos */}
-              {riesgos.length > 0 && (
+              {planillaData.riesgos.length > 0 && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white">Riesgos del Proveedor</CardTitle>
@@ -412,7 +399,7 @@ const PlanillaRibPage = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-800">
-                          {riesgos.map((riesgo, index) => (
+                          {planillaData.riesgos.map((riesgo, index) => (
                             <tr key={index}>
                               <td className="py-3 px-4 text-white">{riesgo.lp}</td>
                               <td className="py-3 px-4 text-white">{riesgo.producto}</td>
@@ -437,7 +424,7 @@ const PlanillaRibPage = () => {
               )}
 
               {/* Análisis RIB */}
-              {ribData && (
+              {planillaData.ribData && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center">
@@ -445,11 +432,11 @@ const PlanillaRibPage = () => {
                       Análisis RIB
                     </CardTitle>
                     <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline" className={getStatusColor(ribData.status)}>
-                        {ribData.status}
+                      <Badge variant="outline" className={getStatusColor(planillaData.ribData.status)}>
+                        {planillaData.ribData.status}
                       </Badge>
                       <span className="text-sm text-gray-400">
-                        Creado: {new Date(ribData.created_at).toLocaleDateString('es-PE')}
+                        Creado: {new Date(planillaData.ribData.created_at).toLocaleDateString('es-PE')}
                       </span>
                     </div>
                   </CardHeader>
@@ -458,45 +445,45 @@ const PlanillaRibPage = () => {
                       <div className="space-y-4">
                         <div>
                           <Label className="text-gray-400">Descripción de la Empresa</Label>
-                          <p className="text-white">{ribData.descripcion_empresa || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.descripcion_empresa || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Inicio de Actividades</Label>
-                          <p className="text-white">{ribData.inicio_actividades || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.inicio_actividades || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Dirección</Label>
-                          <p className="text-white">{ribData.direccion || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.direccion || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Teléfono</Label>
-                          <p className="text-white font-mono">{ribData.telefono || 'N/A'}</p>
+                          <p className="text-white font-mono">{planillaData.ribData.telefono || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Grupo Económico</Label>
-                          <p className="text-white">{ribData.grupo_economico || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.grupo_economico || 'N/A'}</p>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <div>
                           <Label className="text-gray-400">¿Cómo llegó a LCP?</Label>
-                          <p className="text-white">{ribData.como_llego_lcp || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.como_llego_lcp || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Visita</Label>
-                          <p className="text-white">{ribData.visita || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.visita || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Relación Comercial con Deudor</Label>
-                          <p className="text-white">{ribData.relacion_comercial_deudor || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.relacion_comercial_deudor || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Validado por</Label>
-                          <p className="text-white">{ribData.validado_por || 'N/A'}</p>
+                          <p className="text-white">{planillaData.ribData.validado_por || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Última Actualización</Label>
-                          <p className="text-white">{new Date(ribData.updated_at).toLocaleDateString('es-PE')}</p>
+                          <p className="text-white">{new Date(planillaData.ribData.updated_at).toLocaleDateString('es-PE')}</p>
                         </div>
                       </div>
                     </div>
@@ -505,7 +492,7 @@ const PlanillaRibPage = () => {
               )}
 
               {/* Datos TOP 10K */}
-              {top10kData && (
+              {planillaData.top10kData && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white">Información TOP 10K</CardTitle>
@@ -514,23 +501,23 @@ const PlanillaRibPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
                         <Label className="text-gray-400">Sector</Label>
-                        <p className="text-white">{top10kData.sector || 'N/A'}</p>
+                        <p className="text-white">{planillaData.top10kData.sector || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Ranking 2024</Label>
-                        <p className="text-white font-mono">#{top10kData.ranking_2024 || 'N/A'}</p>
+                        <p className="text-white font-mono">#{planillaData.top10kData.ranking_2024 || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Facturado 2024 (Máx)</Label>
-                        <p className="text-white font-mono">{formatCurrency(top10kData.facturado_2024_soles_maximo)}</p>
+                        <p className="text-white font-mono">{formatCurrency(planillaData.top10kData.facturado_2024_soles_maximo)}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Facturado 2023 (Máx)</Label>
-                        <p className="text-white font-mono">{formatCurrency(top10kData.facturado_2023_soles_maximo)}</p>
+                        <p className="text-white font-mono">{formatCurrency(planillaData.top10kData.facturado_2023_soles_maximo)}</p>
                       </div>
                       <div className="md:col-span-2 lg:col-span-4">
                         <Label className="text-gray-400">Descripción CIIU</Label>
-                        <p className="text-white">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p>
+                        <p className="text-white">{planillaData.top10kData.descripcion_ciiu_rev3 || 'N/A'}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -538,28 +525,28 @@ const PlanillaRibPage = () => {
               )}
 
               {/* Comentarios y garantías */}
-              {(solicitud.comentarios || solicitud.garantias || solicitud.condiciones_desembolso) && (
+              {(planillaData.solicitud.comentarios || planillaData.solicitud.garantias || planillaData.solicitud.condiciones_desembolso) && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white">Información Adicional</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {solicitud.garantias && (
+                    {planillaData.solicitud.garantias && (
                       <div>
                         <Label className="text-gray-400">Garantías</Label>
-                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{solicitud.garantias}</p>
+                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.garantias}</p>
                       </div>
                     )}
-                    {solicitud.condiciones_desembolso && (
+                    {planillaData.solicitud.condiciones_desembolso && (
                       <div>
                         <Label className="text-gray-400">Condiciones de Desembolso</Label>
-                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{solicitud.condiciones_desembolso}</p>
+                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.condiciones_desembolso}</p>
                       </div>
                     )}
-                    {solicitud.comentarios && (
+                    {planillaData.solicitud.comentarios && (
                       <div>
                         <Label className="text-gray-400">Comentarios</Label>
-                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{solicitud.comentarios}</p>
+                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.comentarios}</p>
                       </div>
                     )}
                   </CardContent>
