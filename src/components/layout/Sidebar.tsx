@@ -36,7 +36,7 @@ const Sidebar = () => {
     <div className="w-64 bg-[#0A0A0A] border-r border-gray-800 flex flex-col h-full">
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold text-white">LCP Sistema</h1>
+        <h1 className="text-xl font-bold text-white">Upgrade Title</h1>
         <p className="text-sm text-gray-400">Gestión Financiera</p>
       </div>
 
