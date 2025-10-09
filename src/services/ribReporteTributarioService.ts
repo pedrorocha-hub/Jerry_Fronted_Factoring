@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export interface ReporteTributarioDeudor {
+export interface RibReporteTributario {
   id?: string;
   ruc: string;
   proveedor_ruc?: string | null;
@@ -103,7 +103,7 @@ export interface ReporteTributarioDeudor {
   updated_at?: string;
 }
 
-export interface ReporteTributarioDeudorSummary {
+export interface RibReporteTributarioSummary {
   ruc: string;
   nombre_empresa: string;
   updated_at: string;
@@ -111,11 +111,11 @@ export interface ReporteTributarioDeudorSummary {
   creator_name: string;
 }
 
-export class ReporteTributarioDeudorService {
-  static async getByRuc(ruc: string): Promise<ReporteTributarioDeudor | null> {
+export class RibReporteTributarioService {
+  static async getByRuc(ruc: string): Promise<RibReporteTributario | null> {
     try {
       const { data, error } = await supabase
-        .from('reporte_tributario_deudor')
+        .from('rib_reporte_tributario')
         .select('*')
         .eq('ruc', ruc)
         .single();
@@ -129,12 +129,12 @@ export class ReporteTributarioDeudorService {
 
       return data;
     } catch (error) {
-      console.error('Error fetching reporte tributario deudor:', error);
+      console.error('Error fetching rib reporte tributario:', error);
       throw error;
     }
   }
 
-  static async upsert(reportData: Partial<ReporteTributarioDeudor>): Promise<ReporteTributarioDeudor> {
+  static async upsert(reportData: Partial<RibReporteTributario>): Promise<RibReporteTributario> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -150,7 +150,7 @@ export class ReporteTributarioDeudorService {
       }
 
       const { data, error } = await supabase
-        .from('reporte_tributario_deudor')
+        .from('rib_reporte_tributario')
         .upsert(dataToUpsert, {
           onConflict: 'ruc',
           ignoreDuplicates: false
@@ -159,7 +159,7 @@ export class ReporteTributarioDeudorService {
         .single();
 
       if (error) {
-        console.error('Error upserting reporte tributario deudor:', error);
+        console.error('Error upserting rib reporte tributario:', error);
         throw error;
       }
 
@@ -170,10 +170,10 @@ export class ReporteTributarioDeudorService {
     }
   }
 
-  static async getAllSummaries(): Promise<ReporteTributarioDeudorSummary[]> {
+  static async getAllSummaries(): Promise<RibReporteTributarioSummary[]> {
     try {
       const { data, error } = await supabase
-        .rpc('get_reporte_tributario_deudor_summaries');
+        .rpc('get_rib_reporte_tributario_summaries');
 
       if (error) {
         console.error('Error fetching summaries:', error);
@@ -190,7 +190,7 @@ export class ReporteTributarioDeudorService {
   static async deleteByRuc(ruc: string): Promise<void> {
     try {
       const { error } = await supabase
-        .from('reporte_tributario_deudor')
+        .from('rib_reporte_tributario')
         .delete()
         .eq('ruc', ruc);
 
@@ -198,7 +198,7 @@ export class ReporteTributarioDeudorService {
         throw error;
       }
     } catch (error) {
-      console.error('Error deleting reporte tributario deudor:', error);
+      console.error('Error deleting rib reporte tributario:', error);
       throw error;
     }
   }

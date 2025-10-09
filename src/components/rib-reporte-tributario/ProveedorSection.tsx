@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { ReporteTributarioDeudor } from '@/services/reporteTributarioDeudorService';
-import ReporteTributarioDeudorTable from './ReporteTributarioDeudorTable';
+import { RibReporteTributario } from '@/services/ribReporteTributarioService';
+import RibReporteTributarioTable from './RibReporteTributarioTable';
 import EstadosResultadosTable from './EstadosResultadosTable';
 import IndicesFinancierosTable from './IndicesFinancierosTable';
 
 interface ProveedorSectionProps {
-  data: Partial<ReporteTributarioDeudor> | null;
-  onDataChange: (updatedData: Partial<ReporteTributarioDeudor>) => void;
+  data: Partial<RibReporteTributario> | null;
+  onDataChange: (updatedData: Partial<RibReporteTributario>) => void;
 }
 
 const ProveedorSection: React.FC<ProveedorSectionProps> = ({ data, onDataChange }) => {
@@ -69,7 +69,7 @@ const ProveedorSection: React.FC<ProveedorSectionProps> = ({ data, onDataChange 
     });
   };
 
-  const handleProveedorDataChange = (updatedData: Partial<ReporteTributarioDeudor>) => {
+  const handleProveedorDataChange = (updatedData: Partial<RibReporteTributario>) => {
     onDataChange(updatedData);
   };
 
@@ -127,7 +127,7 @@ const ProveedorSection: React.FC<ProveedorSectionProps> = ({ data, onDataChange 
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ReporteTributarioDeudorTable
+              <RibReporteTributarioTable
                 ruc={proveedorFicha.ruc}
                 data={data}
                 onDataChange={handleProveedorDataChange}

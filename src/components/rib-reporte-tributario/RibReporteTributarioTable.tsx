@@ -8,16 +8,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ReporteTributarioDeudor } from '@/services/reporteTributarioDeudorService';
+import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 
-interface ReporteTributarioDeudorTableProps {
+interface RibReporteTributarioTableProps {
   ruc: string;
-  data: Partial<ReporteTributarioDeudor> | null;
-  onDataChange: (updatedData: Partial<ReporteTributarioDeudor>) => void;
+  data: Partial<RibReporteTributario> | null;
+  onDataChange: (updatedData: Partial<RibReporteTributario>) => void;
   isProveedor?: boolean;
 }
 
-const ReporteTributarioDeudorTable: React.FC<ReporteTributarioDeudorTableProps> = ({ 
+const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({ 
   ruc, 
   data, 
   onDataChange, 
@@ -46,7 +46,7 @@ const ReporteTributarioDeudorTable: React.FC<ReporteTributarioDeudorTableProps> 
 
   const InputCell = ({ field, year }: { field: string; year: string }) => {
     const fieldName = `${field}_${year}${getSuffix()}`;
-    const value = data?.[fieldName as keyof ReporteTributarioDeudor] as number | null;
+    const value = data?.[fieldName as keyof RibReporteTributario] as number | null;
     
     return (
       <TableCell className="p-2">
@@ -163,4 +163,4 @@ const ReporteTributarioDeudorTable: React.FC<ReporteTributarioDeudorTableProps> 
   );
 };
 
-export default ReporteTributarioDeudorTable;
+export default RibReporteTributarioTable;

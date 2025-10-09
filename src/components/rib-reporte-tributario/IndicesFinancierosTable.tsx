@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -8,15 +8,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ReporteTributarioDeudor } from '@/services/reporteTributarioDeudorService';
+import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 
-interface EstadosResultadosTableProps {
-  data: Partial<ReporteTributarioDeudor> | null;
-  onDataChange: (updatedData: Partial<ReporteTributarioDeudor>) => void;
+interface IndicesFinancierosTableProps {
+  data: Partial<RibReporteTributario> | null;
+  onDataChange: (updatedData: Partial<RibReporteTributario>) => void;
   isProveedor?: boolean;
 }
 
-const EstadosResultadosTable: React.FC<EstadosResultadosTableProps> = ({ 
+const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ 
   data, 
   onDataChange, 
   isProveedor = false 
@@ -34,7 +34,7 @@ const EstadosResultadosTable: React.FC<EstadosResultadosTableProps> = ({
 
   const InputCell = ({ field, year }: { field: string; year: string }) => {
     const fieldName = `${field}_${year}${getSuffix()}`;
-    const value = data?.[fieldName as keyof ReporteTributarioDeudor] as number | null;
+    const value = data?.[fieldName as keyof RibReporteTributario] as number | null;
     
     return (
       <TableCell className="p-2">
@@ -43,7 +43,8 @@ const EstadosResultadosTable: React.FC<EstadosResultadosTableProps> = ({
           value={value?.toString() || ''}
           onChange={(e) => handleInputChange(`${field}_${year}`, e.target.value)}
           className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
-          placeholder="0"
+          placeholder="0.00"
+          step="0.01"
         />
       </TableCell>
     );
@@ -51,19 +52,14 @@ const EstadosResultadosTable: React.FC<EstadosResultadosTableProps> = ({
 
   const rows = [
     {
-      label: 'Ingreso por ventas',
-      field: 'ingreso_ventas',
-      description: 'Ingresos totales por ventas del período'
+      label: 'Solvencia',
+      field: 'solvencia',
+      description: 'Capacidad de la empresa para cumplir con sus obligaciones'
     },
     {
-      label: 'Utilidad bruta',
-      field: 'utilidad_bruta',
-      description: 'Utilidad bruta después de costos directos'
-    },
-    {
-      label: 'Utilidad/(Pérdida) antes de impuesto',
-      field: 'utilidad_antes_impuesto',
-      description: 'Resultado antes de aplicar impuestos'
+      label: 'Gestión',
+      field: 'gestion',
+      description: 'Eficiencia en el manejo de recursos y operaciones'
     }
   ];
 
@@ -72,7 +68,7 @@ const EstadosResultadosTable: React.FC<EstadosResultadosTableProps> = ({
       <Table>
         <TableHeader>
           <TableRow className="border-gray-800 hover:bg-gray-900/50">
-            <TableHead className="text-gray-300 font-semibold">Concepto</TableHead>
+            <TableHead className="text-gray-300 font-semibold">Índice</TableHead>
             <TableHead className="text-center text-gray-300 font-semibold">Dic 2022</TableHead>
             <TableHead className="text-center text-gray-300 font-semibold">Dic 2023</TableHead>
             <TableHead className="text-center text-gray-300 font-semibold">Dic 2024</TableHead>
@@ -83,7 +79,7 @@ const EstadosResultadosTable: React.FC<EstadosResultadosTableProps> = ({
             <TableRow key={row.field} className="border-gray-800 hover:bg-gray-900/30">
               <TableCell className="font-medium text-white">
                 <div className="flex items-center space-x-2">
-                  <TrendingUp className="h-4 w-4 text-[#00FF80]" />
+                  <Calculator className="h-4 w-4 text-[#00FF80]" />
                   <div>
                     <div>{row.label}</div>
                     <div className="text-xs text-gray-400">{row.description}</div>
@@ -100,11 +96,11 @@ const EstadosResultadosTable: React.FC<EstadosResultadosTableProps> = ({
       
       <div className="p-4 bg-gray-900/30 border-t border-gray-800">
         <p className="text-xs text-gray-400">
-          <strong>Nota:</strong> Ingrese los valores en soles peruanos (PEN). Los campos vacíos se considerarán como 0.
+          <strong>Nota:</strong> Los índices financieros se expresan como ratios decimales (ej: 1.25 para 125%). Los campos vacíos se considerarán como 0.
         </p>
       </div>
     </div>
   );
 };
 
-export default EstadosResultadosTable;
+export default IndicesFinancierosTable;

@@ -7,37 +7,37 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { ReporteTributarioDeudor, ReporteTributarioDeudorService, ReporteTributarioDeudorSummary } from '@/services/reporteTributarioDeudorService';
+import { RibReporteTributario, RibReporteTributarioService, RibReporteTributarioSummary } from '@/services/ribReporteTributarioService';
 import { ProfileService } from '@/services/profileService';
-import ReporteTributarioDeudorTable from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorTable';
-import EstadosResultadosTable from '@/components/reporte-tributario-deudor/EstadosResultadosTable';
-import IndicesFinancierosTable from '@/components/reporte-tributario-deudor/IndicesFinancierosTable';
-import ProveedorSection from '@/components/reporte-tributario-deudor/ProveedorSection';
-import ReporteTributarioDeudorList from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorList';
-import ReporteStatusManager from '@/components/reporte-tributario-deudor/ReporteStatusManager';
+import RibReporteTributarioTable from '@/components/rib-reporte-tributario/RibReporteTributarioTable';
+import EstadosResultadosTable from '@/components/rib-reporte-tributario/EstadosResultadosTable';
+import IndicesFinancierosTable from '@/components/rib-reporte-tributario/IndicesFinancierosTable';
+import ProveedorSection from '@/components/rib-reporte-tributario/ProveedorSection';
+import RibReporteTributarioList from '@/components/rib-reporte-tributario/RibReporteTributarioList';
+import ReporteStatusManager from '@/components/rib-reporte-tributario/ReporteStatusManager';
 import { showSuccess, showError } from '@/utils/toast';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
 
-const ReporteTributarioDeudorPage = () => {
+const RibReporteTributarioPage = () => {
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   
-  const [savedReportData, setSavedReportData] = useState<ReporteTributarioDeudor | null>(null);
-  const [draftReportData, setDraftReportData] = useState<Partial<ReporteTributarioDeudor> | null>(null);
+  const [savedReportData, setSavedReportData] = useState<RibReporteTributario | null>(null);
+  const [draftReportData, setDraftReportData] = useState<Partial<RibReporteTributario> | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [reportSummaries, setReportSummaries] = useState<ReporteTributarioDeudorSummary[]>([]);
+  const [reportSummaries, setReportSummaries] = useState<RibReporteTributarioSummary[]>([]);
   const [loadingSummaries, setLoadingSummaries] = useState(true);
 
   const fetchSummaries = async () => {
     try {
       setLoadingSummaries(true);
-      const summaries = await ReporteTributarioDeudorService.getAllSummaries();
+      const summaries = await RibReporteTributarioService.getAllSummaries();
       setReportSummaries(summaries);
     } catch (err) {
       console.error('Error fetching summaries:', err);
@@ -88,9 +88,9 @@ const ReporteTributarioDeudorPage = () => {
       const fichaData = await FichaRucService.getByRuc(ruc);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const existingReport = await ReporteTributarioDeudorService.getByRuc(ruc);
+        const existingReport = await RibReporteTributarioService.getByRuc(ruc);
         const reportToEdit = existingReport || { ruc, status: 'Borrador', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-        setSavedReportData(reportToEdit as ReporteTributarioDeudor);
+        setSavedReportData(reportToEdit as RibReporteTributario);
         setDraftReportData(reportToEdit);
 
         if (existingReport?.user_id) {
@@ -111,7 +111,7 @@ const ReporteTributarioDeudorPage = () => {
     }
   };
 
-  const handleDataChange = (updatedData: Partial<ReporteTributarioDeudor>) => {
+  const handleDataChange = (updatedData: Partial<RibReporteTributario>) => {
     setDraftReportData(updatedData);
     setHasUnsavedChanges(true);
   };
@@ -127,14 +127,14 @@ const ReporteTributarioDeudorPage = () => {
     if (!draftReportData || !draftReportData.ruc) return;
     setIsSaving(true);
     try {
-      const savedData = await ReporteTributarioDeudorService.upsert(draftReportData as any);
+      const savedData = await RibReporteTributarioService.upsert(draftReportData as any);
       setSavedReportData(savedData);
       setDraftReportData(savedData);
       setHasUnsavedChanges(false);
-      showSuccess('Solicitud actualizada exitosamente.');
+      showSuccess('Reporte RIB actualizado exitosamente.');
       await fetchSummaries();
     } catch (err) {
-      showError('Error al guardar la solicitud.');
+      showError('Error al guardar el reporte RIB.');
     } finally {
       setIsSaving(false);
     }
@@ -152,7 +152,7 @@ const ReporteTributarioDeudorPage = () => {
         <div className="space-y-6 p-6">
           <h1 className="text-2xl font-bold text-white flex items-center">
             <ClipboardList className="h-6 w-6 mr-3 text-[#00FF80]" />
-            Reporte Tributario del Deudor
+            RIB - Reporte Tributario
           </h1>
 
           <Card className="bg-[#121212] border border-gray-800">
@@ -208,7 +208,7 @@ const ReporteTributarioDeudorPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ReporteTributarioDeudorTable
+                    <RibReporteTributarioTable
                       ruc={searchedFicha.ruc}
                       data={draftReportData}
                       onDataChange={handleDataChange}
@@ -265,7 +265,7 @@ const ReporteTributarioDeudorPage = () => {
               
               {savedReportData && (
                 <ReporteStatusManager
-                  report={draftReportData as ReporteTributarioDeudor}
+                  report={draftReportData as RibReporteTributario}
                   creatorName={creatorName}
                   onStatusChange={handleStatusChange}
                   onSave={handleSave}
@@ -277,7 +277,7 @@ const ReporteTributarioDeudorPage = () => {
           ) : (
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white">Análisis de Deudores Guardados</CardTitle>
+                <CardTitle className="text-white">Reportes RIB Guardados</CardTitle>
               </CardHeader>
               <CardContent>
                 {loadingSummaries ? (
@@ -287,11 +287,11 @@ const ReporteTributarioDeudorPage = () => {
                 ) : reportSummaries.length === 0 ? (
                   <div className="text-center py-8 text-gray-400">
                     <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No hay análisis de deudores guardados</p>
-                    <p className="text-sm mt-2">Busca una empresa para crear su análisis</p>
+                    <p>No hay reportes RIB guardados</p>
+                    <p className="text-sm mt-2">Busca una empresa para crear su reporte tributario</p>
                   </div>
                 ) : (
-                  <ReporteTributarioDeudorList reports={reportSummaries} onSelectReport={handleSelectReport} />
+                  <RibReporteTributarioList reports={reportSummaries} onSelectReport={handleSelectReport} />
                 )}
               </CardContent>
             </Card>
@@ -302,4 +302,4 @@ const ReporteTributarioDeudorPage = () => {
   );
 };
 
-export default ReporteTributarioDeudorPage;
+export default RibReporteTributarioPage;
