@@ -90,7 +90,14 @@ const RibReporteTributarioPage = () => {
       if (fichaData) {
         setSearchedFicha(fichaData);
         const existingReport = await RibReporteTributarioService.getByRuc(ruc);
-        const reportToEdit = existingReport || { ruc, status: 'Borrador', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        const reportToEdit = existingReport || { 
+          ruc, 
+          status: 'Borrador' as Status, 
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString() 
+        };
+        
+        console.log('Reporte cargado:', reportToEdit); // Debug
         setSavedReportData(reportToEdit as RibReporteTributario);
         setDraftReportData(reportToEdit);
 
@@ -113,28 +120,38 @@ const RibReporteTributarioPage = () => {
   };
 
   const handleDataChange = (updatedData: Partial<RibReporteTributario>) => {
+    console.log('Datos cambiados en página principal:', updatedData); // Debug
     setDraftReportData(updatedData);
     setHasUnsavedChanges(true);
   };
 
   const handleStatusChange = (newStatus: Status) => {
     if (draftReportData) {
-      setDraftReportData({ ...draftReportData, status: newStatus });
+      const updatedData = { ...draftReportData, status: newStatus };
+      setDraftReportData(updatedData);
       setHasUnsavedChanges(true);
     }
   };
 
   const handleSave = async () => {
-    if (!draftReportData || !draftReportData.ruc) return;
+    if (!draftReportData || !draftReportData.ruc) {
+      showError('No hay datos para guardar');
+      return;
+    }
+    
+    console.log('Guardando datos:', draftReportData); // Debug
     setIsSaving(true);
+    
     try {
       const savedData = await RibReporteTributarioService.upsert(draftReportData as any);
+      console.log('Datos guardados:', savedData); // Debug
       setSavedReportData(savedData);
       setDraftReportData(savedData);
       setHasUnsavedChanges(false);
       showSuccess('Reporte RIB actualizado exitosamente.');
       await fetchSummaries();
     } catch (err) {
+      console.error('Error guardando:', err);
       showError('Error al guardar el reporte RIB.');
     } finally {
       setIsSaving(false);

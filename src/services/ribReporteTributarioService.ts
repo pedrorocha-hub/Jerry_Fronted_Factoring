@@ -3,100 +3,103 @@ import { supabase } from '@/integrations/supabase/client';
 export type RibReporteTributarioStatus = 'Borrador' | 'En revisión' | 'Completado';
 
 export interface RibReporteTributario {
-  id: string;
+  id?: string;
   ruc: string;
   user_id?: string;
-  created_at: string;
-  updated_at: string;
-  status: RibReporteTributarioStatus;
+  created_at?: string;
+  updated_at?: string;
+  status?: RibReporteTributarioStatus;
   validado_por?: string;
 
   // Campos del deudor - Estado de situación
-  cuentas_por_cobrar_giro_2022?: number;
-  cuentas_por_cobrar_giro_2023?: number;
-  cuentas_por_cobrar_giro_2024?: number;
-  total_activos_2022?: number;
-  total_activos_2023?: number;
-  total_activos_2024?: number;
-  cuentas_por_pagar_giro_2022?: number;
-  cuentas_por_pagar_giro_2023?: number;
-  cuentas_por_pagar_giro_2024?: number;
-  total_pasivos_2022?: number;
-  total_pasivos_2023?: number;
-  total_pasivos_2024?: number;
-  capital_pagado_2022?: number;
-  capital_pagado_2023?: number;
-  capital_pagado_2024?: number;
-  total_patrimonio_2022?: number;
-  total_patrimonio_2023?: number;
-  total_patrimonio_2024?: number;
-  total_pasivo_patrimonio_2022?: number;
-  total_pasivo_patrimonio_2023?: number;
-  total_pasivo_patrimonio_2024?: number;
+  cuentas_por_cobrar_giro_2022?: number | null;
+  cuentas_por_cobrar_giro_2023?: number | null;
+  cuentas_por_cobrar_giro_2024?: number | null;
+  total_activos_2022?: number | null;
+  total_activos_2023?: number | null;
+  total_activos_2024?: number | null;
+  cuentas_por_pagar_giro_2022?: number | null;
+  cuentas_por_pagar_giro_2023?: number | null;
+  cuentas_por_pagar_giro_2024?: number | null;
+  total_pasivos_2022?: number | null;
+  total_pasivos_2023?: number | null;
+  total_pasivos_2024?: number | null;
+  capital_pagado_2022?: number | null;
+  capital_pagado_2023?: number | null;
+  capital_pagado_2024?: number | null;
+  total_patrimonio_2022?: number | null;
+  total_patrimonio_2023?: number | null;
+  total_patrimonio_2024?: number | null;
+  total_pasivo_patrimonio_2022?: number | null;
+  total_pasivo_patrimonio_2023?: number | null;
+  total_pasivo_patrimonio_2024?: number | null;
 
   // Estados de resultados
-  ingreso_ventas_2022?: number;
-  ingreso_ventas_2023?: number;
-  ingreso_ventas_2024?: number;
-  utilidad_bruta_2022?: number;
-  utilidad_bruta_2023?: number;
-  utilidad_bruta_2024?: number;
-  utilidad_antes_impuesto_2022?: number;
-  utilidad_antes_impuesto_2023?: number;
-  utilidad_antes_impuesto_2024?: number;
+  ingreso_ventas_2022?: number | null;
+  ingreso_ventas_2023?: number | null;
+  ingreso_ventas_2024?: number | null;
+  utilidad_bruta_2022?: number | null;
+  utilidad_bruta_2023?: number | null;
+  utilidad_bruta_2024?: number | null;
+  utilidad_antes_impuesto_2022?: number | null;
+  utilidad_antes_impuesto_2023?: number | null;
+  utilidad_antes_impuesto_2024?: number | null;
 
   // Índices financieros
-  solvencia_2022?: number;
-  solvencia_2023?: number;
-  solvencia_2024?: number;
-  gestion_2022?: number;
-  gestion_2023?: number;
-  gestion_2024?: number;
+  solvencia_2022?: number | null;
+  solvencia_2023?: number | null;
+  solvencia_2024?: number | null;
+  gestion_2022?: number | null;
+  gestion_2023?: number | null;
+  gestion_2024?: number | null;
 
   // Campos del proveedor - Estado de situación
-  cuentas_por_cobrar_giro_2022_proveedor?: number;
-  cuentas_por_cobrar_giro_2023_proveedor?: number;
-  cuentas_por_cobrar_giro_2024_proveedor?: number;
-  total_activos_2022_proveedor?: number;
-  total_activos_2023_proveedor?: number;
-  total_activos_2024_proveedor?: number;
-  cuentas_por_pagar_giro_2022_proveedor?: number;
-  cuentas_por_pagar_giro_2023_proveedor?: number;
-  cuentas_por_pagar_giro_2024_proveedor?: number;
-  total_pasivos_2022_proveedor?: number;
-  total_pasivos_2023_proveedor?: number;
-  total_pasivos_2024_proveedor?: number;
-  capital_pagado_2022_proveedor?: number;
-  capital_pagado_2023_proveedor?: number;
-  capital_pagado_2024_proveedor?: number;
-  total_patrimonio_2022_proveedor?: number;
-  total_patrimonio_2023_proveedor?: number;
-  total_patrimonio_2024_proveedor?: number;
-  total_pasivo_patrimonio_2022_proveedor?: number;
-  total_pasivo_patrimonio_2023_proveedor?: number;
-  total_pasivo_patrimonio_2024_proveedor?: number;
+  cuentas_por_cobrar_giro_2022_proveedor?: number | null;
+  cuentas_por_cobrar_giro_2023_proveedor?: number | null;
+  cuentas_por_cobrar_giro_2024_proveedor?: number | null;
+  total_activos_2022_proveedor?: number | null;
+  total_activos_2023_proveedor?: number | null;
+  total_activos_2024_proveedor?: number | null;
+  cuentas_por_pagar_giro_2022_proveedor?: number | null;
+  cuentas_por_pagar_giro_2023_proveedor?: number | null;
+  cuentas_por_pagar_giro_2024_proveedor?: number | null;
+  total_pasivos_2022_proveedor?: number | null;
+  total_pasivos_2023_proveedor?: number | null;
+  total_pasivos_2024_proveedor?: number | null;
+  capital_pagado_2022_proveedor?: number | null;
+  capital_pagado_2023_proveedor?: number | null;
+  capital_pagado_2024_proveedor?: number | null;
+  total_patrimonio_2022_proveedor?: number | null;
+  total_patrimonio_2023_proveedor?: number | null;
+  total_patrimonio_2024_proveedor?: number | null;
+  total_pasivo_patrimonio_2022_proveedor?: number | null;
+  total_pasivo_patrimonio_2023_proveedor?: number | null;
+  total_pasivo_patrimonio_2024_proveedor?: number | null;
 
   // Estados de resultados proveedor
-  ingreso_ventas_2022_proveedor?: number;
-  ingreso_ventas_2023_proveedor?: number;
-  ingreso_ventas_2024_proveedor?: number;
-  utilidad_bruta_2022_proveedor?: number;
-  utilidad_bruta_2023_proveedor?: number;
-  utilidad_bruta_2024_proveedor?: number;
-  utilidad_antes_impuesto_2022_proveedor?: number;
-  utilidad_antes_impuesto_2023_proveedor?: number;
-  utilidad_antes_impuesto_2024_proveedor?: number;
+  ingreso_ventas_2022_proveedor?: number | null;
+  ingreso_ventas_2023_proveedor?: number | null;
+  ingreso_ventas_2024_proveedor?: number | null;
+  utilidad_bruta_2022_proveedor?: number | null;
+  utilidad_bruta_2023_proveedor?: number | null;
+  utilidad_bruta_2024_proveedor?: number | null;
+  utilidad_antes_impuesto_2022_proveedor?: number | null;
+  utilidad_antes_impuesto_2023_proveedor?: number | null;
+  utilidad_antes_impuesto_2024_proveedor?: number | null;
 
   // Índices financieros proveedor
-  solvencia_2022_proveedor?: number;
-  solvencia_2023_proveedor?: number;
-  solvencia_2024_proveedor?: number;
-  gestion_2022_proveedor?: number;
-  gestion_2023_proveedor?: number;
-  gestion_2024_proveedor?: number;
+  solvencia_2022_proveedor?: number | null;
+  solvencia_2023_proveedor?: number | null;
+  solvencia_2024_proveedor?: number | null;
+  gestion_2022_proveedor?: number | null;
+  gestion_2023_proveedor?: number | null;
+  gestion_2024_proveedor?: number | null;
 
   // RUC del proveedor
   proveedor_ruc?: string;
+
+  // Campos adicionales que pueden existir
+  [key: string]: any;
 }
 
 export interface RibReporteTributarioSummary {
@@ -126,6 +129,8 @@ export class RibReporteTributarioService {
   }
 
   static async upsert(reportData: Partial<RibReporteTributario>): Promise<RibReporteTributario> {
+    console.log('Guardando datos RIB:', reportData); // Debug
+    
     const { data: { user } } = await supabase.auth.getUser();
     
     const dataToUpsert = {
@@ -138,6 +143,8 @@ export class RibReporteTributarioService {
     if (!reportData.id) {
       dataToUpsert.created_at = new Date().toISOString();
     }
+
+    console.log('Datos a guardar:', dataToUpsert); // Debug
 
     const { data, error } = await supabase
       .from('rib_reporte_tributario')
@@ -152,6 +159,7 @@ export class RibReporteTributarioService {
       throw error;
     }
 
+    console.log('Datos guardados exitosamente:', data); // Debug
     return data;
   }
 

@@ -47,18 +47,15 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
 
   const getSuffix = () => isProveedor ? '_proveedor' : '';
 
-  const formatCurrency = (value: number | null | undefined) => {
-    if (value === null || value === undefined) return '';
-    return value.toString();
-  };
-
   const handleInputChange = (field: string, value: string) => {
+    console.log('Cambiando campo:', field, 'Valor:', value); // Debug
     const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
-    const fieldName = `${field}${getSuffix()}`;
-    onDataChange({
+    const updatedData = {
       ...data,
-      [fieldName]: numericValue,
-    });
+      [field]: numericValue,
+    };
+    console.log('Datos actualizados:', updatedData); // Debug
+    onDataChange(updatedData);
   };
 
   const getBalanceValue = (year: number, field: string): number | null => {
@@ -93,7 +90,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     const balanceValue = getBalanceValue(yearNum, field);
     
     if (balanceValue !== null) {
-      handleInputChange(`${field}_${year}`, balanceValue.toString());
+      const fieldName = `${field}_${year}${getSuffix()}`;
+      handleInputChange(fieldName, balanceValue.toString());
       showSuccess(`Valor copiado desde reporte tributario ${year}`);
     } else {
       showError(`No hay datos disponibles en reporte tributario para ${year}`);
@@ -111,8 +109,8 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
         <div className="space-y-2">
           <input
             type="number"
-            value={formatCurrency(value)}
-            onChange={(e) => handleInputChange(`${field}_${year}`, e.target.value)}
+            value={value?.toString() || ''}
+            onChange={(e) => handleInputChange(fieldName, e.target.value)}
             className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
             placeholder="0"
             step="0.01"
@@ -267,6 +265,13 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
               <strong>Empresa:</strong> {balanceData.empresa_nombre}
             </span>
           )}
+        </p>
+      </div>
+
+      {/* Debug info */}
+      <div className="p-4 bg-gray-900/30 border border-gray-800 rounded-lg">
+        <p className="text-xs text-gray-500">
+          <strong>Debug:</strong> Datos actuales: {JSON.stringify(data, null, 2)}
         </p>
       </div>
     </div>
