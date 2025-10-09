@@ -7,7 +7,8 @@ import {
   Users, 
   Settings, 
   LogOut,
-  Upload
+  Upload,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/contexts/SessionContext';
@@ -19,7 +20,7 @@ const Sidebar = () => {
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/' },
     { icon: Upload, label: 'Subir Documentos', path: '/upload' },
-    { icon: FileText, label: 'Planilla RIB', path: '/planilla-rib' },
+    { icon: Eye, label: 'Planilla RIB', path: '/planilla-rib' },
   ];
 
   const isActive = (path: string) => {
