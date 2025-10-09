@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 export interface ReporteTributarioDeudor {
   id?: string;
   ruc: string;
-  // Estado de situación - Activos
+  proveedor_ruc?: string | null;
+  
+  // Estado de situación - Activos (Deudor)
   cuentas_por_cobrar_giro_2022?: number | null;
   cuentas_por_cobrar_giro_2023?: number | null;
   cuentas_por_cobrar_giro_2024?: number | null;
@@ -11,7 +13,7 @@ export interface ReporteTributarioDeudor {
   total_activos_2023?: number | null;
   total_activos_2024?: number | null;
   
-  // Estado de situación - Pasivos
+  // Estado de situación - Pasivos (Deudor)
   cuentas_por_pagar_giro_2022?: number | null;
   cuentas_por_pagar_giro_2023?: number | null;
   cuentas_por_pagar_giro_2024?: number | null;
@@ -19,7 +21,7 @@ export interface ReporteTributarioDeudor {
   total_pasivos_2023?: number | null;
   total_pasivos_2024?: number | null;
   
-  // Estado de situación - Patrimonio
+  // Estado de situación - Patrimonio (Deudor)
   capital_pagado_2022?: number | null;
   capital_pagado_2023?: number | null;
   capital_pagado_2024?: number | null;
@@ -30,7 +32,7 @@ export interface ReporteTributarioDeudor {
   total_pasivo_patrimonio_2023?: number | null;
   total_pasivo_patrimonio_2024?: number | null;
   
-  // Estados de resultados
+  // Estados de resultados (Deudor)
   ingreso_ventas_2022?: number | null;
   ingreso_ventas_2023?: number | null;
   ingreso_ventas_2024?: number | null;
@@ -41,13 +43,59 @@ export interface ReporteTributarioDeudor {
   utilidad_antes_impuesto_2023?: number | null;
   utilidad_antes_impuesto_2024?: number | null;
   
-  // Índices financieros - NUEVOS CAMPOS
+  // Índices financieros (Deudor)
   solvencia_2022?: number | null;
   solvencia_2023?: number | null;
   solvencia_2024?: number | null;
   gestion_2022?: number | null;
   gestion_2023?: number | null;
   gestion_2024?: number | null;
+  
+  // Estado de situación - Activos (Proveedor)
+  cuentas_por_cobrar_giro_2022_proveedor?: number | null;
+  cuentas_por_cobrar_giro_2023_proveedor?: number | null;
+  cuentas_por_cobrar_giro_2024_proveedor?: number | null;
+  total_activos_2022_proveedor?: number | null;
+  total_activos_2023_proveedor?: number | null;
+  total_activos_2024_proveedor?: number | null;
+  
+  // Estado de situación - Pasivos (Proveedor)
+  cuentas_por_pagar_giro_2022_proveedor?: number | null;
+  cuentas_por_pagar_giro_2023_proveedor?: number | null;
+  cuentas_por_pagar_giro_2024_proveedor?: number | null;
+  total_pasivos_2022_proveedor?: number | null;
+  total_pasivos_2023_proveedor?: number | null;
+  total_pasivos_2024_proveedor?: number | null;
+  
+  // Estado de situación - Patrimonio (Proveedor)
+  capital_pagado_2022_proveedor?: number | null;
+  capital_pagado_2023_proveedor?: number | null;
+  capital_pagado_2024_proveedor?: number | null;
+  total_patrimonio_2022_proveedor?: number | null;
+  total_patrimonio_2023_proveedor?: number | null;
+  total_patrimonio_2024_proveedor?: number | null;
+  total_pasivo_patrimonio_2022_proveedor?: number | null;
+  total_pasivo_patrimonio_2023_proveedor?: number | null;
+  total_pasivo_patrimonio_2024_proveedor?: number | null;
+  
+  // Estados de resultados (Proveedor)
+  ingreso_ventas_2022_proveedor?: number | null;
+  ingreso_ventas_2023_proveedor?: number | null;
+  ingreso_ventas_2024_proveedor?: number | null;
+  utilidad_bruta_2022_proveedor?: number | null;
+  utilidad_bruta_2023_proveedor?: number | null;
+  utilidad_bruta_2024_proveedor?: number | null;
+  utilidad_antes_impuesto_2022_proveedor?: number | null;
+  utilidad_antes_impuesto_2023_proveedor?: number | null;
+  utilidad_antes_impuesto_2024_proveedor?: number | null;
+  
+  // Índices financieros (Proveedor)
+  solvencia_2022_proveedor?: number | null;
+  solvencia_2023_proveedor?: number | null;
+  solvencia_2024_proveedor?: number | null;
+  gestion_2022_proveedor?: number | null;
+  gestion_2023_proveedor?: number | null;
+  gestion_2024_proveedor?: number | null;
   
   user_id?: string | null;
   status?: 'Borrador' | 'En revisión' | 'Completado';

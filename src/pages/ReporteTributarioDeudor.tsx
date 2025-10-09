@@ -12,6 +12,7 @@ import { ProfileService } from '@/services/profileService';
 import ReporteTributarioDeudorTable from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorTable';
 import EstadosResultadosTable from '@/components/reporte-tributario-deudor/EstadosResultadosTable';
 import IndicesFinancierosTable from '@/components/reporte-tributario-deudor/IndicesFinancierosTable';
+import ProveedorSection from '@/components/reporte-tributario-deudor/ProveedorSection';
 import ReporteTributarioDeudorList from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorList';
 import ReporteStatusManager from '@/components/reporte-tributario-deudor/ReporteStatusManager';
 import { showSuccess, showError } from '@/utils/toast';
@@ -191,52 +192,76 @@ const ReporteTributarioDeudorPage = () => {
           )}
 
           {searchedFicha ? (
-            <div className="space-y-6">
-              <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                    {searchedFicha.nombre_empresa}: Estado de situación
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ReporteTributarioDeudorTable
-                    ruc={searchedFicha.ruc}
-                    data={draftReportData}
-                    onDataChange={handleDataChange}
-                  />
-                </CardContent>
-              </Card>
+            <div className="space-y-8">
+              {/* Sección del Deudor */}
+              <div className="space-y-6">
+                <div className="border-l-4 border-[#00FF80] pl-4">
+                  <h2 className="text-xl font-bold text-white mb-2">DATOS DEL DEUDOR</h2>
+                  <p className="text-gray-400 text-sm">Información financiera de {searchedFicha.nombre_empresa}</p>
+                </div>
 
-              <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
-                    Estados de resultados
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <EstadosResultadosTable
-                    data={draftReportData}
-                    onDataChange={handleDataChange}
-                  />
-                </CardContent>
-              </Card>
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                      <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      {searchedFicha.nombre_empresa}: Estado de situación
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ReporteTributarioDeudorTable
+                      ruc={searchedFicha.ruc}
+                      data={draftReportData}
+                      onDataChange={handleDataChange}
+                    />
+                  </CardContent>
+                </Card>
 
-              <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center">
-                    <Calculator className="h-5 w-5 mr-2 text-[#00FF80]" />
-                    Índices financieros
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <IndicesFinancierosTable
-                    data={draftReportData}
-                    onDataChange={handleDataChange}
-                  />
-                </CardContent>
-              </Card>
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                      <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Estados de resultados
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <EstadosResultadosTable
+                      data={draftReportData}
+                      onDataChange={handleDataChange}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                      <Calculator className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Índices financieros
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <IndicesFinancierosTable
+                      data={draftReportData}
+                      onDataChange={handleDataChange}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Separador */}
+              <div className="border-t border-gray-800"></div>
+
+              {/* Sección del Proveedor */}
+              <div className="space-y-6">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h2 className="text-xl font-bold text-white mb-2">DATOS DEL PROVEEDOR</h2>
+                  <p className="text-gray-400 text-sm">Información financiera del proveedor (opcional)</p>
+                </div>
+
+                <ProveedorSection
+                  data={draftReportData}
+                  onDataChange={handleDataChange}
+                />
+              </div>
               
               {savedReportData && (
                 <ReporteStatusManager

@@ -13,19 +13,27 @@ import { ReporteTributarioDeudor } from '@/services/reporteTributarioDeudorServi
 interface IndicesFinancierosTableProps {
   data: Partial<ReporteTributarioDeudor> | null;
   onDataChange: (updatedData: Partial<ReporteTributarioDeudor>) => void;
+  isProveedor?: boolean;
 }
 
-const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ data, onDataChange }) => {
+const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ 
+  data, 
+  onDataChange, 
+  isProveedor = false 
+}) => {
+  const getSuffix = () => isProveedor ? '_proveedor' : '';
+
   const handleInputChange = (field: string, value: string) => {
     const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
+    const fieldName = `${field}${getSuffix()}`;
     onDataChange({
       ...data,
-      [field]: numericValue,
+      [fieldName]: numericValue,
     });
   };
 
   const InputCell = ({ field, year }: { field: string; year: string }) => {
-    const fieldName = `${field}_${year}`;
+    const fieldName = `${field}_${year}${getSuffix()}`;
     const value = data?.[fieldName as keyof ReporteTributarioDeudor] as number | null;
     
     return (
@@ -33,7 +41,7 @@ const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ data,
         <input
           type="text"
           value={value?.toString() || ''}
-          onChange={(e) => handleInputChange(fieldName, e.target.value)}
+          onChange={(e) => handleInputChange(`${field}_${year}`, e.target.value)}
           className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
           placeholder="0.00"
           step="0.01"
