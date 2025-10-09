@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, X } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { ReporteTributarioDeudor, ReporteTributarioDeudorService, ReporteTributarioDeudorSummary } from '@/services/reporteTributarioDeudorService';
 import { ProfileService } from '@/services/profileService';
 import ReporteTributarioDeudorTable from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorTable';
+import EstadosResultadosTable from '@/components/reporte-tributario-deudor/EstadosResultadosTable';
 import ReporteTributarioDeudorList from '@/components/reporte-tributario-deudor/ReporteTributarioDeudorList';
 import ReporteStatusManager from '@/components/reporte-tributario-deudor/ReporteStatusManager';
 import { showSuccess, showError } from '@/utils/toast';
@@ -200,6 +201,21 @@ const ReporteTributarioDeudorPage = () => {
                 <CardContent>
                   <ReporteTributarioDeudorTable
                     ruc={searchedFicha.ruc}
+                    data={draftReportData}
+                    onDataChange={handleDataChange}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    Estados de resultados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <EstadosResultadosTable
                     data={draftReportData}
                     onDataChange={handleDataChange}
                   />
