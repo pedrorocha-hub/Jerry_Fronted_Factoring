@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye } from 'lucide-react';
+import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye, BarChart3 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,23 @@ interface Top10kData {
   facturado_2023_soles_maximo: string | null;
 }
 
+interface RibData {
+  id: string;
+  ruc: string;
+  direccion: string | null;
+  como_llego_lcp: string | null;
+  telefono: string | null;
+  grupo_economico: string | null;
+  visita: string | null;
+  status: string;
+  descripcion_empresa: string | null;
+  inicio_actividades: string | null;
+  relacion_comercial_deudor: string | null;
+  validado_por: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const PlanillaRibPage = () => {
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -39,6 +56,7 @@ const PlanillaRibPage = () => {
   const [riesgos, setRiesgos] = useState<RiesgoData[]>([]);
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<{ fullName: string; email: string } | null>(null);
+  const [ribData, setRibData] = useState<RibData | null>(null);
 
   const handleSearch = async () => {
     if (!rucInput || rucInput.length !== 11) {
@@ -53,6 +71,7 @@ const PlanillaRibPage = () => {
     setRiesgos([]);
     setTop10kData(null);
     setCreatorInfo(null);
+    setRibData(null);
 
     try {
       // Buscar solicitud de operación
@@ -115,6 +134,19 @@ const PlanillaRibPage = () => {
             email: creatorData.email
           });
         }
+      }
+
+      // Buscar datos del RIB
+      const { data: ribDataResult, error: ribError } = await supabase
+        .from('rib')
+        .select('*')
+        .eq('ruc', rucInput)
+        .single();
+
+      if (ribError && ribError.code !== 'PGRST116') {
+        console.error('Error cargando RIB:', ribError);
+      } else if (ribDataResult) {
+        setRibData(ribDataResult);
       }
 
       showSuccess('Solicitud de operación encontrada.');
@@ -399,6 +431,74 @@ const PlanillaRibPage = () => {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Análisis RIB */}
+              {ribData && (
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                      <BarChart3 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Análisis RIB
+                    </CardTitle>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline" className={getStatusColor(ribData.status)}>
+                        {ribData.status}
+                      </Badge>
+                      <span className="text-sm text-gray-400">
+                        Creado: {new Date(ribData.created_at).toLocaleDateString('es-PE')}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">Descripción de la Empresa</Label>
+                          <p className="text-white">{ribData.descripcion_empresa || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Inicio de Actividades</Label>
+                          <p className="text-white">{ribData.inicio_actividades || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Dirección</Label>
+                          <p className="text-white">{ribData.direccion || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Teléfono</Label>
+                          <p className="text-white font-mono">{ribData.telefono || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Grupo Económico</Label>
+                          <p className="text-white">{ribData.grupo_economico || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">¿Cómo llegó a LCP?</Label>
+                          <p className="text-white">{ribData.como_llego_lcp || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Visita</Label>
+                          <p className="text-white">{ribData.visita || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Relación Comercial con Deudor</Label>
+                          <p className="text-white">{ribData.relacion_comercial_deudor || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Validado por</Label>
+                          <p className="text-white">{ribData.validado_por || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Última Actualización</Label>
+                          <p className="text-white">{new Date(ribData.updated_at).toLocaleDateString('es-PE')}</p>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
