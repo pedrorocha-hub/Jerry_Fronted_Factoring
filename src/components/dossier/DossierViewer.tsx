@@ -110,9 +110,8 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving =
         <RibReporteTributarioSection dossier={dossier} />
       )}
       
-      {dossier.ventasMensuales && (
-        <VentasMensualesSection dossier={dossier} />
-      )}
+      {/* Nueva sección de Ventas Mensuales */}
+      <VentasMensualesSection dossier={dossier} />
     </div>
   );
 };
