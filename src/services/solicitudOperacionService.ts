@@ -1,42 +1,18 @@
 import { supabase } from '@/integrations/supabase/client';
-import { SolicitudOperacion, SolicitudOperacionInsert, SolicitudOperacionUpdate } from '@/types/solicitud-operacion';
+import { SolicitudOperacion } from '@/types/solicitud-operacion';
 
 export class SolicitudOperacionService {
-  static async create(solicitudData: Omit<SolicitudOperacionInsert, 'user_id'>): Promise<SolicitudOperacion> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const dataToInsert = {
-      ...solicitudData,
-      user_id: user.id,
-    };
-
-    const { data, error } = await supabase
-      .from('solicitudes_operacion')
-      .insert(dataToInsert)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating Solicitud de Operacion:', error);
-      throw new Error(`Error creating Solicitud de Operacion: ${error.message}`);
-    }
-    if (!data) {
-      throw new Error('Insert succeeded but no data was returned.');
-    }
-    return data;
-  }
-
   static async getAll(): Promise<SolicitudOperacion[]> {
     const { data, error } = await supabase
       .from('solicitudes_operacion')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('updated_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching Solicitudes de Operacion:', error);
-      throw new Error(`Error fetching Solicitudes de Operacion: ${error.message}`);
+      console.error('Error fetching solicitudes:', error);
+      throw new Error(`Error al obtener las solicitudes: ${error.message}`);
     }
+
     return data || [];
   }
 
@@ -48,28 +24,73 @@ export class SolicitudOperacionService {
       .single();
 
     if (error) {
-      console.error('Error fetching Solicitud de Operacion by ID:', error);
-      // Don't throw if not found, just return null
       if (error.code === 'PGRST116') {
-        return null;
+        return null; // No encontrado
       }
-      throw new Error(`Error fetching Solicitud de Operacion by ID: ${error.message}`);
+      console.error('Error fetching solicitud by ID:', error);
+      throw new Error(`Error al obtener la solicitud: ${error.message}`);
     }
+
     return data;
   }
 
-  static async update(id: string, solicitudData: SolicitudOperacionUpdate): Promise<SolicitudOperacion> {
+  static async getByRuc(ruc: string): Promise<SolicitudOperacion[]> {
     const { data, error } = await supabase
       .from('solicitudes_operacion')
-      .update({ ...solicitudData, updated_at: new Date().toISOString() })
+      .select('*')
+      .eq('ruc', ruc)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching solicitudes by RUC:', error);
+      throw new Error(`Error al obtener las solicitudes por RUC: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  static async create(solicitudData: Partial<SolicitudOperacion>): Promise<SolicitudOperacion> {
+    const { data: userData } = await supabase.auth.getUser();
+    
+    const dataToInsert = {
+      ...solicitudData,
+      user_id: userData.user?.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('solicitudes_operacion')
+      .insert([dataToInsert])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating solicitud:', error);
+      throw new Error(`Error al crear la solicitud: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  static async update(id: string, solicitudData: Partial<SolicitudOperacion>): Promise<SolicitudOperacion> {
+    const dataToUpdate = {
+      ...solicitudData,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data, error } = await supabase
+      .from('solicitudes_operacion')
+      .update(dataToUpdate)
       .eq('id', id)
       .select()
       .single();
 
     if (error) {
-      console.error('Error updating Solicitud de Operacion:', error);
-      throw new Error(`Error updating Solicitud de Operacion: ${error.message}`);
+      console.error('Error updating solicitud:', error);
+      throw new Error(`Error al actualizar la solicitud: ${error.message}`);
     }
+
     return data;
   }
 
@@ -80,8 +101,8 @@ export class SolicitudOperacionService {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting Solicitud de Operacion:', error);
-      throw new Error(`Error deleting Solicitud de Operacion: ${error.message}`);
+      console.error('Error deleting solicitud:', error);
+      throw new Error(`Error al eliminar la solicitud: ${error.message}`);
     }
   }
 }
