@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye, BarChart3, TrendingUp, ClipboardEdit, Shield } from 'lucide-react';
+import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye, BarChart3, TrendingUp, ClipboardEdit, Shield, Star } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -304,7 +304,36 @@ const PlanillaRibPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Información TOP 10K integrada */}
+                  {dossier.top10kData && (
+                    <div className="mb-8 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg">
+                      <div className="flex items-center mb-4">
+                        <Star className="h-5 w-5 mr-2 text-yellow-400" />
+                        <h4 className="text-white font-medium">Información TOP 10K Perú</h4>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                          <Label className="text-gray-400">Sector</Label>
+                          <p className="text-white font-medium">{dossier.top10kData.sector || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Ranking 2024</Label>
+                          <p className="text-white font-mono text-lg font-bold text-yellow-400">#{dossier.top10kData.ranking_2024 || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Facturado 2024 (Máx)</Label>
+                          <p className="text-white font-mono font-medium">{formatCurrency(dossier.top10kData.facturado_2024_soles_maximo)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Tamaño Empresa</Label>
+                          <p className="text-white font-medium">{dossier.top10kData.tamano || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Información básica de la empresa */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div className="space-y-4">
                       <div>
                         <Label className="text-gray-400">Empresa</Label>
@@ -350,10 +379,90 @@ const PlanillaRibPage = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* Información adicional de la solicitud */}
+                  <div className="border-t border-gray-800 pt-6 mb-6">
+                    <h4 className="text-white font-medium mb-4">Información Adicional de la Solicitud</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">Dirección</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.direccion || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Visita</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.visita || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Contacto</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.contacto || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Fianza</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.fianza || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">L/P</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.lp || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">L/P Vigente GVE</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.lp_vigente_gve || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Fecha Ficha</Label>
+                          <p className="text-white">{formatDate(dossier.solicitudOperacion.fecha_ficha)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Orden de Servicio</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.orden_servicio || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Factura</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.factura || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Resumen Solicitud</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.resumen_solicitud || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Garantías y Condiciones */}
+                  <div className="border-t border-gray-800 pt-6 mb-6">
+                    <h4 className="text-white font-medium mb-4">Garantías y Condiciones</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <Label className="text-gray-400">Garantías</Label>
+                        <div className="mt-2 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                          <p className="text-white text-sm">{dossier.solicitudOperacion.garantias || 'No especificadas'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-gray-400">Condiciones de Desembolso</Label>
+                        <div className="mt-2 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                          <p className="text-white text-sm">{dossier.solicitudOperacion.condiciones_desembolso || 'No especificadas'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Comentarios */}
+                  {dossier.solicitudOperacion.comentarios && (
+                    <div className="border-t border-gray-800 pt-6 mb-6">
+                      <Label className="text-gray-400">Comentarios</Label>
+                      <div className="mt-2 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                        <p className="text-white">{dossier.solicitudOperacion.comentarios}</p>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Riesgos */}
                   {dossier.riesgos.length > 0 && (
-                    <div className="mt-6">
+                    <div className="border-t border-gray-800 pt-6">
                       <Label className="text-gray-400 text-lg font-medium">Riesgos del Proveedor</Label>
                       <div className="overflow-x-auto mt-4">
                         <table className="w-full">
@@ -642,35 +751,6 @@ const PlanillaRibPage = () => {
                           </div>
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Información TOP 10K (Adicional) */}
-              {dossier.top10kData && (
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">Información Adicional - TOP 10K</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div>
-                        <Label className="text-gray-400">Sector</Label>
-                        <p className="text-white">{dossier.top10kData.sector || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Ranking 2024</Label>
-                        <p className="text-white font-mono">#{dossier.top10kData.ranking_2024 || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Facturado 2024 (Máx)</Label>
-                        <p className="text-white font-mono">{formatCurrency(dossier.top10kData.facturado_2024_soles_maximo)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Tamaño</Label>
-                        <p className="text-white">{dossier.top10kData.tamano || 'N/A'}</p>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
