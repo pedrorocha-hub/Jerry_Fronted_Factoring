@@ -12,7 +12,6 @@ import Dashboard from '@/pages/Dashboard';
 import UploadPage from '@/pages/Upload';
 import FichaRucPage from '@/pages/FichaRuc';
 import RepresentanteLegalPage from '@/pages/RepresentanteLegal';
-import CuentaBancariaPage from '@/pages/CuentaBancaria';
 import VigenciaPoderesPage from '@/pages/VigenciaPoderes';
 import FacturaNegociarPage from '@/pages/FacturaNegociar';
 import ReporteTributarioPage from '@/pages/ReporteTributario';
@@ -39,7 +38,6 @@ function App() {
               <Route path="/upload" element={<UploadPage />} />
               <Route path="/ficha-ruc" element={<FichaRucPage />} />
               <Route path="/representante-legal" element={<RepresentanteLegalPage />} />
-              <Route path="/cuenta-bancaria" element={<CuentaBancariaPage />} />
               <Route path="/vigencia-poderes" element={<VigenciaPoderesPage />} />
               <Route path="/factura-negociar" element={<FacturaNegociarPage />} />
               <Route path="/reporte-tributario" element={<ReporteTributarioPage />} />

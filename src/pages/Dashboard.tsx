@@ -4,7 +4,6 @@ import {
   FileText, 
   Building2, 
   Users, 
-  CreditCard, 
   Scale, 
   Receipt, 
   FileBarChart,
@@ -294,23 +293,6 @@ const Dashboard = () => {
 
           {/* Additional Stats Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-[#121212] border border-gray-800 hover:border-green-500/30 transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400">
-                  Cuentas Bancarias
-                </CardTitle>
-                <div className="p-2 bg-green-500/10 rounded-lg border border-green-500/20">
-                  <CreditCard className="h-4 w-4 text-green-400" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-400 font-mono">{stats.cuentasBancarias.total}</div>
-                <p className="text-xs text-gray-500">
-                  {stats.cuentasBancarias.activas} activas
-                </p>
-              </CardContent>
-            </Card>
-
             <Card className="bg-[#121212] border border-gray-800 hover:border-orange-500/30 transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-400">
@@ -341,6 +323,23 @@ const Dashboard = () => {
                 <div className="text-2xl font-bold text-cyan-400 font-mono">{stats.reportes.total}</div>
                 <p className="text-xs text-gray-500">
                   {stats.reportes.thisYear} este año
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-[#121212] border border-gray-800 hover:border-green-500/30 transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">
+                  Cuentas Bancarias
+                </CardTitle>
+                <div className="p-2 bg-green-500/10 rounded-lg border border-green-500/20">
+                  <Building2 className="h-4 w-4 text-green-400" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-400 font-mono">{stats.cuentasBancarias.total}</div>
+                <p className="text-xs text-gray-500">
+                  Gestionadas desde Fichas RUC
                 </p>
               </CardContent>
             </Card>
@@ -445,14 +444,6 @@ const Dashboard = () => {
                 >
                   <Users className="h-6 w-6" />
                   <span className="text-xs">Representantes</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-green-500/50"
-                  onClick={() => navigate('/cuenta-bancaria')}
-                >
-                  <CreditCard className="h-6 w-6" />
-                  <span className="text-xs">Cuentas Bancarias</span>
                 </Button>
                 <Button 
                   variant="outline" 
