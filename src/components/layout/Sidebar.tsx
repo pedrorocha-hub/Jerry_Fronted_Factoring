@@ -19,7 +19,7 @@ const Sidebar = () => {
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/' },
     { icon: Upload, label: 'Subir Documentos', path: '/upload' },
-    { icon: FileText, label: 'Planilla RIB', path: '/solicitudes-operacion' },
+    { icon: FileText, label: 'Planilla RIB', path: '/planilla-rib' },
   ];
 
   const isActive = (path: string) => {
