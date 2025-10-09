@@ -7,7 +7,8 @@ import {
   Users, 
   Settings, 
   LogOut,
-  Eye
+  Eye,
+  Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSession } from '@/contexts/SessionContext';
@@ -18,6 +19,7 @@ const Sidebar = () => {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/' },
+    { icon: Upload, label: 'Subir Documentos', path: '/upload' },
     { icon: ClipboardList, label: 'RIB - Reporte Tributario', path: '/rib-reporte-tributario' },
     { icon: FileText, label: 'Solicitudes de Operación', path: '/solicitudes-operacion' },
     { icon: Eye, label: 'Planilla del RIB', path: '/planilla-rib' },

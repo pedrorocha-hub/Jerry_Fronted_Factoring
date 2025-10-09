@@ -12,7 +12,6 @@ import Dashboard from '@/pages/Dashboard';
 import UploadPage from '@/pages/Upload';
 import FichaRucPage from '@/pages/FichaRuc';
 import RepresentanteLegalPage from '@/pages/RepresentanteLegal';
-import CuentaBancariaPage from '@/pages/CuentaBancaria';
 import VigenciaPoderesPage from '@/pages/VigenciaPoderes';
 import FacturaNegociarPage from '@/pages/FacturaNegociar';
 import ReporteTributarioPage from '@/pages/ReporteTributario';
@@ -24,7 +23,7 @@ import SentinelPage from '@/pages/SentinelPage';
 import SentinelCreatePage from '@/pages/SentinelCreatePage';
 import UsersPage from '@/pages/Admin/Users';
 import ReporteTributarioDeudorPage from '@/pages/ReporteTributarioDeudor';
-import VentasMensualesProveedorPage from '@/pages/VentasMensualesProveedor';
+import VentasMensualesPage from '@/pages/VentasMensuales';
 import PlanillaRib from '@/pages/PlanillaRib';
 import RibReporteTributario from '@/pages/RibReporteTributario';
 
@@ -41,7 +40,6 @@ function App() {
               <Route path="/upload" element={<UploadPage />} />
               <Route path="/ficha-ruc" element={<FichaRucPage />} />
               <Route path="/representante-legal" element={<RepresentanteLegalPage />} />
-              <Route path="/cuenta-bancaria" element={<CuentaBancariaPage />} />
               <Route path="/vigencia-poderes" element={<VigenciaPoderesPage />} />
               <Route path="/factura-negociar" element={<FacturaNegociarPage />} />
               <Route path="/reporte-tributario" element={<ReporteTributarioPage />} />
@@ -54,7 +52,7 @@ function App() {
               <Route path="/sentinel/create" element={<SentinelCreatePage />} />
               <Route path="/admin/users" element={<UsersPage />} />
               <Route path="/reporte-tributario-deudor" element={<ReporteTributarioDeudorPage />} />
-              <Route path="/ventas-mensuales-proveedor" element={<VentasMensualesProveedorPage />} />
+              <Route path="/ventas-mensuales" element={<VentasMensualesPage />} />
               <Route path="/planilla-rib" element={<PlanillaRib />} />
               <Route path="/rib-reporte-tributario" element={<RibReporteTributario />} />
             </Route>
