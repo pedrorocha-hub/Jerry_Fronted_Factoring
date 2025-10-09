@@ -47,31 +47,28 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     setVentasData(null);
 
     try {
-      console.log(`[VentasMensualesSection] 🔍 Buscando datos para RUC: ${ruc}`);
+      console.log(`[VentasMensualesSection] 🔍 Buscando datos para RUC via RPC: ${ruc}`);
 
-      // Consulta directa a la base de datos. Buscamos el RUC en ambas columnas.
-      const { data, error: dbError } = await supabase
-        .from('ventas_mensuales')
-        .select('*')
-        .or(`proveedor_ruc.eq.${ruc},deudor_ruc.eq.${ruc}`)
-        .limit(1)
-        .maybeSingle(); // .maybeSingle() devuelve null en lugar de un error si no se encuentra nada.
+      // Usar la nueva función de base de datos dedicada
+      const { data, error: rpcError } = await supabase
+        .rpc('get_ventas_mensuales_by_ruc', { ruc_input: ruc });
 
-      console.log(`[VentasMensualesSection] 📊 Resultado de la consulta:`, { data, dbError });
+      console.log(`[VentasMensualesSection] 📊 Resultado de la RPC:`, { data, rpcError });
 
-      if (dbError) {
-        throw dbError;
+      if (rpcError) {
+        throw rpcError;
       }
 
-      if (data) {
+      if (data && data.length > 0) {
+        const record = data[0];
         console.log('[VentasMensualesSection] ✅ Datos encontrados. Procesando...');
-        setVentasData(data);
+        setVentasData(record);
         
-        const proveedorData = extractSalesData(data, 'proveedor');
+        const proveedorData = extractSalesData(record, 'proveedor');
         setProveedorSalesData(proveedorData);
         
-        if (data.deudor_ruc) {
-          const deudorData = extractSalesData(data, 'deudor');
+        if (record.deudor_ruc) {
+          const deudorData = extractSalesData(record, 'deudor');
           setDeudorSalesData(deudorData);
         }
         console.log('[VentasMensualesSection] 🎉 Datos procesados exitosamente.');
