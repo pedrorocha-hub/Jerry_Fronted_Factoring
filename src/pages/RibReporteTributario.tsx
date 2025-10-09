@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, BarChart3 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import IndicesFinancierosTable from '@/components/rib-reporte-tributario/Indices
 import ProveedorSection from '@/components/rib-reporte-tributario/ProveedorSection';
 import RibReporteTributarioList from '@/components/rib-reporte-tributario/RibReporteTributarioList';
 import ReporteStatusManager from '@/components/rib-reporte-tributario/ReporteStatusManager';
+import EstadoSituacionTable from '@/components/estado-situacion/EstadoSituacionTable';
 import { showSuccess, showError } from '@/utils/toast';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
@@ -193,6 +194,19 @@ const RibReporteTributarioPage = () => {
 
           {searchedFicha ? (
             <div className="space-y-8">
+              {/* Estado de Situación */}
+              <div className="space-y-6">
+                <div className="border-l-4 border-[#00FF80] pl-4">
+                  <h2 className="text-xl font-bold text-white mb-2">ESTADO DE SITUACIÓN FINANCIERA</h2>
+                  <p className="text-gray-400 text-sm">Datos consolidados de los reportes tributarios (2022-2024)</p>
+                </div>
+
+                <EstadoSituacionTable ruc={searchedFicha.ruc} />
+              </div>
+
+              {/* Separador */}
+              <div className="border-t border-gray-800"></div>
+
               {/* Sección del Deudor */}
               <div className="space-y-6">
                 <div className="border-l-4 border-[#00FF80] pl-4">
