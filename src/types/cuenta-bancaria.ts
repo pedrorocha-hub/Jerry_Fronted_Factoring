@@ -1,6 +1,6 @@
 export interface CuentaBancaria {
   id: string;
-  documento_id: string;
+  documento_id?: string;
   ruc?: string;
   banco?: string;
   numero_cuenta?: string;
@@ -22,7 +22,7 @@ export type TipoCuenta = 'corriente' | 'ahorros' | 'plazo_fijo' | 'cts' | 'otros
 export type Moneda = 'PEN' | 'USD' | 'EUR';
 
 export interface CuentaBancariaInsert {
-  documento_id: string;
+  documento_id?: string;
   ruc?: string;
   banco?: string;
   numero_cuenta?: string;

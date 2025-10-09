@@ -24,7 +24,7 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import AccionistaManager from './AccionistaManager';
 import GerenciaManager from '../gerencia/GerenciaManager';
-import CuentaBancariaManager from '../cuenta-bancaria/CuentaBancariaManager';
+import CuentaBancariaManager from '../cuentas/CuentasBancariasManager';
 import { useSession } from '@/contexts/SessionContext';
 
 interface FichaRucModalProps {

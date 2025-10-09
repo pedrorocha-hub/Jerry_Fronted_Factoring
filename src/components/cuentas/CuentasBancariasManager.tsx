@@ -51,12 +51,14 @@ import { CuentaBancariaService } from '@/services/cuentaBancariaService';
 import { showSuccess, showError } from '@/utils/toast';
 
 interface CuentasBancariasManagerProps {
-  documentoId: string;
+  documentoId?: string;
+  ruc?: string;
   readonly?: boolean;
 }
 
 const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({ 
   documentoId, 
+  ruc,
   readonly = false 
 }) => {
   const [cuentas, setCuentas] = useState<CuentaBancaria[]>([]);
@@ -65,8 +67,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
   const [editingCuenta, setEditingCuenta] = useState<CuentaBancaria | null>(null);
   const [showNumbers, setShowNumbers] = useState<Record<string, boolean>>({});
 
-  const [formData, setFormData] = useState<CuentaBancariaInsert>({
-    documento_id: documentoId,
+  const [formData, setFormData] = useState<Partial<CuentaBancariaInsert>>({
     banco: '',
     tipo_cuenta: undefined,
     moneda_cuenta: undefined,
@@ -77,12 +78,15 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
   useEffect(() => {
     loadCuentas();
-  }, [documentoId]);
+  }, [documentoId, ruc]);
 
   const loadCuentas = async () => {
+    if (!documentoId && !ruc) return;
     try {
       setLoading(true);
-      const data = await CuentaBancariaService.getByDocumentoId(documentoId);
+      const data = documentoId 
+        ? await CuentaBancariaService.getByDocumentoId(documentoId)
+        : await CuentaBancariaService.getByRuc(ruc!);
       setCuentas(data);
     } catch (error) {
       console.error('Error cargando cuentas:', error);
@@ -96,8 +100,10 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
     e.preventDefault();
     
     try {
-      const cleanFormData = {
+      const cleanFormData: CuentaBancariaInsert = {
         ...formData,
+        documento_id: documentoId,
+        ruc: ruc,
         banco: formData.banco?.trim() || undefined,
         codigo_cuenta_interbancaria: formData.codigo_cuenta_interbancaria?.trim() || undefined,
         titular_cuenta: formData.titular_cuenta?.trim() || undefined,
@@ -122,7 +128,6 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
   const handleEdit = (cuenta: CuentaBancaria) => {
     setEditingCuenta(cuenta);
     setFormData({
-      documento_id: cuenta.documento_id,
       banco: cuenta.banco || '',
       tipo_cuenta: cuenta.tipo_cuenta,
       moneda_cuenta: cuenta.moneda_cuenta,
@@ -146,7 +151,6 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
   const resetForm = () => {
     setFormData({
-      documento_id: documentoId,
       banco: '',
       tipo_cuenta: undefined,
       moneda_cuenta: undefined,

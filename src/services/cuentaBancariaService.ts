@@ -45,7 +45,14 @@ export class CuentaBancariaService {
   static async getByRuc(ruc: string): Promise<CuentaBancariaWithFicha[]> {
     const { data, error } = await supabase
       .from('cuentas_bancarias')
-      .select(`*`)
+      .select(`
+        *,
+        ficha_ruc:ruc (
+          id,
+          ruc,
+          nombre_empresa
+        )
+      `)
       .eq('ruc', ruc)
       .order('created_at', { ascending: false });
 
