@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, Calendar, AlertCircle } from 'lucide-react';
+import { TrendingUp, Calendar, AlertCircle, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DossierRib } from '@/types/dossier';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -77,79 +78,124 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
   const [ventasData, setVentasData] = useState<VentasMensualesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const ruc = dossier.solicitudOperacion.ruc;
 
-  useEffect(() => {
-    const fetchVentasMensuales = async () => {
-      if (!ruc) return;
+  const fetchVentasMensuales = async () => {
+    if (!ruc) return;
 
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
+    setDebugInfo(null);
 
-      try {
-        console.log('Buscando ventas mensuales para RUC:', ruc);
+    try {
+      console.log('🔍 Buscando ventas mensuales para RUC:', ruc);
 
-        // Usar la función que ya existe en la base de datos
-        const { data, error: fetchError } = await supabase
-          .rpc('get_ventas_mensuales_summaries');
+      // Debug: Primero verificar qué RUCs existen en la tabla
+      const { data: allRucs, error: allRucsError } = await supabase
+        .from('ventas_mensuales')
+        .select('proveedor_ruc, deudor_ruc, status')
+        .limit(5);
 
-        console.log('Resultado get_ventas_mensuales_summaries:', { data, fetchError });
+      console.log('📊 Primeros 5 RUCs en la tabla:', allRucs);
 
-        if (fetchError) {
-          console.error('Error en get_ventas_mensuales_summaries:', fetchError);
-          // Fallback: consulta directa
-          const { data: directData, error: directError } = await supabase
-            .from('ventas_mensuales')
-            .select('*')
-            .or(`proveedor_ruc.eq.${ruc},deudor_ruc.eq.${ruc}`)
-            .limit(1)
-            .single();
+      // Estrategia 1: Usar la función RPC
+      const { data: rpcData, error: rpcError } = await supabase
+        .rpc('get_ventas_mensuales_summaries');
 
-          console.log('Resultado consulta directa:', { directData, directError });
+      console.log('🔧 Resultado RPC function:', { rpcData, rpcError });
 
-          if (directError) {
-            console.error('Error en consulta directa:', directError);
-            setError('No se encontraron datos de ventas mensuales');
-            return;
-          }
-
-          setVentasData(directData);
-        } else {
-          // Buscar en los resultados de la función
-          const ventasRecord = data?.find((item: any) => item.ruc === ruc);
-          
-          if (!ventasRecord) {
-            console.log('No se encontró registro para RUC:', ruc);
-            setError('No se encontraron datos de ventas mensuales para este RUC');
-            return;
-          }
-
-          // Obtener los datos completos
-          const { data: fullData, error: fullError } = await supabase
-            .from('ventas_mensuales')
-            .select('*')
-            .eq('proveedor_ruc', ruc)
-            .single();
-
-          console.log('Datos completos:', { fullData, fullError });
-
-          if (fullError) {
-            console.error('Error obteniendo datos completos:', fullError);
-            setError('Error al obtener datos completos de ventas mensuales');
-            return;
-          }
-
-          setVentasData(fullData);
-        }
-      } catch (err) {
-        console.error('Error inesperado:', err);
-        setError('Error inesperado al cargar datos de ventas mensuales');
-      } finally {
-        setLoading(false);
+      let foundInRpc = null;
+      if (!rpcError && rpcData) {
+        foundInRpc = rpcData.find((item: any) => item.ruc === ruc);
+        console.log('🎯 Encontrado en RPC:', foundInRpc);
       }
-    };
 
+      // Estrategia 2: Consulta directa con OR
+      const { data: directData, error: directError } = await supabase
+        .from('ventas_mensuales')
+        .select('*')
+        .or(`proveedor_ruc.eq.${ruc},deudor_ruc.eq.${ruc}`);
+
+      console.log('🔍 Resultado consulta directa:', { directData, directError });
+
+      // Estrategia 3: Consulta por proveedor_ruc solamente
+      const { data: proveedorData, error: proveedorError } = await supabase
+        .from('ventas_mensuales')
+        .select('*')
+        .eq('proveedor_ruc', ruc);
+
+      console.log('👤 Resultado consulta proveedor:', { proveedorData, proveedorError });
+
+      // Estrategia 4: Consulta por deudor_ruc solamente
+      const { data: deudorData, error: deudorError } = await supabase
+        .from('ventas_mensuales')
+        .select('*')
+        .eq('deudor_ruc', ruc);
+
+      console.log('🏢 Resultado consulta deudor:', { deudorData, deudorError });
+
+      // Recopilar información de debug
+      const debug = {
+        ruc,
+        rpcError: rpcError?.message,
+        rpcResultsCount: rpcData?.length || 0,
+        foundInRpc: !!foundInRpc,
+        directError: directError?.message,
+        directResultsCount: directData?.length || 0,
+        proveedorError: proveedorError?.message,
+        proveedorResultsCount: proveedorData?.length || 0,
+        deudorError: deudorError?.message,
+        deudorResultsCount: deudorData?.length || 0,
+        sampleRucs: allRucs?.map(r => ({ proveedor: r.proveedor_ruc, deudor: r.deudor_ruc })) || []
+      };
+
+      setDebugInfo(debug);
+
+      // Determinar qué datos usar
+      let finalData = null;
+
+      if (directData && directData.length > 0) {
+        finalData = directData[0];
+        console.log('✅ Usando datos de consulta directa');
+      } else if (proveedorData && proveedorData.length > 0) {
+        finalData = proveedorData[0];
+        console.log('✅ Usando datos de consulta proveedor');
+      } else if (deudorData && deudorData.length > 0) {
+        finalData = deudorData[0];
+        console.log('✅ Usando datos de consulta deudor');
+      } else if (foundInRpc) {
+        // Si encontramos en RPC, obtener datos completos
+        const { data: fullData, error: fullError } = await supabase
+          .from('ventas_mensuales')
+          .select('*')
+          .eq('proveedor_ruc', ruc)
+          .single();
+
+        if (!fullError && fullData) {
+          finalData = fullData;
+          console.log('✅ Usando datos completos desde RPC');
+        }
+      }
+
+      if (finalData) {
+        setVentasData(finalData);
+        console.log('🎉 Datos de ventas mensuales cargados:', finalData);
+      } else {
+        setError('No se encontraron datos de ventas mensuales para este RUC');
+        console.log('❌ No se encontraron datos para RUC:', ruc);
+      }
+
+    } catch (err) {
+      console.error('💥 Error inesperado:', err);
+      setError('Error inesperado al cargar datos de ventas mensuales');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchVentasMensuales();
   }, [ruc]);
 
@@ -213,6 +259,41 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
             <p className="text-gray-500 text-xs mt-2">
               Debug: RUC buscado = {ruc}
             </p>
+            
+            {/* Botón para reintentar */}
+            <Button 
+              onClick={fetchVentasMensuales}
+              variant="outline" 
+              size="sm" 
+              className="mt-4"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              Reintentar búsqueda
+            </Button>
+
+            {/* Información de debug expandida */}
+            {debugInfo && (
+              <div className="mt-6 p-4 bg-gray-800/30 rounded-lg text-left">
+                <h4 className="text-white text-sm font-medium mb-2">Información de Debug:</h4>
+                <div className="text-xs text-gray-400 space-y-1">
+                  <p>• RPC Function: {debugInfo.rpcError ? `Error: ${debugInfo.rpcError}` : `${debugInfo.rpcResultsCount} resultados`}</p>
+                  <p>• Consulta Directa: {debugInfo.directError ? `Error: ${debugInfo.directError}` : `${debugInfo.directResultsCount} resultados`}</p>
+                  <p>• Por Proveedor: {debugInfo.proveedorError ? `Error: ${debugInfo.proveedorError}` : `${debugInfo.proveedorResultsCount} resultados`}</p>
+                  <p>• Por Deudor: {debugInfo.deudorError ? `Error: ${debugInfo.deudorError}` : `${debugInfo.deudorResultsCount} resultados`}</p>
+                  
+                  {debugInfo.sampleRucs.length > 0 && (
+                    <div className="mt-2">
+                      <p className="font-medium">RUCs de ejemplo en la tabla:</p>
+                      {debugInfo.sampleRucs.slice(0, 3).map((sample: any, idx: number) => (
+                        <p key={idx} className="ml-2">
+                          • Proveedor: {sample.proveedor} | Deudor: {sample.deudor || 'N/A'}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
