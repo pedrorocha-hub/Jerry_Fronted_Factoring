@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye, BarChart3 } from 'lucide-react';
+import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye, BarChart3, TrendingUp, ClipboardEdit, Shield } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,26 +10,34 @@ import { Badge } from '@/components/ui/badge';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 
-interface PlanillaData {
-  // Solicitud de operación
-  solicitud: any;
-  // Ficha RUC
-  fichaRuc: any;
-  // Riesgos
+interface DossierRib {
+  // 1. Solicitud de operación
+  solicitudOperacion: any;
   riesgos: any[];
-  // TOP 10K
-  top10kData: any;
-  // Información del creador
+  fichaRuc: any;
   creatorInfo: any;
-  // RIB Data
-  ribData: any;
+  
+  // 2. Análisis RIB
+  analisisRib: any;
+  
+  // 3. Comportamiento Crediticio
+  comportamientoCrediticio: any;
+  
+  // 4. RIB - Reporte Tributario
+  ribReporteTributario: any[];
+  
+  // 5. Ventas Mensuales
+  ventasMensuales: any;
+  
+  // Datos adicionales
+  top10kData: any;
 }
 
 const PlanillaRibPage = () => {
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [planillaData, setPlanillaData] = useState<PlanillaData | null>(null);
+  const [dossier, setDossier] = useState<DossierRib | null>(null);
 
   const handleSearch = async () => {
     if (!rucInput || rucInput.length !== 11) {
@@ -39,16 +47,16 @@ const PlanillaRibPage = () => {
 
     setSearching(true);
     setError(null);
-    setPlanillaData(null);
+    setDossier(null);
 
     try {
-      // Una sola consulta para obtener toda la información necesaria
+      // Buscar solicitud de operación (punto de partida)
       const { data: solicitudes, error: solicitudError } = await supabase
         .from('solicitudes_operacion')
         .select(`
           *,
           solicitud_operacion_riesgos(*),
-          profiles!solicitudes_operacion_user_id_fkey(full_name)
+          profiles!solicitudes_operacion_user_id_fkey(full_name, email)
         `)
         .eq('ruc', rucInput)
         .order('created_at', { ascending: false })
@@ -67,87 +75,78 @@ const PlanillaRibPage = () => {
 
       const solicitud = solicitudes[0];
 
-      // Consultas paralelas para el resto de la información
+      // Cargar todos los datos del dossier en paralelo
       const [
         fichaRucResult,
-        top10kResult,
-        ribResult,
-        creatorResult
+        analisisRibResult,
+        comportamientoCrediticioResult,
+        ribReporteTributarioResult,
+        ventasMensualesResult,
+        top10kResult
       ] = await Promise.allSettled([
         // Ficha RUC
-        supabase
-          .from('ficha_ruc')
-          .select('*')
-          .eq('ruc', rucInput)
-          .single(),
+        supabase.from('ficha_ruc').select('*').eq('ruc', rucInput).single(),
+        
+        // Análisis RIB
+        supabase.from('rib').select('*').eq('ruc', rucInput).single(),
+        
+        // Comportamiento Crediticio
+        supabase.from('comportamiento_crediticio').select('*').eq('ruc', rucInput).single(),
+        
+        // RIB - Reporte Tributario
+        supabase.from('rib_reporte_tributario').select('*').eq('ruc', rucInput),
+        
+        // Ventas Mensuales
+        supabase.from('ventas_mensuales').select('*').eq('proveedor_ruc', rucInput).single(),
         
         // TOP 10K
-        supabase
-          .from('top_10k')
-          .select('descripcion_ciiu_rev3, sector, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
-          .eq('ruc', rucInput)
-          .single(),
-        
-        // RIB
-        supabase
-          .from('rib')
-          .select('*')
-          .eq('ruc', rucInput)
-          .single(),
-        
-        // Información del creador
-        solicitud.user_id ? supabase
-          .rpc('get_user_details', { user_id_input: solicitud.user_id })
-          .single() : Promise.resolve({ data: null, error: null })
+        supabase.from('top_10k').select('*').eq('ruc', rucInput).single()
       ]);
 
       // Procesar resultados
-      const fichaRuc = fichaRucResult.status === 'fulfilled' && !fichaRucResult.value.error 
-        ? fichaRucResult.value.data : null;
-      
-      const top10kData = top10kResult.status === 'fulfilled' && !top10kResult.value.error 
-        ? top10kResult.value.data : null;
-      
-      const ribData = ribResult.status === 'fulfilled' && !ribResult.value.error 
-        ? ribResult.value.data : null;
-      
-      const creatorInfo = creatorResult.status === 'fulfilled' && !creatorResult.value.error && creatorResult.value.data
-        ? {
-            fullName: creatorResult.value.data.full_name,
-            email: creatorResult.value.data.email
-          } : null;
+      const getData = (result: PromiseSettledResult<any>) => {
+        return result.status === 'fulfilled' && !result.value.error ? result.value.data : null;
+      };
 
-      // Procesar riesgos
-      const riesgos = solicitud.solicitud_operacion_riesgos?.map((r: any) => ({
-        lp: r.lp || '',
-        producto: r.producto || '',
-        deudor: r.deudor || '',
-        lp_vigente_gve: r.lp_vigente_gve || '',
-        riesgo_aprobado: r.riesgo_aprobado,
-        propuesta_comercial: r.propuesta_comercial,
-      })) || [];
+      const dossierData: DossierRib = {
+        // 1. Solicitud de operación
+        solicitudOperacion: solicitud,
+        riesgos: solicitud.solicitud_operacion_riesgos || [],
+        fichaRuc: getData(fichaRucResult),
+        creatorInfo: solicitud.profiles ? {
+          fullName: solicitud.profiles.full_name,
+          email: solicitud.profiles.email
+        } : null,
+        
+        // 2. Análisis RIB
+        analisisRib: getData(analisisRibResult),
+        
+        // 3. Comportamiento Crediticio
+        comportamientoCrediticio: getData(comportamientoCrediticioResult),
+        
+        // 4. RIB - Reporte Tributario
+        ribReporteTributario: getData(ribReporteTributarioResult) || [],
+        
+        // 5. Ventas Mensuales
+        ventasMensuales: getData(ventasMensualesResult),
+        
+        // Datos adicionales
+        top10kData: getData(top10kResult)
+      };
 
-      setPlanillaData({
-        solicitud,
-        fichaRuc,
-        riesgos,
-        top10kData,
-        creatorInfo,
-        ribData
-      });
-
-      showSuccess('Planilla RIB cargada exitosamente.');
+      setDossier(dossierData);
+      showSuccess('Dossier RIB cargado exitosamente.');
+      
     } catch (err) {
-      console.error('Error en búsqueda:', err);
-      setError('Ocurrió un error al cargar la planilla RIB.');
-      showError('Error al cargar la planilla.');
+      console.error('Error cargando dossier:', err);
+      setError('Ocurrió un error al cargar el dossier RIB.');
+      showError('Error al cargar el dossier.');
     } finally {
       setSearching(false);
     }
   };
 
   const handleDownloadPDF = () => {
-    // Aquí implementarías la lógica para generar y descargar el PDF
     showSuccess('Funcionalidad de descarga PDF en desarrollo.');
   };
 
@@ -176,6 +175,11 @@ const PlanillaRibPage = () => {
     }
   };
 
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('es-PE');
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-black">
@@ -184,16 +188,16 @@ const PlanillaRibPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center">
                 <FileText className="h-6 w-6 mr-3 text-[#00FF80]" />
-                Planilla del RIB
+                Dossier Completo RIB
               </h1>
-              <p className="text-gray-400">Visualizar y descargar solicitudes de operación</p>
+              <p className="text-gray-400">Visualizar y descargar el dossier completo de análisis RIB</p>
             </div>
           </div>
 
           {/* Búsqueda */}
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Buscar Solicitud por RUC</CardTitle>
+              <CardTitle className="text-white">Buscar Dossier por RUC</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full">
@@ -213,7 +217,7 @@ const PlanillaRibPage = () => {
                 className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
               >
                 {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                Buscar
+                Buscar Dossier
               </Button>
             </CardContent>
           </Card>
@@ -225,29 +229,29 @@ const PlanillaRibPage = () => {
             </Alert>
           )}
 
-          {planillaData && (
+          {dossier && (
             <div className="space-y-6">
-              {/* Header con información básica y botón de descarga */}
+              {/* Header del Dossier */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-white flex items-center">
                         <Eye className="h-5 w-5 mr-2 text-[#00FF80]" />
-                        Solicitud de Operación - {planillaData.fichaRuc?.nombre_empresa || 'Empresa'}
+                        Dossier RIB - {dossier.fichaRuc?.nombre_empresa || 'Empresa'}
                       </CardTitle>
-                      <p className="text-gray-400 text-sm mt-1">RUC: {planillaData.solicitud.ruc}</p>
+                      <p className="text-gray-400 text-sm mt-1">RUC: {dossier.solicitudOperacion.ruc}</p>
                     </div>
                     <div className="flex items-center gap-4">
-                      <Badge variant="outline" className={getStatusColor(planillaData.solicitud.status || 'Borrador')}>
-                        {planillaData.solicitud.status || 'Borrador'}
+                      <Badge variant="outline" className={getStatusColor(dossier.solicitudOperacion.status || 'Borrador')}>
+                        {dossier.solicitudOperacion.status || 'Borrador'}
                       </Badge>
                       <Button 
                         onClick={handleDownloadPDF}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Descargar PDF
+                        Descargar Dossier PDF
                       </Button>
                     </div>
                   </div>
@@ -256,234 +260,161 @@ const PlanillaRibPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                       <Label className="text-gray-400">Fecha de Creación</Label>
-                      <p className="text-white">{new Date(planillaData.solicitud.created_at).toLocaleDateString('es-PE')}</p>
+                      <p className="text-white">{formatDate(dossier.solicitudOperacion.created_at)}</p>
                     </div>
                     <div>
                       <Label className="text-gray-400">Última Actualización</Label>
-                      <p className="text-white">{new Date(planillaData.solicitud.updated_at).toLocaleDateString('es-PE')}</p>
+                      <p className="text-white">{formatDate(dossier.solicitudOperacion.updated_at)}</p>
                     </div>
                     <div>
                       <Label className="text-gray-400">Creado por</Label>
-                      <p className="text-white">{planillaData.creatorInfo?.fullName || 'N/A'}</p>
+                      <p className="text-white">{dossier.creatorInfo?.fullName || 'N/A'}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Información de la empresa */}
+              {/* 1. SOLICITUD DE OPERACIÓN */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
-                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                    Información de la Empresa
+                    <FileText className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    1. Solicitud de Operación
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-gray-400">Nombre de la Empresa</Label>
-                        <p className="text-white font-medium">{planillaData.fichaRuc?.nombre_empresa || 'N/A'}</p>
+                        <Label className="text-gray-400">Empresa</Label>
+                        <p className="text-white font-medium">{dossier.fichaRuc?.nombre_empresa || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">RUC</Label>
-                        <p className="text-white font-mono">{planillaData.solicitud.ruc}</p>
+                        <p className="text-white font-mono">{dossier.solicitudOperacion.ruc}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-400">Actividad</Label>
-                        <p className="text-white">{planillaData.fichaRuc?.actividad_empresa || 'N/A'}</p>
+                        <Label className="text-gray-400">Producto</Label>
+                        <p className="text-white">{dossier.solicitudOperacion.producto || 'N/A'}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-400">Estado del Contribuyente</Label>
-                        <p className="text-white">{planillaData.fichaRuc?.estado_contribuyente || 'N/A'}</p>
+                        <Label className="text-gray-400">Proveedor</Label>
+                        <p className="text-white">{dossier.solicitudOperacion.proveedor || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-400">Deudor</Label>
+                        <p className="text-white">{dossier.solicitudOperacion.deudor || 'N/A'}</p>
                       </div>
                     </div>
                     <div className="space-y-4">
                       <div>
-                        <Label className="text-gray-400">Fecha de Inicio de Actividades</Label>
-                        <p className="text-white">{planillaData.fichaRuc?.fecha_inicio_actividades || 'N/A'}</p>
+                        <Label className="text-gray-400">Exposición Total</Label>
+                        <p className="text-white font-mono">{dossier.solicitudOperacion.exposicion_total || 'N/A'}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-400">Domicilio Fiscal</Label>
-                        <p className="text-white">{planillaData.fichaRuc?.domicilio_fiscal || 'N/A'}</p>
+                        <Label className="text-gray-400">Propuesta Comercial</Label>
+                        <p className="text-white">{dossier.solicitudOperacion.propuesta_comercial || 'N/A'}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-400">Representante Legal</Label>
-                        <p className="text-white">{planillaData.fichaRuc?.nombre_representante_legal || 'N/A'}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Datos de la solicitud */}
-              <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Datos de la Solicitud</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-gray-400">Fecha de la Ficha</Label>
-                        <p className="text-white">{planillaData.solicitud.fecha_ficha || 'N/A'}</p>
+                        <Label className="text-gray-400">Riesgo Aprobado</Label>
+                        <p className="text-white">{dossier.solicitudOperacion.riesgo_aprobado || 'N/A'}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-400">Orden de Servicio</Label>
-                        <p className="text-white">{planillaData.solicitud.orden_servicio || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Factura</Label>
-                        <p className="text-white">{planillaData.solicitud.factura || 'N/A'}</p>
+                        <Label className="text-gray-400">Moneda</Label>
+                        <p className="text-white">{dossier.solicitudOperacion.moneda_operacion || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Tipo de Cambio</Label>
-                        <p className="text-white">{planillaData.solicitud.tipo_cambio || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Moneda de Operación</Label>
-                        <p className="text-white">{planillaData.solicitud.moneda_operacion || 'N/A'}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-gray-400">Dirección</Label>
-                        <p className="text-white">{planillaData.solicitud.direccion || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Visita</Label>
-                        <p className="text-white">{planillaData.solicitud.visita || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Contacto</Label>
-                        <p className="text-white">{planillaData.solicitud.contacto || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Fianza</Label>
-                        <p className="text-white">{planillaData.solicitud.fianza || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Exposición Total</Label>
-                        <p className="text-white font-mono">{planillaData.solicitud.exposicion_total || 'N/A'}</p>
+                        <p className="text-white">{dossier.solicitudOperacion.tipo_cambio || 'N/A'}</p>
                       </div>
                     </div>
                   </div>
                   
-                  {planillaData.solicitud.resumen_solicitud && (
+                  {/* Riesgos */}
+                  {dossier.riesgos.length > 0 && (
                     <div className="mt-6">
-                      <Label className="text-gray-400">Resumen de Solicitud</Label>
-                      <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.resumen_solicitud}</p>
+                      <Label className="text-gray-400 text-lg font-medium">Riesgos del Proveedor</Label>
+                      <div className="overflow-x-auto mt-4">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b border-gray-800">
+                              <th className="text-left py-3 px-4 text-gray-300 font-medium">L/P</th>
+                              <th className="text-left py-3 px-4 text-gray-300 font-medium">Producto</th>
+                              <th className="text-left py-3 px-4 text-gray-300 font-medium">Deudor</th>
+                              <th className="text-right py-3 px-4 text-gray-300 font-medium">Riesgo Aprobado</th>
+                              <th className="text-right py-3 px-4 text-gray-300 font-medium">Propuesta Comercial</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-800">
+                            {dossier.riesgos.map((riesgo, index) => (
+                              <tr key={index}>
+                                <td className="py-3 px-4 text-white">{riesgo.lp || 'N/A'}</td>
+                                <td className="py-3 px-4 text-white">{riesgo.producto || 'N/A'}</td>
+                                <td className="py-3 px-4 text-white">{riesgo.deudor || 'N/A'}</td>
+                                <td className="py-3 px-4 text-right text-white font-mono">
+                                  {formatCurrency(riesgo.riesgo_aprobado)}
+                                </td>
+                                <td className="py-3 px-4 text-right text-white font-mono">
+                                  {formatCurrency(riesgo.propuesta_comercial)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Riesgos */}
-              {planillaData.riesgos.length > 0 && (
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">Riesgos del Proveedor</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-gray-800">
-                            <th className="text-left py-3 px-4 text-gray-300 font-medium">L/P</th>
-                            <th className="text-left py-3 px-4 text-gray-300 font-medium">Producto</th>
-                            <th className="text-left py-3 px-4 text-gray-300 font-medium">Deudor</th>
-                            <th className="text-left py-3 px-4 text-gray-300 font-medium">L/P Vigente (GVE)</th>
-                            <th className="text-right py-3 px-4 text-gray-300 font-medium">Riesgo Aprobado</th>
-                            <th className="text-right py-3 px-4 text-gray-300 font-medium">Propuesta Comercial</th>
-                            <th className="text-right py-3 px-4 text-gray-300 font-medium">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-800">
-                          {planillaData.riesgos.map((riesgo, index) => (
-                            <tr key={index}>
-                              <td className="py-3 px-4 text-white">{riesgo.lp}</td>
-                              <td className="py-3 px-4 text-white">{riesgo.producto}</td>
-                              <td className="py-3 px-4 text-white">{riesgo.deudor}</td>
-                              <td className="py-3 px-4 text-white">{riesgo.lp_vigente_gve}</td>
-                              <td className="py-3 px-4 text-right text-white font-mono">
-                                {riesgo.riesgo_aprobado ? formatCurrency(riesgo.riesgo_aprobado) : 'N/A'}
-                              </td>
-                              <td className="py-3 px-4 text-right text-white font-mono">
-                                {riesgo.propuesta_comercial ? formatCurrency(riesgo.propuesta_comercial) : 'N/A'}
-                              </td>
-                              <td className="py-3 px-4 text-right text-white font-mono font-semibold">
-                                {formatCurrency((riesgo.riesgo_aprobado || 0) + (riesgo.propuesta_comercial || 0))}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Análisis RIB */}
-              {planillaData.ribData && (
+              {/* 2. ANÁLISIS RIB */}
+              {dossier.analisisRib && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center">
                       <BarChart3 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      Análisis RIB
+                      2. Análisis RIB
                     </CardTitle>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline" className={getStatusColor(planillaData.ribData.status)}>
-                        {planillaData.ribData.status}
-                      </Badge>
-                      <span className="text-sm text-gray-400">
-                        Creado: {new Date(planillaData.ribData.created_at).toLocaleDateString('es-PE')}
-                      </span>
-                    </div>
+                    <Badge variant="outline" className={getStatusColor(dossier.analisisRib.status)}>
+                      {dossier.analisisRib.status}
+                    </Badge>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
                           <Label className="text-gray-400">Descripción de la Empresa</Label>
-                          <p className="text-white">{planillaData.ribData.descripcion_empresa || 'N/A'}</p>
+                          <p className="text-white">{dossier.analisisRib.descripcion_empresa || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Inicio de Actividades</Label>
-                          <p className="text-white">{planillaData.ribData.inicio_actividades || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <Label className="text-gray-400">Dirección</Label>
-                          <p className="text-white">{planillaData.ribData.direccion || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <Label className="text-gray-400">Teléfono</Label>
-                          <p className="text-white font-mono">{planillaData.ribData.telefono || 'N/A'}</p>
+                          <p className="text-white">{formatDate(dossier.analisisRib.inicio_actividades)}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Grupo Económico</Label>
-                          <p className="text-white">{planillaData.ribData.grupo_economico || 'N/A'}</p>
+                          <p className="text-white">{dossier.analisisRib.grupo_economico || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">¿Cómo llegó a LCP?</Label>
+                          <p className="text-white">{dossier.analisisRib.como_llego_lcp || 'N/A'}</p>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <div>
-                          <Label className="text-gray-400">¿Cómo llegó a LCP?</Label>
-                          <p className="text-white">{planillaData.ribData.como_llego_lcp || 'N/A'}</p>
+                          <Label className="text-gray-400">Dirección</Label>
+                          <p className="text-white">{dossier.analisisRib.direccion || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Teléfono</Label>
+                          <p className="text-white font-mono">{dossier.analisisRib.telefono || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Visita</Label>
-                          <p className="text-white">{planillaData.ribData.visita || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <Label className="text-gray-400">Relación Comercial con Deudor</Label>
-                          <p className="text-white">{planillaData.ribData.relacion_comercial_deudor || 'N/A'}</p>
+                          <p className="text-white">{dossier.analisisRib.visita || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Validado por</Label>
-                          <p className="text-white">{planillaData.ribData.validado_por || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <Label className="text-gray-400">Última Actualización</Label>
-                          <p className="text-white">{new Date(planillaData.ribData.updated_at).toLocaleDateString('es-PE')}</p>
+                          <p className="text-white">{dossier.analisisRib.validado_por || 'N/A'}</p>
                         </div>
                       </div>
                     </div>
@@ -491,64 +422,235 @@ const PlanillaRibPage = () => {
                 </Card>
               )}
 
-              {/* Datos TOP 10K */}
-              {planillaData.top10kData && (
+              {/* 3. COMPORTAMIENTO CREDITICIO */}
+              {dossier.comportamientoCrediticio && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
-                    <CardTitle className="text-white">Información TOP 10K</CardTitle>
+                    <CardTitle className="text-white flex items-center">
+                      <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      3. Comportamiento Crediticio
+                    </CardTitle>
+                    <Badge variant="outline" className={getStatusColor(dossier.comportamientoCrediticio.status)}>
+                      {dossier.comportamientoCrediticio.status}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="text-white font-medium">Proveedor - Equifax</h4>
+                        <div>
+                          <Label className="text-gray-400">Calificación</Label>
+                          <p className="text-white">{dossier.comportamientoCrediticio.equifax_calificacion || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Score</Label>
+                          <p className="text-white">{dossier.comportamientoCrediticio.equifax_score || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Deuda Directa</Label>
+                          <p className="text-white font-mono">{formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_directa)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Deuda Indirecta</Label>
+                          <p className="text-white font-mono">{formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_indirecta)}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="text-white font-medium">Proveedor - Sentinel</h4>
+                        <div>
+                          <Label className="text-gray-400">Calificación</Label>
+                          <p className="text-white">{dossier.comportamientoCrediticio.sentinel_calificacion || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Score</Label>
+                          <p className="text-white">{dossier.comportamientoCrediticio.sentinel_score || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Deuda Directa</Label>
+                          <p className="text-white font-mono">{formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_directa)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Deuda Indirecta</Label>
+                          <p className="text-white font-mono">{formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_indirecta)}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Información del Deudor si existe */}
+                    {dossier.comportamientoCrediticio.deudor && (
+                      <div className="mt-6 pt-6 border-t border-gray-800">
+                        <h4 className="text-white font-medium mb-4">Información del Deudor</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="text-gray-400">Deudor</Label>
+                              <p className="text-white">{dossier.comportamientoCrediticio.deudor}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Calificación Equifax</Label>
+                              <p className="text-white">{dossier.comportamientoCrediticio.deudor_equifax_calificacion || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Score Equifax</Label>
+                              <p className="text-white">{dossier.comportamientoCrediticio.deudor_equifax_score || 'N/A'}</p>
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            <div>
+                              <Label className="text-gray-400">Calificación Sentinel</Label>
+                              <p className="text-white">{dossier.comportamientoCrediticio.deudor_sentinel_calificacion || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Score Sentinel</Label>
+                              <p className="text-white">{dossier.comportamientoCrediticio.deudor_sentinel_score || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 4. RIB - REPORTE TRIBUTARIO */}
+              {dossier.ribReporteTributario.length > 0 && (
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                      <ClipboardEdit className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      4. RIB - Reporte Tributario
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {dossier.ribReporteTributario.map((reporte, index) => (
+                        <div key={index} className="border border-gray-800 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-white font-medium">
+                              Reporte {reporte.anio} - {reporte.tipo_entidad === 'proveedor' ? 'Proveedor' : 'Deudor'}
+                            </h4>
+                            <Badge variant="outline" className={getStatusColor(reporte.status)}>
+                              {reporte.status}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <Label className="text-gray-400">Total Activos</Label>
+                              <p className="text-white font-mono">{formatCurrency(reporte.total_activos)}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Total Pasivos</Label>
+                              <p className="text-white font-mono">{formatCurrency(reporte.total_pasivos)}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Total Patrimonio</Label>
+                              <p className="text-white font-mono">{formatCurrency(reporte.total_patrimonio)}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Ingreso Ventas</Label>
+                              <p className="text-white font-mono">{formatCurrency(reporte.ingreso_ventas)}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Utilidad Bruta</Label>
+                              <p className="text-white font-mono">{formatCurrency(reporte.utilidad_bruta)}</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-400">Solvencia</Label>
+                              <p className="text-white font-mono">{reporte.solvencia || 'N/A'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 5. VENTAS MENSUALES */}
+              {dossier.ventasMensuales && (
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                      <BarChart3 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      5. Ventas Mensuales
+                    </CardTitle>
+                    <Badge variant="outline" className={getStatusColor(dossier.ventasMensuales.status)}>
+                      {dossier.ventasMensuales.status}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {/* Ventas del Proveedor */}
+                      <div>
+                        <h4 className="text-white font-medium mb-4">Ventas del Proveedor</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {[
+                            { mes: 'Enero 2024', valor: dossier.ventasMensuales.enero_2024_proveedor },
+                            { mes: 'Febrero 2024', valor: dossier.ventasMensuales.febrero_2024_proveedor },
+                            { mes: 'Marzo 2024', valor: dossier.ventasMensuales.marzo_2024_proveedor },
+                            { mes: 'Abril 2024', valor: dossier.ventasMensuales.abril_2024_proveedor },
+                            { mes: 'Mayo 2024', valor: dossier.ventasMensuales.mayo_2024_proveedor },
+                            { mes: 'Junio 2024', valor: dossier.ventasMensuales.junio_2024_proveedor }
+                          ].map((item, index) => (
+                            <div key={index}>
+                              <Label className="text-gray-400 text-xs">{item.mes}</Label>
+                              <p className="text-white font-mono text-sm">{formatCurrency(item.valor)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Ventas del Deudor si existen */}
+                      {dossier.ventasMensuales.deudor_ruc && (
+                        <div className="pt-6 border-t border-gray-800">
+                          <h4 className="text-white font-medium mb-4">Ventas del Deudor</h4>
+                          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            {[
+                              { mes: 'Enero 2024', valor: dossier.ventasMensuales.enero_2024_deudor },
+                              { mes: 'Febrero 2024', valor: dossier.ventasMensuales.febrero_2024_deudor },
+                              { mes: 'Marzo 2024', valor: dossier.ventasMensuales.marzo_2024_deudor },
+                              { mes: 'Abril 2024', valor: dossier.ventasMensuales.abril_2024_deudor },
+                              { mes: 'Mayo 2024', valor: dossier.ventasMensuales.mayo_2024_deudor },
+                              { mes: 'Junio 2024', valor: dossier.ventasMensuales.junio_2024_deudor }
+                            ].map((item, index) => (
+                              <div key={index}>
+                                <Label className="text-gray-400 text-xs">{item.mes}</Label>
+                                <p className="text-white font-mono text-sm">{formatCurrency(item.valor)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Información TOP 10K (Adicional) */}
+              {dossier.top10kData && (
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader>
+                    <CardTitle className="text-white">Información Adicional - TOP 10K</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <div>
                         <Label className="text-gray-400">Sector</Label>
-                        <p className="text-white">{planillaData.top10kData.sector || 'N/A'}</p>
+                        <p className="text-white">{dossier.top10kData.sector || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Ranking 2024</Label>
-                        <p className="text-white font-mono">#{planillaData.top10kData.ranking_2024 || 'N/A'}</p>
+                        <p className="text-white font-mono">#{dossier.top10kData.ranking_2024 || 'N/A'}</p>
                       </div>
                       <div>
                         <Label className="text-gray-400">Facturado 2024 (Máx)</Label>
-                        <p className="text-white font-mono">{formatCurrency(planillaData.top10kData.facturado_2024_soles_maximo)}</p>
+                        <p className="text-white font-mono">{formatCurrency(dossier.top10kData.facturado_2024_soles_maximo)}</p>
                       </div>
                       <div>
-                        <Label className="text-gray-400">Facturado 2023 (Máx)</Label>
-                        <p className="text-white font-mono">{formatCurrency(planillaData.top10kData.facturado_2023_soles_maximo)}</p>
-                      </div>
-                      <div className="md:col-span-2 lg:col-span-4">
-                        <Label className="text-gray-400">Descripción CIIU</Label>
-                        <p className="text-white">{planillaData.top10kData.descripcion_ciiu_rev3 || 'N/A'}</p>
+                        <Label className="text-gray-400">Tamaño</Label>
+                        <p className="text-white">{dossier.top10kData.tamano || 'N/A'}</p>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Comentarios y garantías */}
-              {(planillaData.solicitud.comentarios || planillaData.solicitud.garantias || planillaData.solicitud.condiciones_desembolso) && (
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="text-white">Información Adicional</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {planillaData.solicitud.garantias && (
-                      <div>
-                        <Label className="text-gray-400">Garantías</Label>
-                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.garantias}</p>
-                      </div>
-                    )}
-                    {planillaData.solicitud.condiciones_desembolso && (
-                      <div>
-                        <Label className="text-gray-400">Condiciones de Desembolso</Label>
-                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.condiciones_desembolso}</p>
-                      </div>
-                    )}
-                    {planillaData.solicitud.comentarios && (
-                      <div>
-                        <Label className="text-gray-400">Comentarios</Label>
-                        <p className="text-white mt-2 p-3 bg-gray-900/50 rounded-lg">{planillaData.solicitud.comentarios}</p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               )}
