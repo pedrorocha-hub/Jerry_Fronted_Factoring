@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye, BarChart3, TrendingUp, ClipboardEdit, Shield, Star } from 'lucide-react';
+import { Search, FileText, Download, Building2, Loader2, AlertCircle, Eye, BarChart3, TrendingUp, ClipboardEdit, Shield, Star, User, MapPin } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -332,85 +332,78 @@ const PlanillaRibPage = () => {
                     </div>
                   )}
 
-                  {/* Información básica de la empresa */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-gray-400">Empresa</Label>
-                        <p className="text-white font-medium">{dossier.fichaRuc?.nombre_empresa || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">RUC</Label>
-                        <p className="text-white font-mono">{dossier.solicitudOperacion.ruc}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Producto</Label>
-                        <p className="text-white">{dossier.solicitudOperacion.producto || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Proveedor</Label>
-                        <p className="text-white">{dossier.solicitudOperacion.proveedor || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Deudor</Label>
-                        <p className="text-white">{dossier.solicitudOperacion.deudor || 'N/A'}</p>
-                      </div>
+                  {/* INFORMACIÓN BÁSICA DE LA EMPRESA */}
+                  <div className="mb-8">
+                    <div className="flex items-center mb-4">
+                      <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      <h4 className="text-white font-medium text-lg">Información Básica de la Empresa</h4>
                     </div>
-                    <div className="space-y-4">
-                      <div>
-                        <Label className="text-gray-400">Exposición Total</Label>
-                        <p className="text-white font-mono">{dossier.solicitudOperacion.exposicion_total || 'N/A'}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">Empresa</Label>
+                          <p className="text-white font-medium">{dossier.fichaRuc?.nombre_empresa || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">RUC</Label>
+                          <p className="text-white font-mono">{dossier.solicitudOperacion.ruc}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Producto</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.producto || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Proveedor</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.proveedor || 'N/A'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <Label className="text-gray-400">Propuesta Comercial</Label>
-                        <p className="text-white">{dossier.solicitudOperacion.propuesta_comercial || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Riesgo Aprobado</Label>
-                        <p className="text-white">{dossier.solicitudOperacion.riesgo_aprobado || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Moneda</Label>
-                        <p className="text-white">{dossier.solicitudOperacion.moneda_operacion || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-gray-400">Tipo de Cambio</Label>
-                        <p className="text-white">{dossier.solicitudOperacion.tipo_cambio || 'N/A'}</p>
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">Exposición Total</Label>
+                          <p className="text-white font-mono">{dossier.solicitudOperacion.exposicion_total || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Propuesta Comercial</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.propuesta_comercial || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Riesgo Aprobado</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.riesgo_aprobado || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Moneda</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.moneda_operacion || 'N/A'}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Información adicional de la solicitud */}
-                  <div className="border-t border-gray-800 pt-6 mb-6">
-                    <h4 className="text-white font-medium mb-4">Información Adicional de la Solicitud</h4>
+                  {/* INFORMACIÓN DE LA SOLICITUD */}
+                  <div className="border-t border-gray-800 pt-6 mb-8">
+                    <div className="flex items-center mb-4">
+                      <FileText className="h-5 w-5 mr-2 text-blue-400" />
+                      <h4 className="text-white font-medium text-lg">Información de la Solicitud</h4>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div>
-                          <Label className="text-gray-400">Dirección</Label>
-                          <p className="text-white">{dossier.solicitudOperacion.direccion || 'N/A'}</p>
+                          <Label className="text-gray-400">L/P</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.lp || 'N/A'}</p>
                         </div>
                         <div>
-                          <Label className="text-gray-400">Visita</Label>
-                          <p className="text-white">{dossier.solicitudOperacion.visita || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <Label className="text-gray-400">Contacto</Label>
-                          <p className="text-white">{dossier.solicitudOperacion.contacto || 'N/A'}</p>
+                          <Label className="text-gray-400">L/P Vigente GVE</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.lp_vigente_gve || 'N/A'}</p>
                         </div>
                         <div>
                           <Label className="text-gray-400">Fianza</Label>
                           <p className="text-white">{dossier.solicitudOperacion.fianza || 'N/A'}</p>
                         </div>
                         <div>
-                          <Label className="text-gray-400">L/P</Label>
-                          <p className="text-white">{dossier.solicitudOperacion.lp || 'N/A'}</p>
+                          <Label className="text-gray-400">Tipo de Cambio</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.tipo_cambio || 'N/A'}</p>
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <div>
-                          <Label className="text-gray-400">L/P Vigente GVE</Label>
-                          <p className="text-white">{dossier.solicitudOperacion.lp_vigente_gve || 'N/A'}</p>
-                        </div>
                         <div>
                           <Label className="text-gray-400">Fecha Ficha</Label>
                           <p className="text-white">{formatDate(dossier.solicitudOperacion.fecha_ficha)}</p>
@@ -431,36 +424,69 @@ const PlanillaRibPage = () => {
                     </div>
                   </div>
 
-                  {/* Garantías y Condiciones */}
+                  {/* INFORMACIÓN DEL DEUDOR */}
+                  <div className="border-t border-gray-800 pt-6 mb-8">
+                    <div className="flex items-center mb-4">
+                      <User className="h-5 w-5 mr-2 text-purple-400" />
+                      <h4 className="text-white font-medium text-lg">Información del Deudor</h4>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">Deudor</Label>
+                          <p className="text-white font-medium">{dossier.solicitudOperacion.deudor || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Dirección</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.direccion || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-gray-400">Visita</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.visita || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-400">Contacto</Label>
+                          <p className="text-white">{dossier.solicitudOperacion.contacto || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* GARANTÍAS Y CONDICIONES */}
                   <div className="border-t border-gray-800 pt-6 mb-6">
-                    <h4 className="text-white font-medium mb-4">Garantías y Condiciones</h4>
+                    <div className="flex items-center mb-4">
+                      <Shield className="h-5 w-5 mr-2 text-green-400" />
+                      <h4 className="text-white font-medium text-lg">Garantías y Condiciones</h4>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <Label className="text-gray-400">Garantías</Label>
-                        <div className="mt-2 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                        <div className="mt-2 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
                           <p className="text-white text-sm">{dossier.solicitudOperacion.garantias || 'No especificadas'}</p>
                         </div>
                       </div>
                       <div>
                         <Label className="text-gray-400">Condiciones de Desembolso</Label>
-                        <div className="mt-2 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                        <div className="mt-2 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
                           <p className="text-white text-sm">{dossier.solicitudOperacion.condiciones_desembolso || 'No especificadas'}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Comentarios */}
+                  {/* COMENTARIOS */}
                   {dossier.solicitudOperacion.comentarios && (
                     <div className="border-t border-gray-800 pt-6 mb-6">
-                      <Label className="text-gray-400">Comentarios</Label>
-                      <div className="mt-2 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
+                      <Label className="text-gray-400 text-lg font-medium">Comentarios</Label>
+                      <div className="mt-3 p-4 bg-gray-900/50 rounded-lg border border-gray-700">
                         <p className="text-white">{dossier.solicitudOperacion.comentarios}</p>
                       </div>
                     </div>
                   )}
                   
-                  {/* Riesgos */}
+                  {/* RIESGOS */}
                   {dossier.riesgos.length > 0 && (
                     <div className="border-t border-gray-800 pt-6">
                       <Label className="text-gray-400 text-lg font-medium">Riesgos del Proveedor</Label>
