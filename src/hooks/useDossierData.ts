@@ -29,8 +29,7 @@ export const useDossierData = () => {
         .from('solicitudes_operacion')
         .select(`
           *,
-          solicitud_operacion_riesgos(*),
-          profiles(full_name)
+          solicitud_operacion_riesgos(*)
         `)
         .eq('ruc', rucInput)
         .order('created_at', { ascending: false })
@@ -51,6 +50,20 @@ export const useDossierData = () => {
 
       const solicitud = solicitudes[0];
       console.log('Solicitud encontrada:', solicitud);
+
+      // Obtener información del creador por separado
+      let creatorInfo = null;
+      if (solicitud.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', solicitud.user_id)
+          .single();
+        
+        if (profile) {
+          creatorInfo = { fullName: profile.full_name };
+        }
+      }
 
       // Cargar todos los datos del dossier en paralelo
       const [
@@ -112,9 +125,7 @@ export const useDossierData = () => {
         solicitudOperacion: solicitud,
         riesgos: solicitud.solicitud_operacion_riesgos || [],
         fichaRuc: getData(fichaRucResult),
-        creatorInfo: solicitud.profiles ? {
-          fullName: solicitud.profiles.full_name
-        } : null,
+        creatorInfo,
         
         // 2. Análisis RIB
         analisisRib: getData(analisisRibResult),
@@ -201,12 +212,10 @@ export const useDossierData = () => {
     setError(null);
 
     try {
+      // Cargar dossiers guardados sin JOIN con profiles
       const { data: dossiers, error: dossiersError } = await supabase
         .from('dossiers_guardados')
-        .select(`
-          *,
-          profiles(full_name)
-        `)
+        .select('*')
         .order('updated_at', { ascending: false });
 
       if (dossiersError) {
@@ -220,6 +229,15 @@ export const useDossierData = () => {
         return;
       }
 
+      // Obtener información de los creadores por separado
+      const userIds = [...new Set(dossiers.map(d => d.user_id).filter(Boolean))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const profilesMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+
       // Mapear los datos guardados
       const dossierSummaries: DossierSummary[] = dossiers.map((dossier) => ({
         ruc: dossier.ruc,
@@ -227,7 +245,7 @@ export const useDossierData = () => {
         status: dossier.status,
         fechaCreacion: dossier.created_at,
         fechaActualizacion: dossier.updated_at,
-        creadorNombre: dossier.profiles?.full_name || 'N/A',
+        creadorNombre: profilesMap.get(dossier.user_id) || 'N/A',
         ranking: dossier.datos_dossier?.top10kData?.ranking_2024,
         sector: dossier.datos_dossier?.top10kData?.sector
       }));
