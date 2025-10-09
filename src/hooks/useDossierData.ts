@@ -151,59 +151,37 @@ export const useDossierData = () => {
     setError(null);
 
     try {
-      // Buscar todas las solicitudes completadas
-      const { data: solicitudes, error: solicitudError } = await supabase
-        .from('solicitudes_operacion')
-        .select(`
-          ruc,
-          status,
-          created_at,
-          updated_at,
-          profiles(full_name)
-        `)
-        .eq('status', 'Completado')
+      // Primero refrescar la vista materializada
+      await supabase.rpc('refresh_dossiers_completados');
+
+      // Luego consultar la vista materializada
+      const { data: dossiers, error: dossiersError } = await supabase
+        .from('dossiers_completados')
+        .select('*')
         .order('updated_at', { ascending: false });
 
-      if (solicitudError) {
-        console.error('Error al cargar solicitudes:', solicitudError);
-        setError(`Error al cargar las solicitudes: ${solicitudError.message}`);
+      if (dossiersError) {
+        console.error('Error al cargar dossiers:', dossiersError);
+        setError(`Error al cargar los dossiers: ${dossiersError.message}`);
         return;
       }
 
-      if (!solicitudes || solicitudes.length === 0) {
+      if (!dossiers || dossiers.length === 0) {
         setDossierList([]);
         return;
       }
 
-      // Obtener información adicional para cada solicitud
-      const dossierSummaries: DossierSummary[] = await Promise.all(
-        solicitudes.map(async (solicitud) => {
-          // Buscar ficha RUC y TOP 10K en paralelo
-          const [fichaRucResult, top10kResult] = await Promise.allSettled([
-            supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single(),
-            supabase.from('top_10k').select('ranking_2024, sector').eq('ruc', parseInt(solicitud.ruc)).single()
-          ]);
-
-          const fichaRuc = fichaRucResult.status === 'fulfilled' && !fichaRucResult.value.error 
-            ? fichaRucResult.value.data 
-            : null;
-
-          const top10k = top10kResult.status === 'fulfilled' && !top10kResult.value.error 
-            ? top10kResult.value.data 
-            : null;
-
-          return {
-            ruc: solicitud.ruc,
-            nombreEmpresa: fichaRuc?.nombre_empresa || 'N/A',
-            status: solicitud.status,
-            fechaCreacion: solicitud.created_at,
-            fechaActualizacion: solicitud.updated_at,
-            creadorNombre: solicitud.profiles?.full_name || 'N/A',
-            ranking: top10k?.ranking_2024,
-            sector: top10k?.sector
-          };
-        })
-      );
+      // Mapear los datos de la vista materializada
+      const dossierSummaries: DossierSummary[] = dossiers.map((dossier) => ({
+        ruc: dossier.ruc,
+        nombreEmpresa: dossier.nombre_empresa || 'N/A',
+        status: dossier.status,
+        fechaCreacion: dossier.created_at,
+        fechaActualizacion: dossier.updated_at,
+        creadorNombre: dossier.creator_name || 'N/A',
+        ranking: dossier.ranking_2024,
+        sector: dossier.sector
+      }));
 
       setDossierList(dossierSummaries);
       
