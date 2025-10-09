@@ -104,131 +104,129 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
             <p className="text-sm text-gray-400">{data.empresa_nombre}</p>
           )}
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left py-3 px-4 text-gray-300 font-medium">Concepto</th>
-                  <th className="text-right py-3 px-4 text-gray-300 font-medium">Dic. 2022</th>
-                  <th className="text-right py-3 px-4 text-gray-300 font-medium">Dic. 2023</th>
-                  <th className="text-right py-3 px-4 text-gray-300 font-medium">Dic. 2024</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
-                {/* ACTIVOS */}
-                <tr className="bg-[#00FF80]/5">
-                  <td className="py-3 px-4 font-semibold text-[#00FF80]">ACTIVOS</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 pl-8 text-gray-300">Cuentas por cobrar del giro</td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2022.cuentas_por_cobrar_del_giro)}`}>
-                    {formatNumber(data.data_2022.cuentas_por_cobrar_del_giro)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2023.cuentas_por_cobrar_del_giro)}`}>
-                    {formatNumber(data.data_2023.cuentas_por_cobrar_del_giro)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2024.cuentas_por_cobrar_del_giro)}`}>
-                    {formatNumber(data.data_2024.cuentas_por_cobrar_del_giro)}
-                  </td>
-                </tr>
-                <tr className="bg-gray-900/30">
-                  <td className="py-2 px-4 font-semibold text-white">Total Activos</td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2022.total_activos)}`}>
-                    {formatNumber(data.data_2022.total_activos)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2023.total_activos)}`}>
-                    {formatNumber(data.data_2023.total_activos)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2024.total_activos)}`}>
-                    {formatNumber(data.data_2024.total_activos)}
-                  </td>
-                </tr>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-800">
+                <th className="text-left py-3 px-4 text-gray-300 font-medium">Concepto</th>
+                <th className="text-right py-3 px-4 text-gray-300 font-medium">Dic. 2022</th>
+                <th className="text-right py-3 px-4 text-gray-300 font-medium">Dic. 2023</th>
+                <th className="text-right py-3 px-4 text-gray-300 font-medium">Dic. 2024</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {/* ACTIVOS */}
+              <tr className="bg-[#00FF80]/5">
+                <td className="py-3 px-4 font-semibold text-[#00FF80]">ACTIVOS</td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td className="py-2 px-4 pl-8 text-gray-300">Cuentas por cobrar del giro</td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2022.cuentas_por_cobrar_del_giro)}`}>
+                  {formatNumber(data.data_2022.cuentas_por_cobrar_del_giro)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2023.cuentas_por_cobrar_del_giro)}`}>
+                  {formatNumber(data.data_2023.cuentas_por_cobrar_del_giro)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2024.cuentas_por_cobrar_del_giro)}`}>
+                  {formatNumber(data.data_2024.cuentas_por_cobrar_del_giro)}
+                </td>
+              </tr>
+              <tr className="bg-gray-900/30">
+                <td className="py-2 px-4 font-semibold text-white">Total Activos</td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2022.total_activos)}`}>
+                  {formatNumber(data.data_2022.total_activos)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2023.total_activos)}`}>
+                  {formatNumber(data.data_2023.total_activos)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2024.total_activos)}`}>
+                  {formatNumber(data.data_2024.total_activos)}
+                </td>
+              </tr>
 
-                {/* PASIVOS */}
-                <tr className="bg-red-500/5">
-                  <td className="py-3 px-4 font-semibold text-red-400">PASIVOS</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 pl-8 text-gray-300">Cuentas por pagar del giro</td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2022.cuentas_por_pagar_del_giro)}`}>
-                    {formatNumber(data.data_2022.cuentas_por_pagar_del_giro)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2023.cuentas_por_pagar_del_giro)}`}>
-                    {formatNumber(data.data_2023.cuentas_por_pagar_del_giro)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2024.cuentas_por_pagar_del_giro)}`}>
-                    {formatNumber(data.data_2024.cuentas_por_pagar_del_giro)}
-                  </td>
-                </tr>
-                <tr className="bg-gray-900/30">
-                  <td className="py-2 px-4 font-semibold text-white">Total Pasivos</td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2022.total_pasivos)}`}>
-                    {formatNumber(data.data_2022.total_pasivos)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2023.total_pasivos)}`}>
-                    {formatNumber(data.data_2023.total_pasivos)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2024.total_pasivos)}`}>
-                    {formatNumber(data.data_2024.total_pasivos)}
-                  </td>
-                </tr>
+              {/* PASIVOS */}
+              <tr className="bg-red-500/5">
+                <td className="py-3 px-4 font-semibold text-red-400">PASIVOS</td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td className="py-2 px-4 pl-8 text-gray-300">Cuentas por pagar del giro</td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2022.cuentas_por_pagar_del_giro)}`}>
+                  {formatNumber(data.data_2022.cuentas_por_pagar_del_giro)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2023.cuentas_por_pagar_del_giro)}`}>
+                  {formatNumber(data.data_2023.cuentas_por_pagar_del_giro)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2024.cuentas_por_pagar_del_giro)}`}>
+                  {formatNumber(data.data_2024.cuentas_por_pagar_del_giro)}
+                </td>
+              </tr>
+              <tr className="bg-gray-900/30">
+                <td className="py-2 px-4 font-semibold text-white">Total Pasivos</td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2022.total_pasivos)}`}>
+                  {formatNumber(data.data_2022.total_pasivos)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2023.total_pasivos)}`}>
+                  {formatNumber(data.data_2023.total_pasivos)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2024.total_pasivos)}`}>
+                  {formatNumber(data.data_2024.total_pasivos)}
+                </td>
+              </tr>
 
-                {/* PATRIMONIO */}
-                <tr className="bg-blue-500/5">
-                  <td className="py-3 px-4 font-semibold text-blue-400">PATRIMONIO</td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td className="py-2 px-4 pl-8 text-gray-300">Capital pagado</td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2022.capital_pagado)}`}>
-                    {formatNumber(data.data_2022.capital_pagado)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2023.capital_pagado)}`}>
-                    {formatNumber(data.data_2023.capital_pagado)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2024.capital_pagado)}`}>
-                    {formatNumber(data.data_2024.capital_pagado)}
-                  </td>
-                </tr>
-                <tr className="bg-gray-900/30">
-                  <td className="py-2 px-4 font-semibold text-white">Total Patrimonio</td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2022.total_patrimonio)}`}>
-                    {formatNumber(data.data_2022.total_patrimonio)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2023.total_patrimonio)}`}>
-                    {formatNumber(data.data_2023.total_patrimonio)}
-                  </td>
-                  <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2024.total_patrimonio)}`}>
-                    {formatNumber(data.data_2024.total_patrimonio)}
-                  </td>
-                </tr>
+              {/* PATRIMONIO */}
+              <tr className="bg-blue-500/5">
+                <td className="py-3 px-4 font-semibold text-blue-400">PATRIMONIO</td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td className="py-2 px-4 pl-8 text-gray-300">Capital pagado</td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2022.capital_pagado)}`}>
+                  {formatNumber(data.data_2022.capital_pagado)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2023.capital_pagado)}`}>
+                  {formatNumber(data.data_2023.capital_pagado)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono ${getRowClass(data.data_2024.capital_pagado)}`}>
+                  {formatNumber(data.data_2024.capital_pagado)}
+                </td>
+              </tr>
+              <tr className="bg-gray-900/30">
+                <td className="py-2 px-4 font-semibold text-white">Total Patrimonio</td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2022.total_patrimonio)}`}>
+                  {formatNumber(data.data_2022.total_patrimonio)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2023.total_patrimonio)}`}>
+                  {formatNumber(data.data_2023.total_patrimonio)}
+                </td>
+                <td className={`py-2 px-4 text-right font-mono font-semibold ${getRowClass(data.data_2024.total_patrimonio)}`}>
+                  {formatNumber(data.data_2024.total_patrimonio)}
+                </td>
+              </tr>
 
-                {/* TOTAL PASIVO Y PATRIMONIO */}
-                <tr className="bg-[#00FF80]/10 border-t-2 border-[#00FF80]/30">
-                  <td className="py-3 px-4 font-bold text-[#00FF80]">TOTAL PASIVO Y PATRIMONIO</td>
-                  <td className={`py-3 px-4 text-right font-mono font-bold ${getRowClass(data.data_2022.total_pasivo_y_patrimonio)} text-[#00FF80]`}>
-                    {formatNumber(data.data_2022.total_pasivo_y_patrimonio)}
-                  </td>
-                  <td className={`py-3 px-4 text-right font-mono font-bold ${getRowClass(data.data_2023.total_pasivo_y_patrimonio)} text-[#00FF80]`}>
-                    {formatNumber(data.data_2023.total_pasivo_y_patrimonio)}
-                  </td>
-                  <td className={`py-3 px-4 text-right font-mono font-bold ${getRowClass(data.data_2024.total_pasivo_y_patrimonio)} text-[#00FF80]`}>
-                    {formatNumber(data.data_2024.total_pasivo_y_patrimonio)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
+              {/* TOTAL PASIVO Y PATRIMONIO */}
+              <tr className="bg-[#00FF80]/10 border-t-2 border-[#00FF80]/30">
+                <td className="py-3 px-4 font-bold text-[#00FF80]">TOTAL PASIVO Y PATRIMONIO</td>
+                <td className={`py-3 px-4 text-right font-mono font-bold ${getRowClass(data.data_2022.total_pasivo_y_patrimonio)} text-[#00FF80]`}>
+                  {formatNumber(data.data_2022.total_pasivo_y_patrimonio)}
+                </td>
+                <td className={`py-3 px-4 text-right font-mono font-bold ${getRowClass(data.data_2023.total_pasivo_y_patrimonio)} text-[#00FF80]`}>
+                  {formatNumber(data.data_2023.total_pasivo_y_patrimonio)}
+                </td>
+                <td className={`py-3 px-4 text-right font-mono font-bold ${getRowClass(data.data_2024.total_pasivo_y_patrimonio)} text-[#00FF80]`}>
+                  {formatNumber(data.data_2024.total_pasivo_y_patrimonio)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </Card>
     </div>
   );
