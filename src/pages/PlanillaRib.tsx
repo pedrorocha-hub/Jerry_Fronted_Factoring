@@ -11,25 +11,33 @@ const PlanillaRibPage = () => {
   const {
     searching,
     loading,
+    saving,
     error,
     dossier,
     dossierList,
     searchDossierByRuc,
-    loadCompletedDossiers,
+    saveDossier,
+    loadSavedDossiers,
+    loadDossierFromSaved,
     setError
   } = useDossierData();
 
-  // Cargar dossiers completados al montar el componente
+  // Cargar dossiers guardados al montar el componente
   useEffect(() => {
-    loadCompletedDossiers();
+    loadSavedDossiers();
   }, []);
 
   const handleViewDossier = (ruc: string) => {
-    searchDossierByRuc(ruc);
+    // Cargar desde dossiers guardados
+    loadDossierFromSaved(ruc);
   };
 
   const handleRefreshList = () => {
-    loadCompletedDossiers();
+    loadSavedDossiers();
+  };
+
+  const handleSaveDossier = () => {
+    saveDossier();
   };
 
   return (
@@ -61,7 +69,7 @@ const PlanillaRibPage = () => {
             error={error}
           />
 
-          {/* Tabla de Dossiers Completados */}
+          {/* Tabla de Dossiers Guardados */}
           <DossierTable 
             dossiers={dossierList}
             loading={loading}
@@ -70,7 +78,11 @@ const PlanillaRibPage = () => {
 
           {/* Visualizador del Dossier */}
           {dossier && (
-            <DossierViewer dossier={dossier} />
+            <DossierViewer 
+              dossier={dossier} 
+              onSave={handleSaveDossier}
+              saving={saving}
+            />
           )}
         </div>
       </div>

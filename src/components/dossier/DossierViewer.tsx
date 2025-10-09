@@ -1,13 +1,9 @@
 import React from 'react';
-import { Download, Eye } from 'lucide-react';
+import { Save, Download, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
 import { DossierRib } from '@/types/dossier';
-import { showSuccess } from '@/utils/toast';
-
-// Importar los componentes de sección
 import SolicitudOperacionSection from './sections/SolicitudOperacionSection';
 import AnalisisRibSection from './sections/AnalisisRibSection';
 import ComportamientoCrediticioSection from './sections/ComportamientoCrediticioSection';
@@ -16,13 +12,11 @@ import VentasMensualesSection from './sections/VentasMensualesSection';
 
 interface DossierViewerProps {
   dossier: DossierRib;
+  onSave?: () => void;
+  saving?: boolean;
 }
 
-const DossierViewer: React.FC<DossierViewerProps> = ({ dossier }) => {
-  const handleDownloadPDF = () => {
-    showSuccess('Funcionalidad de descarga PDF en desarrollo.');
-  };
-
+const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving = false }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completado':
@@ -36,14 +30,9 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier }) => {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('es-PE');
-    } catch (error) {
-      return 'N/A';
-    }
-  };
+  const nombreEmpresa = dossier.fichaRuc?.nombre_empresa || 
+                       dossier.top10kData?.razon_social || 
+                       'Empresa sin nombre';
 
   return (
     <div className="space-y-6">
@@ -51,23 +40,35 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier }) => {
       <Card className="bg-[#121212] border border-gray-800">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-white flex items-center">
-                <Eye className="h-5 w-5 mr-2 text-[#00FF80]" />
-                Dossier RIB - {dossier.fichaRuc?.nombre_empresa || 'Empresa'}
-              </CardTitle>
-              <p className="text-gray-400 text-sm mt-1">RUC: {dossier.solicitudOperacion.ruc}</p>
+            <div className="flex items-center space-x-4">
+              <FileText className="h-8 w-8 text-[#00FF80]" />
+              <div>
+                <CardTitle className="text-white text-xl">
+                  Dossier RIB - {nombreEmpresa}
+                </CardTitle>
+                <p className="text-gray-400">RUC: {dossier.solicitudOperacion.ruc}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Badge variant="outline" className={getStatusColor(dossier.solicitudOperacion.status || 'Borrador')}>
-                {dossier.solicitudOperacion.status || 'Borrador'}
+            <div className="flex items-center space-x-3">
+              <Badge variant="outline" className={getStatusColor(dossier.solicitudOperacion.status)}>
+                {dossier.solicitudOperacion.status}
               </Badge>
+              {onSave && (
+                <Button 
+                  onClick={onSave}
+                  disabled={saving}
+                  className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                >
+                  <Save className={`h-4 w-4 mr-2 ${saving ? 'animate-spin' : ''}`} />
+                  {saving ? 'Guardando...' : 'Guardar Dossier'}
+                </Button>
+              )}
               <Button 
-                onClick={handleDownloadPDF}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                variant="outline" 
+                className="border-gray-600 text-gray-300 hover:bg-gray-800"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Descargar Dossier PDF
+                Descargar PDF
               </Button>
             </div>
           </div>
@@ -75,16 +76,20 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier }) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <Label className="text-gray-400">Fecha de Creación</Label>
-              <p className="text-white">{formatDate(dossier.solicitudOperacion.created_at)}</p>
-            </div>
-            <div>
-              <Label className="text-gray-400">Última Actualización</Label>
-              <p className="text-white">{formatDate(dossier.solicitudOperacion.updated_at)}</p>
-            </div>
-            <div>
-              <Label className="text-gray-400">Creado por</Label>
+              <span className="text-gray-400">Creado por:</span>
               <p className="text-white">{dossier.creatorInfo?.fullName || 'N/A'}</p>
+            </div>
+            <div>
+              <span className="text-gray-400">Fecha de creación:</span>
+              <p className="text-white">
+                {new Date(dossier.solicitudOperacion.created_at).toLocaleDateString('es-PE')}
+              </p>
+            </div>
+            <div>
+              <span className="text-gray-400">Última actualización:</span>
+              <p className="text-white">
+                {new Date(dossier.solicitudOperacion.updated_at).toLocaleDateString('es-PE')}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -101,7 +106,7 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier }) => {
         <ComportamientoCrediticioSection dossier={dossier} />
       )}
       
-      {dossier.ribReporteTributario.length > 0 && (
+      {dossier.ribReporteTributario && dossier.ribReporteTributario.length > 0 && (
         <RibReporteTributarioSection dossier={dossier} />
       )}
       
