@@ -1,5 +1,5 @@
-import React from 'react';
-import { Building2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Building2, Loader2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { RibReporteTributario } from '@/services/ribReporteTributarioService';
+import { ReporteTributarioBalanceService, ReporteTributarioBalanceData } from '@/services/reporteTributarioBalanceService';
 
 interface RibReporteTributarioTableProps {
   ruc: string;
@@ -23,6 +24,25 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   onDataChange, 
   isProveedor = false 
 }) => {
+  const [balanceData, setBalanceData] = useState<ReporteTributarioBalanceData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadBalanceData();
+  }, [ruc]);
+
+  const loadBalanceData = async () => {
+    try {
+      setLoading(true);
+      const result = await ReporteTributarioBalanceService.getBalanceData(ruc);
+      setBalanceData(result);
+    } catch (error) {
+      console.error('Error cargando datos de balance:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getSuffix = () => isProveedor ? '_proveedor' : '';
 
   const formatCurrency = (value: number | null | undefined) => {
@@ -44,6 +64,33 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     });
   };
 
+  const getBalanceValue = (year: number, field: string): number | null => {
+    if (!balanceData) return null;
+    
+    const yearData = year === 2022 ? balanceData.balance_2022 : 
+                    year === 2023 ? balanceData.balance_2023 : 
+                    balanceData.balance_2024;
+    
+    switch (field) {
+      case 'cuentas_por_cobrar_giro':
+        return yearData.cuentas_por_cobrar_comerciales_terceros;
+      case 'total_activos':
+        return yearData.total_activos_netos;
+      case 'cuentas_por_pagar_giro':
+        return yearData.total_cuentas_por_pagar;
+      case 'total_pasivos':
+        return yearData.total_pasivos;
+      case 'capital_pagado':
+        return yearData.capital_social;
+      case 'total_patrimonio':
+        return yearData.total_patrimonio;
+      case 'total_pasivo_patrimonio':
+        return yearData.total_pasivo_patrimonio;
+      default:
+        return null;
+    }
+  };
+
   const InputCell = ({ field, year }: { field: string; year: string }) => {
     const fieldName = `${field}_${year}${getSuffix()}`;
     const value = data?.[fieldName as keyof RibReporteTributario] as number | null;
@@ -57,6 +104,18 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
           className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
           placeholder="0"
         />
+      </TableCell>
+    );
+  };
+
+  const DisplayCell = ({ field, year }: { field: string; year: number }) => {
+    const value = getBalanceValue(year, field);
+    
+    return (
+      <TableCell className="p-2 text-center">
+        <div className="text-white font-mono">
+          {formatCurrency(value)}
+        </div>
       </TableCell>
     );
   };
@@ -114,8 +173,30 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     }
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+        <span className="ml-2 text-gray-400">Cargando datos de reporte tributario...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {balanceData?.warnings && balanceData.warnings.length > 0 && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+          <div className="text-yellow-400 text-sm">
+            <strong>Advertencias:</strong>
+            <ul className="mt-2 space-y-1">
+              {balanceData.warnings.map((warning, index) => (
+                <li key={index}>• {warning}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {sections.map((section) => (
         <div key={section.title} className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
           <div className="bg-gray-900/50 px-4 py-2 border-b border-gray-800">
@@ -143,9 +224,9 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
                       <div className="text-xs text-gray-400">{row.description}</div>
                     </div>
                   </TableCell>
-                  <InputCell field={row.field} year="2022" />
-                  <InputCell field={row.field} year="2023" />
-                  <InputCell field={row.field} year="2024" />
+                  <DisplayCell field={row.field} year={2022} />
+                  <DisplayCell field={row.field} year={2023} />
+                  <DisplayCell field={row.field} year={2024} />
                 </TableRow>
               ))}
             </TableBody>
@@ -155,8 +236,13 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
       
       <div className="p-4 bg-gray-900/30 border border-gray-800 rounded-lg">
         <p className="text-xs text-gray-400">
-          <strong>Nota:</strong> Ingrese los valores en soles peruanos (PEN). Los campos vacíos se considerarán como 0.
-          El total de pasivo + patrimonio debe igualar al total de activos para mantener el equilibrio contable.
+          <strong>Nota:</strong> Los datos mostrados provienen de los reportes tributarios guardados en el sistema.
+          Los valores de "Total pasivos" y "Total pasivo + patrimonio" son calculados automáticamente.
+          {balanceData?.empresa_nombre && (
+            <span className="block mt-1">
+              <strong>Empresa:</strong> {balanceData.empresa_nombre}
+            </span>
+          )}
         </p>
       </div>
     </div>
