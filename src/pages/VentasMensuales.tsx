@@ -90,6 +90,35 @@ const VentasMensualesPage = () => {
     return salesData;
   };
 
+  const extractSalesDataFromReporteTributario = (reportes: any[]): SalesData => {
+    const salesData: SalesData = {};
+    const years = [2023, 2024, 2025];
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    // Inicializar estructura
+    years.forEach(year => {
+      salesData[year] = {};
+      months.forEach(month => {
+        salesData[year][month] = null;
+      });
+    });
+
+    // Mapear datos de reportes tributarios
+    reportes.forEach(reporte => {
+      const year = reporte.anio_reporte;
+      if (salesData[year]) {
+        months.forEach(month => {
+          const ventasKey = `ventas_${month}`;
+          if (reporte[ventasKey] !== null && reporte[ventasKey] !== undefined) {
+            salesData[year][month] = Number(reporte[ventasKey]);
+          }
+        });
+      }
+    });
+
+    return salesData;
+  };
+
   const handleSearch = async (rucToSearch?: string) => {
     const provRuc = rucToSearch || proveedorRucInput;
     if (!provRuc || provRuc.length !== 11) {
@@ -128,32 +157,44 @@ const VentasMensualesPage = () => {
         }
       } else {
         // Si NO existe, intentamos autocompletar desde el reporte tributario
+        console.log('Buscando reportes tributarios para RUC:', provRuc);
         const reportesTributarios = await ReporteTributarioService.getReportesByRuc(provRuc);
-        const initialSalesData: SalesData = {};
-        const monthsMap: { [key: string]: string } = {
-          enero: 'ventas_enero', febrero: 'ventas_febrero', marzo: 'ventas_marzo', abril: 'ventas_abril',
-          mayo: 'ventas_mayo', junio: 'ventas_junio', julio: 'ventas_julio', agosto: 'ventas_agosto',
-          setiembre: 'ventas_setiembre', octubre: 'ventas_octubre', noviembre: 'ventas_noviembre', diciembre: 'ventas_diciembre'
-        };
-
-        reportesTributarios.forEach(rt => {
-          const year = rt.anio_reporte;
-          if (!initialSalesData[year]) initialSalesData[year] = {};
-          Object.keys(monthsMap).forEach(month => {
-            initialSalesData[year][month] = rt[monthsMap[month] as keyof typeof rt] as number | null ?? null;
-          });
-        });
+        console.log('Reportes tributarios encontrados:', reportesTributarios);
         
-        setProveedorSalesData(initialSalesData);
+        if (reportesTributarios.length > 0) {
+          const initialSalesData = extractSalesDataFromReporteTributario(reportesTributarios);
+          console.log('Datos de ventas extraídos:', initialSalesData);
+          setProveedorSalesData(initialSalesData);
+          showSuccess(`Se encontraron ${reportesTributarios.length} reportes tributarios. Datos autocompletados.`);
+        } else {
+          // Si no hay reportes tributarios, inicializar con estructura vacía
+          const emptySalesData: SalesData = {};
+          [2023, 2024, 2025].forEach(year => {
+            emptySalesData[year] = {};
+            ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'].forEach(month => {
+              emptySalesData[year][month] = null;
+            });
+          });
+          setProveedorSalesData(emptySalesData);
+          showError('No se encontraron reportes tributarios para autocompletar.');
+        }
+        
         setLatestReport({
-          id: '', proveedor_ruc: provRuc, deudor_ruc: null, status: 'Borrador', created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(), validado_por: '', user_id: '',
+          id: '', 
+          proveedor_ruc: provRuc, 
+          deudor_ruc: null, 
+          status: 'Borrador', 
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(), 
+          validado_por: '', 
+          user_id: '',
         });
-        setCreatorName('Nuevo Reporte (Autocompletado)');
-        setIsDirty(true); // Marcar como sucio para que se pueda guardar
+        setCreatorName(reportesTributarios.length > 0 ? 'Nuevo Reporte (Autocompletado)' : 'Nuevo Reporte');
+        setIsDirty(true);
       }
 
     } catch (err) {
+      console.error('Error en búsqueda:', err);
       setError('Ocurrió un error al buscar la información.');
       showError('Error al buscar la información.');
     } finally {
