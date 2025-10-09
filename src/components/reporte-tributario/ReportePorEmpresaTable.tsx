@@ -52,13 +52,13 @@ const ReportePorEmpresaTable: React.FC<ReportePorEmpresaTableProps> = ({ data, o
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
-                    {empresa.años.map(año => año && <Badge key={año} variant="outline" className="border-gray-700 text-gray-300">{año}</Badge>)}
+                    {empresa.años_disponibles.map(año => año && <Badge key={año} variant="outline" className="border-gray-700 text-gray-300">{año}</Badge>)}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2 text-sm text-gray-400">
                     <Calendar className="h-4 w-4" />
-                    <span>{empresa.ultimoReporte}</span>
+                    <span>{empresa.ultimo_reporte}</span>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
