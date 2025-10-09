@@ -103,19 +103,28 @@ const VentasMensualesPage = () => {
       });
     });
 
-    // Mapear datos de reportes tributarios
+    console.log('Procesando reportes tributarios:', reportes);
+
+    // Mapear datos de reportes tributarios usando los campos de ingresos
     reportes.forEach(reporte => {
       const year = reporte.anio_reporte;
+      console.log(`Procesando reporte del año ${year}:`, reporte);
+      
       if (salesData[year]) {
         months.forEach(month => {
-          const ventasKey = `ventas_${month}`;
-          if (reporte[ventasKey] !== null && reporte[ventasKey] !== undefined) {
-            salesData[year][month] = Number(reporte[ventasKey]);
+          const ingresosKey = `ingresos_${month}`;
+          if (reporte[ingresosKey] !== null && reporte[ingresosKey] !== undefined) {
+            const value = Number(reporte[ingresosKey]);
+            if (!isNaN(value)) {
+              salesData[year][month] = value;
+              console.log(`Asignando ${ingresosKey}: ${value} para ${month} ${year}`);
+            }
           }
         });
       }
     });
 
+    console.log('Datos de ventas finales extraídos:', salesData);
     return salesData;
   };
 
@@ -165,7 +174,7 @@ const VentasMensualesPage = () => {
           const initialSalesData = extractSalesDataFromReporteTributario(reportesTributarios);
           console.log('Datos de ventas extraídos:', initialSalesData);
           setProveedorSalesData(initialSalesData);
-          showSuccess(`Se encontraron ${reportesTributarios.length} reportes tributarios. Datos autocompletados.`);
+          showSuccess(`Se encontraron ${reportesTributarios.length} reportes tributarios. Datos autocompletados desde los ingresos mensuales.`);
         } else {
           // Si no hay reportes tributarios, inicializar con estructura vacía
           const emptySalesData: SalesData = {};
