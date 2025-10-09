@@ -50,21 +50,25 @@ const PlanillaRibPage = () => {
     setDossier(null);
 
     try {
+      console.log('Buscando RUC:', rucInput);
+
       // Buscar solicitud de operación (punto de partida)
       const { data: solicitudes, error: solicitudError } = await supabase
         .from('solicitudes_operacion')
         .select(`
           *,
           solicitud_operacion_riesgos(*),
-          profiles!solicitudes_operacion_user_id_fkey(full_name, email)
+          profiles(full_name, email)
         `)
         .eq('ruc', rucInput)
         .order('created_at', { ascending: false })
         .limit(1);
 
+      console.log('Resultado solicitudes:', { solicitudes, solicitudError });
+
       if (solicitudError) {
-        console.error('Error buscando solicitud:', solicitudError);
-        setError('Error al buscar la solicitud de operación.');
+        console.error('Error en consulta solicitud:', solicitudError);
+        setError(`Error al buscar la solicitud: ${solicitudError.message}`);
         return;
       }
 
@@ -74,6 +78,7 @@ const PlanillaRibPage = () => {
       }
 
       const solicitud = solicitudes[0];
+      console.log('Solicitud encontrada:', solicitud);
 
       // Cargar todos los datos del dossier en paralelo
       const [
@@ -100,12 +105,24 @@ const PlanillaRibPage = () => {
         supabase.from('ventas_mensuales').select('*').eq('proveedor_ruc', rucInput).single(),
         
         // TOP 10K
-        supabase.from('top_10k').select('*').eq('ruc', rucInput).single()
+        supabase.from('top_10k').select('*').eq('ruc', parseInt(rucInput)).single()
       ]);
+
+      console.log('Resultados paralelos:', {
+        fichaRucResult,
+        analisisRibResult,
+        comportamientoCrediticioResult,
+        ribReporteTributarioResult,
+        ventasMensualesResult,
+        top10kResult
+      });
 
       // Procesar resultados
       const getData = (result: PromiseSettledResult<any>) => {
-        return result.status === 'fulfilled' && !result.value.error ? result.value.data : null;
+        if (result.status === 'fulfilled' && !result.value.error) {
+          return result.value.data;
+        }
+        return null;
       };
 
       const dossierData: DossierRib = {
@@ -134,12 +151,13 @@ const PlanillaRibPage = () => {
         top10kData: getData(top10kResult)
       };
 
+      console.log('Dossier final:', dossierData);
       setDossier(dossierData);
       showSuccess('Dossier RIB cargado exitosamente.');
       
     } catch (err) {
-      console.error('Error cargando dossier:', err);
-      setError('Ocurrió un error al cargar el dossier RIB.');
+      console.error('Error inesperado:', err);
+      setError(`Ocurrió un error inesperado: ${err instanceof Error ? err.message : 'Error desconocido'}`);
       showError('Error al cargar el dossier.');
     } finally {
       setSearching(false);
@@ -177,7 +195,11 @@ const PlanillaRibPage = () => {
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('es-PE');
+    try {
+      return new Date(dateString).toLocaleDateString('es-PE');
+    } catch (error) {
+      return 'N/A';
+    }
   };
 
   return (
