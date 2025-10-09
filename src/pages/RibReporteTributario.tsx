@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, Zap, AlertTriangle } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { RibReporteTributario, RibReporteTributarioService, RibReporteTributarioSummary, AutoFillWarning } from '@/services/ribReporteTributarioService';
+import { RibReporteTributario, RibReporteTributarioService, RibReporteTributarioSummary } from '@/services/ribReporteTributarioService';
 import { ProfileService } from '@/services/profileService';
 import RibReporteTributarioTable from '@/components/rib-reporte-tributario/RibReporteTributarioTable';
 import EstadosResultadosTable from '@/components/rib-reporte-tributario/EstadosResultadosTable';
@@ -15,7 +15,7 @@ import IndicesFinancierosTable from '@/components/rib-reporte-tributario/Indices
 import ProveedorSection from '@/components/rib-reporte-tributario/ProveedorSection';
 import RibReporteTributarioList from '@/components/rib-reporte-tributario/RibReporteTributarioList';
 import ReporteStatusManager from '@/components/rib-reporte-tributario/ReporteStatusManager';
-import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
 
@@ -28,7 +28,6 @@ const RibReporteTributarioPage = () => {
   const [savedReportData, setSavedReportData] = useState<RibReporteTributario | null>(null);
   const [draftReportData, setDraftReportData] = useState<Partial<RibReporteTributario> | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [autoFillWarnings, setAutoFillWarnings] = useState<AutoFillWarning[]>([]);
 
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,7 +72,6 @@ const RibReporteTributarioPage = () => {
     setDraftReportData(null);
     setCreatorName(null);
     setHasUnsavedChanges(false);
-    setAutoFillWarnings([]);
   };
 
   const handleSearch = async (rucToSearch?: string) => {
@@ -86,62 +84,20 @@ const RibReporteTributarioPage = () => {
     clearSearch();
     setRucInput(ruc);
 
-    const loadingToast = showLoading('Buscando empresa y datos tributarios...');
-
     try {
       const fichaData = await FichaRucService.getByRuc(ruc);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        
-        // Buscar reporte existente
         const existingReport = await RibReporteTributarioService.getByRuc(ruc);
-        
-        if (existingReport) {
-          // Si ya existe un reporte, usarlo
-          setSavedReportData(existingReport);
-          setDraftReportData(existingReport);
-          
-          if (existingReport.user_id) {
-            const profile = await ProfileService.getProfileById(existingReport.user_id);
-            setCreatorName(profile?.full_name || 'Desconocido');
-          } else {
-            setCreatorName('Sistema');
-          }
-        } else {
-          // Si no existe, intentar auto-completar desde reporte tributario
-          try {
-            const autoFillResult = await RibReporteTributarioService.autoFillFromReporteTributario(ruc);
-            
-            if (autoFillResult.warnings.length > 0) {
-              setAutoFillWarnings(autoFillResult.warnings);
-            }
-            
-            const newReport = {
-              ...autoFillResult.data,
-              status: 'Borrador' as Status,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            };
-            
-            setSavedReportData(null); // No hay reporte guardado aún
-            setDraftReportData(newReport);
-            
-            if (Object.keys(autoFillResult.data).length > 1) { // Más que solo el RUC
-              showSuccess('✨ Datos completados automáticamente desde reportes tributarios');
-              setHasUnsavedChanges(true);
-            }
-          } catch (autoFillError) {
-            console.warn('No se pudieron auto-completar los datos:', autoFillError);
-            // Crear reporte vacío
-            const emptyReport = { 
-              ruc, 
-              status: 'Borrador' as Status, 
-              created_at: new Date().toISOString(), 
-              updated_at: new Date().toISOString() 
-            };
-            setSavedReportData(null);
-            setDraftReportData(emptyReport);
-          }
+        const reportToEdit = existingReport || { ruc, status: 'Borrador', created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        setSavedReportData(reportToEdit as RibReporteTributario);
+        setDraftReportData(reportToEdit);
+
+        if (existingReport?.user_id) {
+          const profile = await ProfileService.getProfileById(existingReport.user_id);
+          setCreatorName(profile?.full_name || 'Desconocido');
+        } else if (existingReport) {
+          setCreatorName('Sistema');
         }
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un reporte.');
@@ -151,7 +107,6 @@ const RibReporteTributarioPage = () => {
       setError('Ocurrió un error al buscar la empresa.');
       showError('Error al buscar la empresa.');
     } finally {
-      dismissToast(loadingToast);
       setSearching(false);
     }
   };
@@ -236,46 +191,8 @@ const RibReporteTributarioPage = () => {
             </Alert>
           )}
 
-          {/* Mostrar warnings de auto-completado */}
-          {autoFillWarnings.length > 0 && (
-            <Alert className="bg-yellow-500/10 border-yellow-500/20 text-yellow-400">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <div className="space-y-2">
-                  <p className="font-medium">⚠️ Advertencias en el auto-completado:</p>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    {autoFillWarnings.map((warning, index) => (
-                      <li key={index}>
-                        <strong>Año {warning.year}:</strong> {warning.message}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
           {searchedFicha ? (
             <div className="space-y-8">
-              {/* Indicador de auto-completado */}
-              {draftReportData && !savedReportData && Object.keys(draftReportData).length > 3 && (
-                <Alert className="bg-[#00FF80]/10 border-[#00FF80]/20 text-[#00FF80]">
-                  <Zap className="h-4 w-4" />
-                  <AlertDescription>
-                    <div className="flex items-center justify-between">
-                      <span>✨ Los datos han sido completados automáticamente desde los reportes tributarios existentes.</span>
-                      <Button 
-                        size="sm" 
-                        onClick={handleSave}
-                        className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black ml-4"
-                      >
-                        Guardar Auto-completado
-                      </Button>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              )}
-
               {/* Sección del Deudor */}
               <div className="space-y-6">
                 <div className="border-l-4 border-[#00FF80] pl-4">
@@ -346,7 +263,7 @@ const RibReporteTributarioPage = () => {
                 />
               </div>
               
-              {(savedReportData || draftReportData) && (
+              {savedReportData && (
                 <ReporteStatusManager
                   report={draftReportData as RibReporteTributario}
                   creatorName={creatorName}
