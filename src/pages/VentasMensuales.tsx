@@ -29,6 +29,7 @@ const VentasMensualesPage = () => {
   const [proveedorRucInput, setProveedorRucInput] = useState('');
   const [deudorRucInput, setDeudorRucInput] = useState('');
   const [searching, setSearching] = useState(false);
+  const [searchingDeudor, setSearchingDeudor] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const [proveedorFicha, setProveedorFicha] = useState<FichaRuc | null>(null);
@@ -216,14 +217,51 @@ const VentasMensualesPage = () => {
       showError('Ingrese un RUC de deudor válido.');
       return;
     }
-    const deudorFichaData = await FichaRucService.getByRuc(deudorRucInput);
-    if (deudorFichaData) {
-      setDeudorFicha(deudorFichaData);
-      setIsDirty(true);
-    } else {
-      showError('Ficha RUC del deudor no encontrada.');
+    
+    setSearchingDeudor(true);
+    
+    try {
+      // Buscar la ficha RUC del deudor
+      const deudorFichaData = await FichaRucService.getByRuc(deudorRucInput);
+      if (deudorFichaData) {
+        setDeudorFicha(deudorFichaData);
+        
+        // Buscar reportes tributarios del deudor para autocompletar
+        console.log('Buscando reportes tributarios del deudor para RUC:', deudorRucInput);
+        const reportesTributariosDeudor = await ReporteTributarioService.getReportesByRuc(deudorRucInput);
+        console.log('Reportes tributarios del deudor encontrados:', reportesTributariosDeudor);
+        
+        if (reportesTributariosDeudor.length > 0) {
+          const deudorSalesDataFromReporte = extractSalesDataFromReporteTributario(reportesTributariosDeudor);
+          console.log('Datos de ventas del deudor extraídos:', deudorSalesDataFromReporte);
+          setDeudorSalesData(deudorSalesDataFromReporte);
+          showSuccess(`Deudor encontrado. Se autocompletaron los datos desde ${reportesTributariosDeudor.length} reportes tributarios.`);
+        } else {
+          // Si no hay reportes tributarios, inicializar con estructura vacía
+          const emptySalesData: SalesData = {};
+          [2023, 2024, 2025].forEach(year => {
+            emptySalesData[year] = {};
+            ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'].forEach(month => {
+              emptySalesData[year][month] = null;
+            });
+          });
+          setDeudorSalesData(emptySalesData);
+          showSuccess('Deudor encontrado. No se encontraron reportes tributarios para autocompletar.');
+        }
+        
+        setIsDirty(true);
+      } else {
+        showError('Ficha RUC del deudor no encontrada.');
+        setDeudorFicha(null);
+        setDeudorSalesData({});
+      }
+    } catch (err) {
+      console.error('Error al buscar deudor:', err);
+      showError('Error al buscar la información del deudor.');
       setDeudorFicha(null);
       setDeudorSalesData({});
+    } finally {
+      setSearchingDeudor(false);
     }
   };
 
@@ -334,7 +372,10 @@ const VentasMensualesPage = () => {
                       <Search className="absolute left-3 top-9 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input placeholder="RUC del Deudor" value={deudorRucInput} onChange={(e) => setDeudorRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
                     </div>
-                    <Button onClick={handleDeudorSearch} className="w-full sm:w-auto self-end">Buscar Deudor</Button>
+                    <Button onClick={handleDeudorSearch} disabled={searchingDeudor} className="w-full sm:w-auto self-end">
+                      {searchingDeudor ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                      Buscar Deudor
+                    </Button>
                   </div>
                   {deudorFicha && (
                     <>
