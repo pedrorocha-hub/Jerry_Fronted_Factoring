@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Loader2, Copy } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -8,10 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 import { ReporteTributarioBalanceService, ReporteTributarioBalanceData } from '@/services/reporteTributarioBalanceService';
-import { showSuccess, showError } from '@/utils/toast';
 
 interface RibReporteTributarioTableProps {
   ruc: string;
@@ -28,10 +26,49 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
 }) => {
   const [balanceData, setBalanceData] = useState<ReporteTributarioBalanceData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     loadBalanceData();
   }, [ruc]);
+
+  // Auto-populate fields with reporte_tributario data when first loaded
+  useEffect(() => {
+    if (balanceData && !initialized && data) {
+      const updatedData = { ...data };
+      let hasChanges = false;
+
+      // Auto-populate fields if they don't have values yet
+      const years = [2022, 2023, 2024];
+      const fields = [
+        'cuentas_por_cobrar_giro',
+        'total_activos', 
+        'cuentas_por_pagar_giro',
+        'total_pasivos',
+        'capital_pagado',
+        'total_patrimonio',
+        'total_pasivo_patrimonio'
+      ];
+
+      years.forEach(year => {
+        fields.forEach(field => {
+          const fieldName = `${field}_${year}${getSuffix()}`;
+          const balanceValue = getBalanceValue(year, field);
+          
+          // Only set if field is empty and we have data from reporte_tributario
+          if (balanceValue !== null && (updatedData[fieldName] === null || updatedData[fieldName] === undefined)) {
+            updatedData[fieldName] = balanceValue;
+            hasChanges = true;
+          }
+        });
+      });
+
+      if (hasChanges) {
+        onDataChange(updatedData);
+      }
+      setInitialized(true);
+    }
+  }, [balanceData, data, initialized]);
 
   const loadBalanceData = async () => {
     try {
@@ -48,13 +85,11 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   const getSuffix = () => isProveedor ? '_proveedor' : '';
 
   const handleInputChange = (field: string, value: string) => {
-    console.log('Cambiando campo:', field, 'Valor:', value); // Debug
     const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
     const updatedData = {
       ...data,
       [field]: numericValue,
     };
-    console.log('Datos actualizados:', updatedData); // Debug
     onDataChange(updatedData);
   };
 
@@ -85,53 +120,20 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     }
   };
 
-  const copyFromReporteTributario = (field: string, year: string) => {
-    const yearNum = parseInt(year);
-    const balanceValue = getBalanceValue(yearNum, field);
-    
-    if (balanceValue !== null) {
-      const fieldName = `${field}_${year}${getSuffix()}`;
-      handleInputChange(fieldName, balanceValue.toString());
-      showSuccess(`Valor copiado desde reporte tributario ${year}`);
-    } else {
-      showError(`No hay datos disponibles en reporte tributario para ${year}`);
-    }
-  };
-
   const InputCell = ({ field, year }: { field: string; year: string }) => {
     const fieldName = `${field}_${year}${getSuffix()}`;
     const value = data?.[fieldName as keyof RibReporteTributario] as number | null;
-    const yearNum = parseInt(year);
-    const balanceValue = getBalanceValue(yearNum, field);
     
     return (
       <TableCell className="p-2">
-        <div className="space-y-2">
-          <input
-            type="number"
-            value={value?.toString() || ''}
-            onChange={(e) => handleInputChange(fieldName, e.target.value)}
-            className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
-            placeholder="0"
-            step="0.01"
-          />
-          {balanceValue !== null && (
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">
-                RT: {new Intl.NumberFormat('es-PE').format(balanceValue)}
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => copyFromReporteTributario(field, year)}
-                className="h-6 px-2 text-xs text-[#00FF80] hover:bg-[#00FF80]/10"
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-        </div>
+        <input
+          type="number"
+          value={value?.toString() || ''}
+          onChange={(e) => handleInputChange(fieldName, e.target.value)}
+          className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
+          placeholder="0"
+          step="0.01"
+        />
       </TableCell>
     );
   };
@@ -258,20 +260,13 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
       
       <div className="p-4 bg-gray-900/30 border border-gray-800 rounded-lg">
         <p className="text-xs text-gray-400">
-          <strong>Instrucciones:</strong> Los campos son editables. Puedes ingresar valores manualmente o copiar desde el reporte tributario (RT) usando el botón <Copy className="h-3 w-3 inline mx-1" />.
-          Los valores se guardarán en el reporte RIB cuando presiones "Guardar".
+          <strong>Nota:</strong> Los campos se llenan automáticamente con datos de los reportes tributarios cuando están disponibles.
+          Puedes editar cualquier valor y los cambios se guardarán al presionar "Guardar".
           {balanceData?.empresa_nombre && (
             <span className="block mt-1">
               <strong>Empresa:</strong> {balanceData.empresa_nombre}
             </span>
           )}
-        </p>
-      </div>
-
-      {/* Debug info */}
-      <div className="p-4 bg-gray-900/30 border border-gray-800 rounded-lg">
-        <p className="text-xs text-gray-500">
-          <strong>Debug:</strong> Datos actuales: {JSON.stringify(data, null, 2)}
         </p>
       </div>
     </div>
