@@ -4,14 +4,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { VentasMensualesProveedor, VentasProveedorStatus } from '@/types/ventasMensualesProveedor';
+import { VentasMensuales, VentasStatus } from '@/types/ventasMensuales';
 import { Loader2, Save, AlertTriangle, User, Calendar } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface VentasStatusManagerProps {
-  report: VentasMensualesProveedor;
+  report: VentasMensuales;
   creatorName: string | null;
-  onStatusChange: (newStatus: VentasProveedorStatus) => void;
+  onStatusChange: (newStatus: VentasStatus) => void;
   onValidatedByChange: (name: string) => void;
   onSave: () => Promise<void>;
   isSaving: boolean;
@@ -37,7 +37,7 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({ report, creat
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-400 mb-2 block">Estado de solicitud</label>
-            <Select value={report.status || 'Borrador'} onValueChange={(value: VentasProveedorStatus) => onStatusChange(value)}>
+            <Select value={report.status || 'Borrador'} onValueChange={(value: VentasStatus) => onStatusChange(value)}>
               <SelectTrigger className="w-full bg-gray-900/50 border-gray-700">
                 <SelectValue placeholder="Seleccionar estado" />
               </SelectTrigger>

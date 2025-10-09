@@ -1,17 +1,17 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { VentasMensualesProveedorSummary } from '@/services/ventasMensualesProveedorService';
+import { VentasMensualesSummary } from '@/services/ventasMensualesService';
 import { FilePenLine, Calendar, User, Building2, Trash2 } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 
-interface VentasMensualesProveedorListProps {
-  reports: VentasMensualesProveedorSummary[];
+interface VentasMensualesListProps {
+  reports: VentasMensualesSummary[];
   onSelectReport: (ruc: string) => void;
   onDeleteReport: (ruc: string) => void;
 }
 
-const VentasMensualesProveedorList: React.FC<VentasMensualesProveedorListProps> = ({ reports, onSelectReport, onDeleteReport }) => {
+const VentasMensualesList: React.FC<VentasMensualesListProps> = ({ reports, onSelectReport, onDeleteReport }) => {
   const { isAdmin } = useSession();
 
   const getStatusBadge = (status: string | null) => {
@@ -101,4 +101,4 @@ const VentasMensualesProveedorList: React.FC<VentasMensualesProveedorListProps> 
   );
 };
 
-export default VentasMensualesProveedorList;
+export default VentasMensualesList;
