@@ -245,25 +245,14 @@ const RibReporteTributarioPage = () => {
 
           {searchedFicha ? (
             <div className="space-y-8">
-              {/* Estado de Situación */}
+              {/* Sección del Deudor con Estado de Situación */}
               <div className="space-y-6">
                 <div className="border-l-4 border-[#00FF80] pl-4">
-                  <h2 className="text-xl font-bold text-white mb-2">ESTADO DE SITUACIÓN FINANCIERA</h2>
-                  <p className="text-gray-400 text-sm">Datos consolidados de los reportes tributarios (2022-2024)</p>
+                  <h2 className="text-xl font-bold text-white mb-2">ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL DEUDOR</h2>
+                  <p className="text-gray-400 text-sm">Información financiera consolidada de {searchedFicha.nombre_empresa} (2022-2024)</p>
                 </div>
 
                 <EstadoSituacionTable ruc={searchedFicha.ruc} />
-              </div>
-
-              {/* Separador */}
-              <div className="border-t border-gray-800"></div>
-
-              {/* Sección del Deudor */}
-              <div className="space-y-6">
-                <div className="border-l-4 border-[#00FF80] pl-4">
-                  <h2 className="text-xl font-bold text-white mb-2">DATOS DEL DEUDOR</h2>
-                  <p className="text-gray-400 text-sm">Información financiera de {searchedFicha.nombre_empresa}</p>
-                </div>
 
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
