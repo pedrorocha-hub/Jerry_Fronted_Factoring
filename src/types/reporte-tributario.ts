@@ -29,7 +29,6 @@ export interface ReporteTributario {
   renta_resultado_antes_participaciones?: number;
   renta_importe_pagado?: number;
   renta_cuentas_por_cobrar_comerciales_terceros?: number;
-  renta_rentas_por_cobrar_comercial?: number;
   itan_presento_declaracion?: string;
   itan_base_imponible?: number;
   itan_itan_a_pagar?: number;
@@ -95,7 +94,6 @@ export interface ReporteTributarioUpdate {
   renta_resultado_antes_participaciones?: number;
   renta_importe_pagado?: number;
   renta_cuentas_por_cobrar_comerciales_terceros?: number;
-  renta_rentas_por_cobrar_comercial?: number;
   itan_presento_declaracion?: string;
   itan_base_imponible?: number;
   itan_itan_a_pagar?: number;

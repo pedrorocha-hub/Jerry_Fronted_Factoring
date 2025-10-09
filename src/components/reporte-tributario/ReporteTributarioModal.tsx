@@ -182,7 +182,6 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
               {renderField('renta_resultado_antes_participaciones', 'Resultado Antes de Participaciones', 'number')}
               {renderField('renta_importe_pagado', 'Importe Pagado', 'number')}
               {renderField('renta_cuentas_por_cobrar_comerciales_terceros', 'Cuentas por Cobrar Comerciales Terceros', 'number')}
-              {renderField('renta_rentas_por_cobrar_comercial', 'Rentas por Cobrar Comercial', 'number')}
             </div>
           </TabsContent>
 
