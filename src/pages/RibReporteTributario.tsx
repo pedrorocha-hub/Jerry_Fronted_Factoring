@@ -178,6 +178,26 @@ const RibReporteTributarioPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleDeleteReport = async (ruc: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este reporte? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      await RibReporteTributarioService.delete(ruc);
+      showSuccess('Reporte eliminado exitosamente.');
+      await fetchSummaries();
+      
+      // Si estamos editando el reporte que se eliminó, limpiar la vista
+      if (searchedFicha?.ruc === ruc) {
+        clearSearch();
+      }
+    } catch (err) {
+      console.error('Error eliminando reporte:', err);
+      showError(`Error al eliminar el reporte: ${err.message || 'Error desconocido'}`);
+    }
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-black">
@@ -336,7 +356,11 @@ const RibReporteTributarioPage = () => {
                     <p className="text-sm mt-2">Busca una empresa para crear su reporte tributario</p>
                   </div>
                 ) : (
-                  <RibReporteTributarioList reports={reportSummaries} onSelectReport={handleSelectReport} />
+                  <RibReporteTributarioList 
+                    reports={reportSummaries} 
+                    onSelectReport={handleSelectReport}
+                    onDeleteReport={handleDeleteReport}
+                  />
                 )}
               </CardContent>
             </Card>

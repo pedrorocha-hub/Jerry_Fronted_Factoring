@@ -1,17 +1,19 @@
 import React from 'react';
-import { Building2, User, Calendar, Clock } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Building2, User, Calendar, Edit, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RibReporteTributarioSummary } from '@/services/ribReporteTributarioService';
 
 interface RibReporteTributarioListProps {
   reports: RibReporteTributarioSummary[];
   onSelectReport: (ruc: string) => void;
+  onDeleteReport?: (ruc: string) => void;
 }
 
 const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({ 
   reports, 
-  onSelectReport 
+  onSelectReport,
+  onDeleteReport 
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -37,6 +39,18 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({
     });
   };
 
+  const handleDelete = (e: React.MouseEvent, ruc: string) => {
+    e.stopPropagation();
+    if (onDeleteReport) {
+      onDeleteReport(ruc);
+    }
+  };
+
+  const handleEdit = (e: React.MouseEvent, ruc: string) => {
+    e.stopPropagation();
+    onSelectReport(ruc);
+  };
+
   if (reports.length === 0) {
     return (
       <div className="text-center py-12 text-gray-400">
@@ -48,71 +62,92 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-2">
       {reports.map((report) => (
-        <Card 
+        <div 
           key={report.ruc}
-          className="bg-gray-900/50 border border-gray-700 hover:border-[#00FF80]/50 transition-all duration-200 cursor-pointer hover:shadow-lg hover:shadow-[#00FF80]/10"
-          onClick={() => onSelectReport(report.ruc)}
+          className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 hover:border-[#00FF80]/50 transition-all duration-200 hover:bg-gray-900/70"
         >
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {/* Header con empresa y estado */}
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center mb-2">
-                    <Building2 className="h-5 w-5 text-[#00FF80] mr-2 flex-shrink-0" />
-                    <h3 className="font-semibold text-white text-sm leading-tight">
-                      Empresa
-                    </h3>
-                  </div>
-                  <p className="text-white font-medium text-base mb-1 truncate" title={report.nombre_empresa}>
+          <div className="flex items-center justify-between">
+            {/* Información principal */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+              {/* Empresa */}
+              <div className="space-y-1">
+                <div className="flex items-center">
+                  <Building2 className="h-4 w-4 text-[#00FF80] mr-2" />
+                  <span className="text-xs text-gray-400 font-medium">EMPRESA</span>
+                </div>
+                <div>
+                  <p className="text-white font-medium text-sm leading-tight" title={report.nombre_empresa}>
                     {report.nombre_empresa || 'Empresa sin nombre'}
                   </p>
-                  <p className="text-gray-400 text-sm font-mono">
+                  <p className="text-gray-400 text-xs font-mono mt-1">
                     RUC: {report.ruc}
                   </p>
                 </div>
-                <Badge 
-                  variant="outline" 
-                  className={`ml-2 text-xs font-medium ${getStatusColor(report.status)} flex-shrink-0`}
-                >
-                  {report.status}
-                </Badge>
               </div>
 
               {/* Ejecutivo */}
               <div className="space-y-1">
                 <div className="flex items-center">
                   <User className="h-4 w-4 text-blue-400 mr-2" />
-                  <span className="text-gray-300 text-sm font-medium">Ejecutivo</span>
+                  <span className="text-xs text-gray-400 font-medium">EJECUTIVO</span>
                 </div>
-                <p className="text-white text-sm ml-6">
+                <p className="text-white text-sm">
                   {report.creator_name || 'No asignado'}
                 </p>
               </div>
 
-              {/* Fecha de actualización */}
+              {/* Fecha */}
               <div className="space-y-1">
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 text-purple-400 mr-2" />
-                  <span className="text-gray-300 text-sm font-medium">Última actualización</span>
+                  <span className="text-xs text-gray-400 font-medium">FECHA</span>
                 </div>
-                <p className="text-white text-sm ml-6">
+                <p className="text-white text-sm">
                   {formatDate(report.updated_at)}
                 </p>
               </div>
 
-              {/* Footer con indicador de acción */}
-              <div className="pt-2 border-t border-gray-700">
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span>Click para editar</span>
-                  <Clock className="h-3 w-3" />
+              {/* Estado */}
+              <div className="space-y-1">
+                <div className="flex items-center">
+                  <span className="text-xs text-gray-400 font-medium">ESTADO</span>
                 </div>
+                <Badge 
+                  variant="outline" 
+                  className={`text-xs font-medium ${getStatusColor(report.status)} w-fit`}
+                >
+                  {report.status}
+                </Badge>
               </div>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Botones de acción */}
+            <div className="flex items-center space-x-2 ml-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => handleEdit(e, report.ruc)}
+                className="bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/50"
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+              
+              {onDeleteReport && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => handleDelete(e, report.ruc)}
+                  className="bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
       ))}
     </div>
   );
