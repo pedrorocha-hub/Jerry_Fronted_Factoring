@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { SessionContextProvider } from './contexts/SessionContext';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from '@/components/ui/sonner';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import RibReporteTributario from './pages/RibReporteTributario';
