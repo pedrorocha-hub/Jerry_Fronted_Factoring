@@ -170,14 +170,14 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
   );
 };
 
-// Componente para las ventas del deudor con lógica corregida y simplificada
-const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc, proveedorRuc }) => {
+// Componente para las ventas del deudor con lógica corregida y búsqueda en cascada
+const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc?: string }> = ({ ruc, proveedorRuc }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ficha, setFicha] = useState<FichaRuc | null>(null);
   const [salesData, setSalesData] = useState<SalesData>({});
 
-  const extractSalesData = (report: any | null): SalesData => {
+  const extractSalesDataDeudor = (report: any | null): SalesData => {
     const salesData: SalesData = {};
     const years = [2023, 2024, 2025];
     const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -192,6 +192,50 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
     return salesData;
   };
 
+  const extractSalesDataProveedor = (report: any | null): SalesData => {
+    const salesData: SalesData = {};
+    const years = [2023, 2024, 2025];
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    years.forEach(year => {
+      salesData[year] = {};
+      months.forEach(month => {
+        const key = `${month}_${year}_proveedor`;
+        salesData[year][month] = report?.[key] as number | null ?? null;
+      });
+    });
+    return salesData;
+  };
+
+  const extractSalesDataFromReporteTributario = (reportes: any[]): SalesData => {
+    const salesData: SalesData = {};
+    const years = [2023, 2024, 2025];
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+
+    years.forEach(year => {
+      salesData[year] = {};
+      months.forEach(month => {
+        salesData[year][month] = null;
+      });
+    });
+
+    reportes.forEach(reporte => {
+      const year = reporte.anio_reporte;
+      if (salesData[year]) {
+        months.forEach(month => {
+          const ingresosKey = `ingresos_${month}`;
+          if (reporte[ingresosKey] !== null && reporte[ingresosKey] !== undefined) {
+            const value = Number(reporte[ingresosKey]);
+            if (!isNaN(value)) {
+              salesData[year][month] = value;
+            }
+          }
+        });
+      }
+    });
+    return salesData;
+  };
+
   const hasDataInSalesData = (salesData: SalesData): boolean => {
     return Object.keys(salesData).length > 0 && 
            Object.values(salesData).some(year => 
@@ -200,8 +244,8 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
   };
 
   const fetchData = async () => {
-    if (!ruc || !proveedorRuc) {
-      setError("RUC de deudor o proveedor no disponible.");
+    if (!ruc) {
+      setError("RUC del deudor no disponible.");
       setLoading(false);
       return;
     }
@@ -213,20 +257,46 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
       const fichaData = await FichaRucService.getByRuc(ruc);
       setFicha(fichaData);
 
-      const ventasReporte = await VentasMensualesService.getByProveedorRuc(proveedorRuc);
-      
       let hasData = false;
 
-      if (ventasReporte && ventasReporte.deudor_ruc === ruc) {
-        const deudorData = extractSalesData(ventasReporte);
-        if (hasDataInSalesData(deudorData)) {
-          setSalesData(deudorData);
-          hasData = true;
+      // Primero: buscar en el reporte del proveedor si proveedorRuc existe
+      if (proveedorRuc) {
+        const ventasReporteProveedor = await VentasMensualesService.getByProveedorRuc(proveedorRuc);
+        if (ventasReporteProveedor && ventasReporteProveedor.deudor_ruc === ruc) {
+          const deudorData = extractSalesDataDeudor(ventasReporteProveedor);
+          if (hasDataInSalesData(deudorData)) {
+            setSalesData(deudorData);
+            hasData = true;
+          }
+        }
+      }
+
+      // Segundo: buscar usando el RUC del deudor directamente
+      if (!hasData) {
+        const ventasReporteDeudor = await VentasMensualesService.getByProveedorRuc(ruc);
+        if (ventasReporteDeudor) {
+          const deudorData = extractSalesDataProveedor(ventasReporteDeudor);
+          if (hasDataInSalesData(deudorData)) {
+            setSalesData(deudorData);
+            hasData = true;
+          }
+        }
+      }
+
+      // Tercero: buscar en reportes tributarios
+      if (!hasData) {
+        const reportesTributarios = await ReporteTributarioService.getReportesByRuc(ruc);
+        if (reportesTributarios?.length > 0) {
+          const deudorData = extractSalesDataFromReporteTributario(reportesTributarios);
+          if (hasDataInSalesData(deudorData)) {
+            setSalesData(deudorData);
+            hasData = true;
+          }
         }
       }
 
       if (!hasData) {
-        setError('No se encontraron datos de ventas para el deudor en el reporte del proveedor.');
+        setError('No se encontraron datos de ventas mensuales para el deudor.');
       }
 
     } catch (err: any) {
