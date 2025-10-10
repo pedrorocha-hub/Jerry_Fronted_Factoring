@@ -86,7 +86,6 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
       const fichaData = await FichaRucService.getByRuc(ruc);
       setFicha(fichaData);
 
-      // Buscar en ventas mensuales donde proveedor_ruc = ruc
       const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
       
       let hasData = false;
@@ -172,7 +171,7 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
 };
 
 // Componente para las ventas del deudor
-const DeudorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
+const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc, proveedorRuc }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ficha, setFicha] = useState<FichaRuc | null>(null);
@@ -243,19 +242,34 @@ const DeudorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
       const fichaData = await FichaRucService.getByRuc(ruc);
       setFicha(fichaData);
 
-      // Buscar en ventas mensuales donde proveedor_ruc = ruc (el deudor como proveedor)
-      const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
-      
       let hasData = false;
 
-      if (ventasReporte) {
-        const deudorData = extractSalesData(ventasReporte, 'proveedor');
+      // Lógica corregida:
+      // 1. Buscar el reporte de ventas del PROVEEDOR.
+      const ventasReportePrincipal = await VentasMensualesService.getByProveedorRuc(proveedorRuc);
+      
+      // 2. Si existe y el deudor coincide, extraer los datos del deudor de ESE reporte.
+      if (ventasReportePrincipal && ventasReportePrincipal.deudor_ruc === ruc) {
+        const deudorData = extractSalesData(ventasReportePrincipal, 'deudor');
         if (hasDataInSalesData(deudorData)) {
           setSalesData(deudorData);
           hasData = true;
         }
       }
 
+      // 3. Si no se encontraron datos, buscar si el deudor tiene su propio reporte de ventas (como proveedor).
+      if (!hasData) {
+        const ventasReporteDeudor = await VentasMensualesService.getByProveedorRuc(ruc);
+        if (ventasReporteDeudor) {
+          const deudorData = extractSalesData(ventasReporteDeudor, 'proveedor');
+          if (hasDataInSalesData(deudorData)) {
+            setSalesData(deudorData);
+            hasData = true;
+          }
+        }
+      }
+
+      // 4. Como último recurso, buscar en los reportes tributarios del deudor.
       if (!hasData) {
         const reportesTributarios = await ReporteTributarioService.getReportesByRuc(ruc);
         if (reportesTributarios?.length > 0) {
@@ -280,7 +294,7 @@ const DeudorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
 
   useEffect(() => {
     fetchData();
-  }, [ruc]);
+  }, [ruc, proveedorRuc]);
 
   const hasData = hasDataInSalesData(salesData);
 
@@ -346,7 +360,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
 
       {/* Deudor Card (only if deudorRuc exists) */}
       {deudorRuc && (
-        <DeudorVentasCard ruc={deudorRuc} />
+        <DeudorVentasCard ruc={deudorRuc} proveedorRuc={ruc} />
       )}
     </div>
   );
