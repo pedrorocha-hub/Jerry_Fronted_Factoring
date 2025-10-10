@@ -88,18 +88,14 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     setError(null);
 
     try {
-      // Cargar fichas RUC
       const fichaPromises = [FichaRucService.getByRuc(ruc)];
       if (deudorRuc) {
         fichaPromises.push(FichaRucService.getByRuc(deudorRuc));
       }
       const [mainFicha, deudorFichaData] = await Promise.all(fichaPromises);
       setFicha(mainFicha);
-      if (deudorFichaData) {
-        setDeudorFicha(deudorFichaData);
-      }
+      if (deudorFichaData) setDeudorFicha(deudorFichaData);
 
-      // Intentar cargar desde ventas mensuales
       const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
       
       let providerHasData = false;
@@ -107,15 +103,11 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
 
       if (ventasReporte) {
         setVentasReport(ventasReporte);
-        
-        // Extraer datos del proveedor
         const proveedorData = extractSalesData(ventasReporte, 'proveedor');
         if (hasDataInSalesData(proveedorData)) {
           setProveedorSalesData(proveedorData);
           providerHasData = true;
         }
-
-        // Extraer datos del deudor si existe
         if (ventasReporte.deudor_ruc && deudorRuc) {
           const deudorData = extractSalesData(ventasReporte, 'deudor');
           if (hasDataInSalesData(deudorData)) {
@@ -125,55 +117,40 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
         }
       }
 
-      // Si no hay datos del proveedor, buscar en reportes tributarios
       if (!providerHasData) {
-        try {
-          const reportesTributariosProveedor = await ReporteTributarioService.getReportesByRuc(ruc);
-          if (reportesTributariosProveedor && reportesTributariosProveedor.length > 0) {
-            const proveedorData = extractSalesDataFromReporteTributario(reportesTributariosProveedor);
-            if (hasDataInSalesData(proveedorData)) {
-              setProveedorSalesData(proveedorData);
-              providerHasData = true;
-            }
+        const reportesTributariosProveedor = await ReporteTributarioService.getReportesByRuc(ruc);
+        if (reportesTributariosProveedor?.length > 0) {
+          const proveedorData = extractSalesDataFromReporteTributario(reportesTributariosProveedor);
+          if (hasDataInSalesData(proveedorData)) {
+            setProveedorSalesData(proveedorData);
+            providerHasData = true;
           }
-        } catch (err) {
-          console.warn('Error loading reporte tributario for proveedor:', err);
         }
       }
 
-      // Si no hay datos del deudor y existe deudorRuc, buscar en reportes tributarios
       if (deudorRuc && !deudorHasData) {
-        try {
-          const reportesTributariosDeudor = await ReporteTributarioService.getReportesByRuc(deudorRuc);
-          if (reportesTributariosDeudor && reportesTributariosDeudor.length > 0) {
-            const deudorData = extractSalesDataFromReporteTributario(reportesTributariosDeudor);
-            if (hasDataInSalesData(deudorData)) {
-              setDeudorSalesData(deudorData);
-              deudorHasData = true;
-            }
+        const reportesTributariosDeudor = await ReporteTributarioService.getReportesByRuc(deudorRuc);
+        if (reportesTributariosDeudor?.length > 0) {
+          const deudorData = extractSalesDataFromReporteTributario(reportesTributariosDeudor);
+          if (hasDataInSalesData(deudorData)) {
+            setDeudorSalesData(deudorData);
+            deudorHasData = true;
           }
-        } catch (err) {
-          console.warn('Error loading reporte tributario for deudor:', err);
         }
       }
 
-      // Si no había reporte de ventas pero sí datos, crear uno virtual
       if (!ventasReporte && (providerHasData || deudorHasData)) {
         setVentasReport({
-          proveedor_ruc: ruc,
-          deudor_ruc: deudorRuc || null,
           status: 'Autocompletado (No guardado)',
           updated_at: new Date().toISOString()
         });
       }
 
-      // Si no hay datos de ningún tipo
       if (!providerHasData && !deudorHasData) {
         setError('No se encontraron datos de ventas mensuales ni reportes tributarios para este RUC.');
       }
 
     } catch (err: any) {
-      console.error('[VMS] Error fetching data:', err);
       setError(err.message || 'Ocurrió un error al buscar la información.');
     } finally {
       setLoading(false);
@@ -192,75 +169,72 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     return (
       <Card className="bg-[#121212] border border-gray-800">
         <CardHeader><CardTitle className="text-white flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />5. Ventas Mensuales</CardTitle></CardHeader>
-        <CardContent><div className="text-center py-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80] mx-auto mb-4"></div><p className="text-gray-400">Cargando datos de ventas mensuales...</p></div></CardContent>
-      </Card>
-    );
-  }
-
-  if (!hasData) {
-    return (
-      <Card className="bg-[#121212] border border-gray-800">
-        <CardHeader><CardTitle className="text-white flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />5. Ventas Mensuales</CardTitle></CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">{error || 'No hay datos de ventas mensuales disponibles'}</p>
-            <p className="text-gray-500 text-xs mt-2">
-              Debug: RUCs buscados = {ruc}{deudorRuc ? `, ${deudorRuc}` : ''} | 
-              Proveedor: {hasProviderData ? 'Sí' : 'No'} | 
-              Deudor: {hasDeudorData ? 'Sí' : 'No'}
-            </p>
-            <Button onClick={fetchData} variant="outline" size="sm" className="mt-4"><Search className="h-4 w-4 mr-2" />Reintentar búsqueda</Button>
-          </div>
-        </CardContent>
+        <CardContent><div className="text-center py-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80] mx-auto mb-4"></div><p className="text-gray-400">Cargando datos...</p></div></CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-[#121212] border border-gray-800">
-      <CardHeader>
-        <CardTitle className="text-white flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />5. Ventas Mensuales</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-8">
-          {ventasReport && (
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h4 className="text-white font-medium">{ficha?.nombre_empresa || `Análisis para RUC ${ruc}`}</h4>
-                <p className="text-gray-400 text-sm">
-                  RUC Proveedor: {ventasReport.proveedor_ruc}
-                  {deudorFicha && ` | RUC Deudor: ${deudorFicha.ruc}`}
-                </p>
-                <p className="text-gray-500 text-xs">
-                  Estado: {ventasReport.status} | Actualizado: {new Date(ventasReport.updated_at).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-          )}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold text-white flex items-center">
+          <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+          5. Ventas Mensuales
+        </h3>
+        {ventasReport && (
+          <div className="text-right">
+            <p className="text-gray-400 text-sm">
+              Estado: <span className="font-semibold text-white">{ventasReport.status}</span>
+            </p>
+            <p className="text-gray-500 text-xs">
+              Actualizado: {new Date(ventasReport.updated_at).toLocaleDateString()}
+            </p>
+          </div>
+        )}
+      </div>
 
-          {hasProviderData && (
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                <h3 className="text-white font-medium">Ventas del Proveedor: {ficha?.nombre_empresa || ruc}</h3>
-              </div>
-              <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
+      {!hasData ? (
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardContent>
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">{error || 'No hay datos de ventas mensuales disponibles'}</p>
+              <Button onClick={fetchData} variant="outline" size="sm" className="mt-4"><Search className="h-4 w-4 mr-2" />Reintentar</Button>
             </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {hasProviderData && (
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader>
+                <CardTitle className="flex items-center text-white">
+                  <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                  Ventas del Proveedor: {ficha?.nombre_empresa || ruc}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
+              </CardContent>
+            </Card>
           )}
 
           {hasDeudorData && (
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <Building2 className="h-5 w-5 mr-2 text-blue-400" />
-                <h3 className="text-white font-medium">Ventas del Deudor: {deudorFicha?.nombre_empresa || deudorRuc}</h3>
-              </div>
-              <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
-            </div>
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader>
+                <CardTitle className="flex items-center text-white">
+                  <Building2 className="h-5 w-5 mr-2 text-blue-400" />
+                  Ventas del Deudor: {deudorFicha?.nombre_empresa || deudorRuc}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
+              </CardContent>
+            </Card>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      )}
+    </div>
   );
 };
 
