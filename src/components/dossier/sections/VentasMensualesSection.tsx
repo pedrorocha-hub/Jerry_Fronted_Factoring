@@ -174,6 +174,26 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     );
   }
 
+  if (error && !hasData) {
+    return (
+      <div className="space-y-6">
+        <h3 className="text-xl font-bold text-white flex items-center">
+          <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+          5. Ventas Mensuales
+        </h3>
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardContent>
+            <div className="text-center py-8">
+              <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+              <p className="text-gray-400">{error}</p>
+              <Button onClick={fetchData} variant="outline" size="sm" className="mt-4"><Search className="h-4 w-4 mr-2" />Reintentar</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -193,46 +213,46 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
         )}
       </div>
 
-      {!hasData ? (
-        <Card className="bg-[#121212] border border-gray-800">
-          <CardContent>
-            <div className="text-center py-8">
-              <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400">{error || 'No hay datos de ventas mensuales disponibles'}</p>
-              <Button onClick={fetchData} variant="outline" size="sm" className="mt-4"><Search className="h-4 w-4 mr-2" />Reintentar</Button>
+      {/* Proveedor Card */}
+      <Card className="bg-[#121212] border border-gray-800">
+        <CardHeader>
+          <CardTitle className="flex items-center text-white">
+            <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+            Ventas del Proveedor: {ficha?.nombre_empresa || ruc}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasProviderData ? (
+            <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-500" />
+              No se encontraron datos de ventas para el proveedor.
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Deudor Card (only if deudorRuc exists) */}
+      {deudorRuc && (
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardHeader>
+            <CardTitle className="flex items-center text-white">
+              <Building2 className="h-5 w-5 mr-2 text-blue-400" />
+              Ventas del Deudor: {deudorFicha?.nombre_empresa || deudorRuc}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hasDeudorData ? (
+              <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-500" />
+                No se encontraron datos de ventas para el deudor.
+              </div>
+            )}
           </CardContent>
         </Card>
-      ) : (
-        <>
-          {hasProviderData && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <CardTitle className="flex items-center text-white">
-                  <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                  Ventas del Proveedor: {ficha?.nombre_empresa || ruc}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
-              </CardContent>
-            </Card>
-          )}
-
-          {hasDeudorData && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <CardTitle className="flex items-center text-white">
-                  <Building2 className="h-5 w-5 mr-2 text-blue-400" />
-                  Ventas del Deudor: {deudorFicha?.nombre_empresa || deudorRuc}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
-              </CardContent>
-            </Card>
-          )}
-        </>
       )}
     </div>
   );
