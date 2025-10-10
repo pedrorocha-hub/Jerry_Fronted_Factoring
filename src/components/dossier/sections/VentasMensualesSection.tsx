@@ -73,7 +73,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
   const hasDataInSalesData = (salesData: SalesData): boolean => {
     return Object.keys(salesData).length > 0 && 
            Object.values(salesData).some(year => 
-             Object.values(year).some(v => v !== null && v !== undefined && v !== 0)
+             Object.values(year).some(v => v !== null && v !== undefined)
            );
   };
 
