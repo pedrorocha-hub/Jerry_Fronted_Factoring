@@ -20,7 +20,6 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
   const [error, setError] = useState<string | null>(null);
   const [ficha, setFicha] = useState<FichaRuc | null>(null);
   const [salesData, setSalesData] = useState<SalesData>({});
-  const [ventasReport, setVentasReport] = useState<any>(null);
 
   const extractSalesData = (report: any | null, type: 'proveedor' | 'deudor'): SalesData => {
     const salesData: SalesData = {};
@@ -87,12 +86,12 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
       const fichaData = await FichaRucService.getByRuc(ruc);
       setFicha(fichaData);
 
+      // Buscar en ventas mensuales donde proveedor_ruc = ruc
       const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
       
       let hasData = false;
 
       if (ventasReporte) {
-        setVentasReport(ventasReporte);
         const proveedorData = extractSalesData(ventasReporte, 'proveedor');
         if (hasDataInSalesData(proveedorData)) {
           setSalesData(proveedorData);
@@ -173,12 +172,11 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
 };
 
 // Componente para las ventas del deudor
-const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc, proveedorRuc }) => {
+const DeudorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ficha, setFicha] = useState<FichaRuc | null>(null);
   const [salesData, setSalesData] = useState<SalesData>({});
-  const [ventasReport, setVentasReport] = useState<any>(null);
 
   const extractSalesData = (report: any | null, type: 'proveedor' | 'deudor'): SalesData => {
     const salesData: SalesData = {};
@@ -245,14 +243,13 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
       const fichaData = await FichaRucService.getByRuc(ruc);
       setFicha(fichaData);
 
-      // Buscar en ventas mensuales usando el RUC del proveedor
-      const ventasReporte = await VentasMensualesService.getByProveedorRuc(proveedorRuc);
+      // Buscar en ventas mensuales donde proveedor_ruc = ruc (el deudor como proveedor)
+      const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
       
       let hasData = false;
 
-      if (ventasReporte && ventasReporte.deudor_ruc === ruc) {
-        setVentasReport(ventasReporte);
-        const deudorData = extractSalesData(ventasReporte, 'deudor');
+      if (ventasReporte) {
+        const deudorData = extractSalesData(ventasReporte, 'proveedor');
         if (hasDataInSalesData(deudorData)) {
           setSalesData(deudorData);
           hasData = true;
@@ -283,7 +280,7 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
 
   useEffect(() => {
     fetchData();
-  }, [ruc, proveedorRuc]);
+  }, [ruc]);
 
   const hasData = hasDataInSalesData(salesData);
 
@@ -349,7 +346,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
 
       {/* Deudor Card (only if deudorRuc exists) */}
       {deudorRuc && (
-        <DeudorVentasCard ruc={deudorRuc} proveedorRuc={ruc} />
+        <DeudorVentasCard ruc={deudorRuc} />
       )}
     </div>
   );
