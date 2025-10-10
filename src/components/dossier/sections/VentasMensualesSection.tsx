@@ -21,7 +21,7 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
   const [ficha, setFicha] = useState<FichaRuc | null>(null);
   const [salesData, setSalesData] = useState<SalesData>({});
 
-  const extractSalesData = (report: any | null, type: 'proveedor' | 'deudor'): SalesData => {
+  const extractSalesData = (report: any | null): SalesData => {
     const salesData: SalesData = {};
     const years = [2023, 2024, 2025];
     const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -29,7 +29,7 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
     years.forEach(year => {
       salesData[year] = {};
       months.forEach(month => {
-        const key = `${month}_${year}_${type}`;
+        const key = `${month}_${year}_proveedor`;
         salesData[year][month] = report?.[key] as number | null ?? null;
       });
     });
@@ -91,7 +91,7 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
       let hasData = false;
 
       if (ventasReporte) {
-        const proveedorData = extractSalesData(ventasReporte, 'proveedor');
+        const proveedorData = extractSalesData(ventasReporte);
         if (hasDataInSalesData(proveedorData)) {
           setSalesData(proveedorData);
           hasData = true;
@@ -170,14 +170,14 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
   );
 };
 
-// Componente para las ventas del deudor
+// Componente para las ventas del deudor con lógica corregida y simplificada
 const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc, proveedorRuc }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ficha, setFicha] = useState<FichaRuc | null>(null);
   const [salesData, setSalesData] = useState<SalesData>({});
 
-  const extractSalesData = (report: any | null, type: 'proveedor' | 'deudor'): SalesData => {
+  const extractSalesData = (report: any | null): SalesData => {
     const salesData: SalesData = {};
     const years = [2023, 2024, 2025];
     const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -185,38 +185,9 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
     years.forEach(year => {
       salesData[year] = {};
       months.forEach(month => {
-        const key = `${month}_${year}_${type}`;
+        const key = `${month}_${year}_deudor`;
         salesData[year][month] = report?.[key] as number | null ?? null;
       });
-    });
-    return salesData;
-  };
-
-  const extractSalesDataFromReporteTributario = (reportes: any[]): SalesData => {
-    const salesData: SalesData = {};
-    const years = [2023, 2024, 2025];
-    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
-
-    years.forEach(year => {
-      salesData[year] = {};
-      months.forEach(month => {
-        salesData[year][month] = null;
-      });
-    });
-
-    reportes.forEach(reporte => {
-      const year = reporte.anio_reporte;
-      if (salesData[year]) {
-        months.forEach(month => {
-          const ingresosKey = `ingresos_${month}`;
-          if (reporte[ingresosKey] !== null && reporte[ingresosKey] !== undefined) {
-            const value = Number(reporte[ingresosKey]);
-            if (!isNaN(value)) {
-              salesData[year][month] = value;
-            }
-          }
-        });
-      }
     });
     return salesData;
   };
@@ -229,8 +200,8 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
   };
 
   const fetchData = async () => {
-    if (!ruc) {
-      setError("RUC del deudor no disponible.");
+    if (!ruc || !proveedorRuc) {
+      setError("RUC de deudor o proveedor no disponible.");
       setLoading(false);
       return;
     }
@@ -242,47 +213,20 @@ const DeudorVentasCard: React.FC<{ ruc: string; proveedorRuc: string }> = ({ ruc
       const fichaData = await FichaRucService.getByRuc(ruc);
       setFicha(fichaData);
 
+      const ventasReporte = await VentasMensualesService.getByProveedorRuc(proveedorRuc);
+      
       let hasData = false;
 
-      // Lógica corregida:
-      // 1. Buscar el reporte de ventas del PROVEEDOR.
-      const ventasReportePrincipal = await VentasMensualesService.getByProveedorRuc(proveedorRuc);
-      
-      // 2. Si existe y el deudor coincide, extraer los datos del deudor de ESE reporte.
-      if (ventasReportePrincipal && ventasReportePrincipal.deudor_ruc === ruc) {
-        const deudorData = extractSalesData(ventasReportePrincipal, 'deudor');
+      if (ventasReporte && ventasReporte.deudor_ruc === ruc) {
+        const deudorData = extractSalesData(ventasReporte);
         if (hasDataInSalesData(deudorData)) {
           setSalesData(deudorData);
           hasData = true;
         }
       }
 
-      // 3. Si no se encontraron datos, buscar si el deudor tiene su propio reporte de ventas (como proveedor).
       if (!hasData) {
-        const ventasReporteDeudor = await VentasMensualesService.getByProveedorRuc(ruc);
-        if (ventasReporteDeudor) {
-          const deudorData = extractSalesData(ventasReporteDeudor, 'proveedor');
-          if (hasDataInSalesData(deudorData)) {
-            setSalesData(deudorData);
-            hasData = true;
-          }
-        }
-      }
-
-      // 4. Como último recurso, buscar en los reportes tributarios del deudor.
-      if (!hasData) {
-        const reportesTributarios = await ReporteTributarioService.getReportesByRuc(ruc);
-        if (reportesTributarios?.length > 0) {
-          const deudorData = extractSalesDataFromReporteTributario(reportesTributarios);
-          if (hasDataInSalesData(deudorData)) {
-            setSalesData(deudorData);
-            hasData = true;
-          }
-        }
-      }
-
-      if (!hasData) {
-        setError('No se encontraron datos de ventas mensuales para el deudor.');
+        setError('No se encontraron datos de ventas para el deudor en el reporte del proveedor.');
       }
 
     } catch (err: any) {
