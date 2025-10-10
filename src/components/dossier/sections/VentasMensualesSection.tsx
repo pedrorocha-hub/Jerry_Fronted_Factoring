@@ -150,7 +150,7 @@ const ProveedorVentasCard: React.FC<{ ruc: string }> = ({ ruc }) => {
       <CardHeader>
         <CardTitle className="flex items-center text-white">
           <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-          Ventas1 del Proveedor: {ficha?.nombre_empresa || ruc}
+          Ventas del Proveedor: {ficha?.nombre_empresa || ruc}
         </CardTitle>
       </CardHeader>
       <CardContent>
