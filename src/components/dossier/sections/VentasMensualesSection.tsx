@@ -183,7 +183,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
         <CardTitle className="text-white flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />5. Ventas Mensuales</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-8">
           {ventasReport && (
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -200,17 +200,23 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
           )}
 
           {hasProviderData && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="flex items-center text-white"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Ventas del Proveedor: {ficha?.nombre_empresa || ruc}</CardTitle></CardHeader>
-              <CardContent><VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} /></CardContent>
-            </Card>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                <h3 className="text-white font-medium">Ventas del Proveedor: {ficha?.nombre_empresa || ruc}</h3>
+              </div>
+              <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
+            </div>
           )}
 
           {hasDeudorData && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="flex items-center text-white"><Building2 className="h-5 w-5 mr-2 text-blue-400" />Ventas del Deudor: {deudorFicha?.nombre_empresa || deudorRuc}</CardTitle></CardHeader>
-              <CardContent><VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} /></CardContent>
-            </Card>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <Building2 className="h-5 w-5 mr-2 text-blue-400" />
+                <h3 className="text-white font-medium">Ventas del Deudor: {deudorFicha?.nombre_empresa || deudorRuc}</h3>
+              </div>
+              <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
+            </div>
           )}
         </div>
       </CardContent>
