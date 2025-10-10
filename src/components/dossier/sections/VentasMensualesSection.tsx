@@ -70,6 +70,13 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     return salesData;
   };
 
+  const hasDataInSalesData = (salesData: SalesData): boolean => {
+    return Object.keys(salesData).length > 0 && 
+           Object.values(salesData).some(year => 
+             Object.values(year).some(v => v !== null && v !== undefined && v !== 0)
+           );
+  };
+
   const fetchData = async () => {
     if (!ruc) {
       setError("RUC del proveedor no disponible en el dossier.");
@@ -81,6 +88,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     setError(null);
 
     try {
+      // Cargar fichas RUC
       const fichaPromises = [FichaRucService.getByRuc(ruc)];
       if (deudorRuc) {
         fichaPromises.push(FichaRucService.getByRuc(deudorRuc));
@@ -91,6 +99,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
         setDeudorFicha(deudorFichaData);
       }
 
+      // Intentar cargar desde ventas mensuales
       const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
       
       let providerHasData = false;
@@ -98,34 +107,57 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
 
       if (ventasReporte) {
         setVentasReport(ventasReporte);
-        setProveedorSalesData(extractSalesData(ventasReporte, 'proveedor'));
-        providerHasData = true;
+        
+        // Extraer datos del proveedor
+        const proveedorData = extractSalesData(ventasReporte, 'proveedor');
+        if (hasDataInSalesData(proveedorData)) {
+          setProveedorSalesData(proveedorData);
+          providerHasData = true;
+        }
 
+        // Extraer datos del deudor si existe
         if (ventasReporte.deudor_ruc && deudorRuc) {
-          const extractedDeudorData = extractSalesData(ventasReporte, 'deudor');
-          if (Object.values(extractedDeudorData).some(year => Object.values(year).some(v => v !== null))) {
-            setDeudorSalesData(extractedDeudorData);
+          const deudorData = extractSalesData(ventasReporte, 'deudor');
+          if (hasDataInSalesData(deudorData)) {
+            setDeudorSalesData(deudorData);
             deudorHasData = true;
           }
         }
       }
 
+      // Si no hay datos del proveedor, buscar en reportes tributarios
       if (!providerHasData) {
-        const reportesTributariosProveedor = await ReporteTributarioService.getReportesByRuc(ruc);
-        if (reportesTributariosProveedor && reportesTributariosProveedor.length > 0) {
-          setProveedorSalesData(extractSalesDataFromReporteTributario(reportesTributariosProveedor));
-          providerHasData = true;
+        try {
+          const reportesTributariosProveedor = await ReporteTributarioService.getReportesByRuc(ruc);
+          if (reportesTributariosProveedor && reportesTributariosProveedor.length > 0) {
+            const proveedorData = extractSalesDataFromReporteTributario(reportesTributariosProveedor);
+            if (hasDataInSalesData(proveedorData)) {
+              setProveedorSalesData(proveedorData);
+              providerHasData = true;
+            }
+          }
+        } catch (err) {
+          console.warn('Error loading reporte tributario for proveedor:', err);
         }
       }
 
+      // Si no hay datos del deudor y existe deudorRuc, buscar en reportes tributarios
       if (deudorRuc && !deudorHasData) {
-        const reportesTributariosDeudor = await ReporteTributarioService.getReportesByRuc(deudorRuc);
-        if (reportesTributariosDeudor && reportesTributariosDeudor.length > 0) {
-          setDeudorSalesData(extractSalesDataFromReporteTributario(reportesTributariosDeudor));
-          deudorHasData = true;
+        try {
+          const reportesTributariosDeudor = await ReporteTributarioService.getReportesByRuc(deudorRuc);
+          if (reportesTributariosDeudor && reportesTributariosDeudor.length > 0) {
+            const deudorData = extractSalesDataFromReporteTributario(reportesTributariosDeudor);
+            if (hasDataInSalesData(deudorData)) {
+              setDeudorSalesData(deudorData);
+              deudorHasData = true;
+            }
+          }
+        } catch (err) {
+          console.warn('Error loading reporte tributario for deudor:', err);
         }
       }
 
+      // Si no había reporte de ventas pero sí datos, crear uno virtual
       if (!ventasReporte && (providerHasData || deudorHasData)) {
         setVentasReport({
           proveedor_ruc: ruc,
@@ -133,9 +165,13 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
           status: 'Autocompletado (No guardado)',
           updated_at: new Date().toISOString()
         });
-      } else if (!providerHasData && !deudorHasData) {
+      }
+
+      // Si no hay datos de ningún tipo
+      if (!providerHasData && !deudorHasData) {
         setError('No se encontraron datos de ventas mensuales ni reportes tributarios para este RUC.');
       }
+
     } catch (err: any) {
       console.error('[VMS] Error fetching data:', err);
       setError(err.message || 'Ocurrió un error al buscar la información.');
@@ -148,8 +184,8 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     fetchData();
   }, [ruc, deudorRuc]);
 
-  const hasProviderData = Object.keys(proveedorSalesData).length > 0 && Object.values(proveedorSalesData).some(year => Object.values(year).some(v => v !== null));
-  const hasDeudorData = Object.keys(deudorSalesData).length > 0 && Object.values(deudorSalesData).some(year => Object.values(year).some(v => v !== null));
+  const hasProviderData = hasDataInSalesData(proveedorSalesData);
+  const hasDeudorData = hasDataInSalesData(deudorSalesData);
   const hasData = hasProviderData || hasDeudorData;
 
   if (loading) {
@@ -169,7 +205,11 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
           <div className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-gray-600 mx-auto mb-4" />
             <p className="text-gray-400">{error || 'No hay datos de ventas mensuales disponibles'}</p>
-            <p className="text-gray-500 text-xs mt-2">Debug: RUCs buscados = {ruc}{deudorRuc ? `, ${deudorRuc}` : ''}</p>
+            <p className="text-gray-500 text-xs mt-2">
+              Debug: RUCs buscados = {ruc}{deudorRuc ? `, ${deudorRuc}` : ''} | 
+              Proveedor: {hasProviderData ? 'Sí' : 'No'} | 
+              Deudor: {hasDeudorData ? 'Sí' : 'No'}
+            </p>
             <Button onClick={fetchData} variant="outline" size="sm" className="mt-4"><Search className="h-4 w-4 mr-2" />Reintentar búsqueda</Button>
           </div>
         </CardContent>
