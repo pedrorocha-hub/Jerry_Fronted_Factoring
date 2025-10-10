@@ -24,6 +24,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
   const [ventasReport, setVentasReport] = useState<any>(null);
 
   const ruc = dossier.solicitudOperacion.ruc;
+  const deudorRuc = dossier.solicitudOperacion.deudor;
 
   const extractSalesData = (report: any | null, type: 'proveedor' | 'deudor'): SalesData => {
     const salesData: SalesData = {};
@@ -71,7 +72,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
 
   const fetchData = async () => {
     if (!ruc) {
-      setError("RUC no disponible en el dossier.");
+      setError("RUC del proveedor no disponible en el dossier.");
       setLoading(false);
       return;
     }
@@ -80,28 +81,46 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
     setError(null);
 
     try {
-      const mainFicha = await FichaRucService.getByRuc(ruc);
+      const fichaPromises = [FichaRucService.getByRuc(ruc)];
+      if (deudorRuc) {
+        fichaPromises.push(FichaRucService.getByRuc(deudorRuc));
+      }
+      const [mainFicha, deudorFichaData] = await Promise.all(fichaPromises);
       setFicha(mainFicha);
+      if (deudorFichaData) {
+        setDeudorFicha(deudorFichaData);
+      }
 
       const ventasReporte = await VentasMensualesService.getByProveedorRuc(ruc);
       
       if (ventasReporte) {
         setVentasReport(ventasReporte);
         setProveedorSalesData(extractSalesData(ventasReporte, 'proveedor'));
-
         if (ventasReporte.deudor_ruc) {
-          const deudorFichaData = await FichaRucService.getByRuc(ventasReporte.deudor_ruc);
-          setDeudorFicha(deudorFichaData);
           setDeudorSalesData(extractSalesData(ventasReporte, 'deudor'));
         }
       } else {
-        const reportesTributarios = await ReporteTributarioService.getReportesByRuc(ruc);
-        
-        if (reportesTributarios && reportesTributarios.length > 0) {
-          const initialSalesData = extractSalesDataFromReporteTributario(reportesTributarios);
-          setProveedorSalesData(initialSalesData);
+        let providerHasData = false;
+        let deudorHasData = false;
+
+        const reportesTributariosProveedor = await ReporteTributarioService.getReportesByRuc(ruc);
+        if (reportesTributariosProveedor && reportesTributariosProveedor.length > 0) {
+          setProveedorSalesData(extractSalesDataFromReporteTributario(reportesTributariosProveedor));
+          providerHasData = true;
+        }
+
+        if (deudorRuc) {
+          const reportesTributariosDeudor = await ReporteTributarioService.getReportesByRuc(deudorRuc);
+          if (reportesTributariosDeudor && reportesTributariosDeudor.length > 0) {
+            setDeudorSalesData(extractSalesDataFromReporteTributario(reportesTributariosDeudor));
+            deudorHasData = true;
+          }
+        }
+
+        if (providerHasData || deudorHasData) {
           setVentasReport({
             proveedor_ruc: ruc,
+            deudor_ruc: deudorRuc || null,
             status: 'Autocompletado (No guardado)',
             updated_at: new Date().toISOString()
           });
@@ -119,9 +138,11 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
 
   useEffect(() => {
     fetchData();
-  }, [ruc]);
+  }, [ruc, deudorRuc]);
 
-  const hasData = Object.keys(proveedorSalesData).length > 0 && Object.values(proveedorSalesData).some(year => Object.values(year).some(v => v !== null));
+  const hasProviderData = Object.keys(proveedorSalesData).length > 0 && Object.values(proveedorSalesData).some(year => Object.values(year).some(v => v !== null));
+  const hasDeudorData = Object.keys(deudorSalesData).length > 0 && Object.values(deudorSalesData).some(year => Object.values(year).some(v => v !== null));
+  const hasData = hasProviderData || hasDeudorData;
 
   if (loading) {
     return (
@@ -168,12 +189,14 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
             </div>
           </div>
 
-          <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader><CardTitle className="flex items-center text-white"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Ventas del Proveedor</CardTitle></CardHeader>
-            <CardContent><VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} /></CardContent>
-          </Card>
+          {hasProviderData && (
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader><CardTitle className="flex items-center text-white"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Ventas del Proveedor</CardTitle></CardHeader>
+              <CardContent><VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} /></CardContent>
+            </Card>
+          )}
 
-          {deudorFicha && (
+          {hasDeudorData && deudorFicha && (
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader><CardTitle className="flex items-center text-white"><Building2 className="h-5 w-5 mr-2 text-blue-400" />Ventas del Deudor: {deudorFicha.nombre_empresa}</CardTitle></CardHeader>
               <CardContent><VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} /></CardContent>
