@@ -67,6 +67,8 @@ export interface Eeff {
   
   created_at?: string;
   updated_at?: string;
+
+  [key: string]: any;
 }
 
 export interface CreateEeffDto {
