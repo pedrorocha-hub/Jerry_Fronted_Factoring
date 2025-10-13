@@ -8,7 +8,8 @@ import RepresentanteLegal from './pages/RepresentanteLegal';
 import Eeff from './pages/Eeff';
 import FacturaNegociar from './pages/FacturaNegociar';
 import ReporteTributario from './pages/ReporteTributario';
-import SolicitudesOperacion from './pages/SolicitudesOperacion';
+import SolicitudOperacionList from './pages/SolicitudOperacionList';
+import SolicitudOperacionCreateEdit from './pages/SolicitudOperacionCreateEdit';
 import Rib from './pages/Rib';
 import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import RibReporteTributario from './pages/RibReporteTributario';
@@ -34,7 +35,9 @@ function App() {
           <Route path="/eeff" element={<ProtectedRoute><Eeff /></ProtectedRoute>} />
           <Route path="/factura-negociar" element={<ProtectedRoute><FacturaNegociar /></ProtectedRoute>} />
           <Route path="/reporte-tributario" element={<ProtectedRoute><ReporteTributario /></ProtectedRoute>} />
-          <Route path="/solicitudes-operacion" element={<ProtectedRoute><SolicitudesOperacion /></ProtectedRoute>} />
+          <Route path="/solicitudes-operacion" element={<ProtectedRoute><SolicitudOperacionList /></ProtectedRoute>} />
+          <Route path="/solicitudes-operacion/new" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
+          <Route path="/solicitudes-operacion/edit/:id" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
           <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
           <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
           <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributario /></ProtectedRoute>} />
