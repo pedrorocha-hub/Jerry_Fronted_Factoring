@@ -1,48 +1,60 @@
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, FileText, Users, Upload, BarChart2, ShieldCheck, TrendingUp, FileClock, FolderCheck, Briefcase } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import LogoutButton from './LogoutButton';
+import { Home, FileText, FolderCheck, Building, Upload, Users } from 'lucide-react';
+import { useSession } from '@/contexts/SessionContext';
 
-const navItems = [
-  { href: '/', icon: Home, label: 'Dashboard' },
-  { href: '/fichas-ruc', icon: FileText, label: 'Fichas RUC' },
-  { href: '/eeff', icon: BarChart2, label: 'EEFF' },
-  { href: '/sentinel', icon: ShieldCheck, label: 'Sentinel' },
-  { href: '/comportamiento-crediticio', icon: Users, label: 'Comportamiento Crediticio' },
-  { href: '/ventas-mensuales', icon: TrendingUp, label: 'Ventas Mensuales' },
-  { href: '/rib-reporte-tributario', icon: FileClock, label: 'RIB Reporte Tributario' },
-  { href: '/dossiers-guardados', icon: FolderCheck, label: 'Dossiers Guardados' },
-  { href: '/solicitudes-operacion', icon: Briefcase, label: 'Solicitudes de Operación' },
-  { href: '/upload', icon: Upload, label: 'Subir PDFs' },
-];
+const Sidebar: React.FC = () => {
+  const { isAdmin } = useSession();
 
-const Sidebar = () => {
+  const navItems = [
+    { to: '/', icon: Home, label: 'Dashboard' },
+    { to: '/solicitudes-operacion', icon: FileText, label: 'Solicitudes de Operación' },
+    { to: '/dossiers-guardados', icon: FolderCheck, label: 'Dossiers Guardados' },
+    { to: '/fichas-ruc', icon: Building, label: 'Fichas RUC' },
+    { to: '/upload', icon: Upload, label: 'Subir Documentos' },
+  ];
+
+  const adminNavItems = [
+    { to: '/admin/users', icon: Users, label: 'Gestión de Usuarios' },
+  ];
+
+  const linkClasses = "flex items-center px-4 py-3 text-gray-300 rounded-lg transition-colors duration-200";
+  const activeLinkClasses = "bg-[#00FF80]/10 text-[#00FF80] font-semibold";
+
   return (
-    <aside className="w-64 bg-black border-r border-gray-800 flex flex-col">
-      <div className="p-6">
+    <aside className="w-64 bg-[#121212] border-r border-gray-800 flex flex-col">
+      <div className="flex items-center justify-center h-16 border-b border-gray-800">
         <h1 className="text-2xl font-bold text-white">LCP</h1>
       </div>
-      <nav className="flex-1 px-4 py-2 space-y-1">
-        {navItems.map((item) => (
+      <nav className="flex-1 p-4 space-y-2">
+        {navItems.map(item => (
           <NavLink
-            key={item.label}
-            to={item.href}
-            end={item.href === '/'}
-            className={({ isActive }) =>
-              cn(
-                'flex items-center px-3 py-2 text-gray-400 rounded-md hover:bg-gray-800 hover:text-white transition-colors text-sm',
-                isActive && 'bg-[#00FF80]/10 text-[#00FF80]'
-              )
-            }
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : 'hover:bg-gray-800'}`}
           >
-            <item.icon className="h-4 w-4 mr-3" />
+            <item.icon className="h-5 w-5 mr-3" />
             <span>{item.label}</span>
           </NavLink>
         ))}
+        {isAdmin && (
+          <>
+            <div className="px-4 pt-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Admin
+            </div>
+            {adminNavItems.map(item => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : 'hover:bg-gray-800'}`}
+              >
+                <item.icon className="h-5 w-5 mr-3" />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </>
+        )}
       </nav>
-      <div className="p-4 mt-auto">
-        <LogoutButton />
-      </div>
     </aside>
   );
 };

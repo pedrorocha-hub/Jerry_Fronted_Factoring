@@ -1,60 +1,76 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import { SessionContextProvider, useSession } from '@/contexts/SessionContext';
-import Login from './pages/Login';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { SessionProvider, useSession } from './contexts/SessionContext';
 import Dashboard from './pages/Dashboard';
-import FichaRucPage from './pages/FichaRuc';
-import FichaRucDetailsPage from './pages/FichaRucDetails';
-import EeffPage from './pages/Eeff';
-import EeffForm from './pages/EeffForm';
-import UploadPage from './pages/Upload';
-import SentinelPage from './pages/Sentinel';
-import ComportamientoCrediticioPage from './pages/ComportamientoCrediticio';
-import VentasMensualesPage from './pages/VentasMensuales';
-import RibReporteTributarioPage from './pages/RibReporteTributario';
+import SolicitudesOperacionPage from './pages/SolicitudesOperacionPage';
 import DossiersGuardadosPage from './pages/DossiersGuardados';
-import SolicitudesOperacionPage from './pages/SolicitudesOperacion';
-import SolicitudOperacionForm from './pages/SolicitudOperacionForm';
+import FichasRucPage from './pages/FichasRucPage';
+import UploadPage from './pages/UploadPage';
+import LoginPage from './pages/LoginPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
+import SolicitudOperacionFormPage from './pages/SolicitudOperacionFormPage';
+import UsersPage from './pages/Admin/Users';
+import { Loader2 } from 'lucide-react';
 
-const PrivateRoute = ({ children }: { children: JSX.Element }) => {
-  const { session, loading } = useSession();
-
+const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
+  const { session, loading, isAdmin } = useSession();
+  
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80]"></div>
+      <div className="flex items-center justify-center h-screen bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
       </div>
     );
   }
 
-  return session ? children : <Navigate to="/login" replace />;
+  if (!session) {
+    return <Navigate to="/login" />;
+  }
+
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/" />;
+  }
+
+  return children;
+};
+
+const AppRoutes = () => {
+  const { session, loading } = useSession();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/login" element={session ? <Navigate to="/" /> : <LoginPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      
+      <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/solicitudes-operacion" element={<PrivateRoute><SolicitudesOperacionPage /></PrivateRoute>} />
+      <Route path="/solicitudes-operacion/new" element={<PrivateRoute><SolicitudOperacionFormPage /></PrivateRoute>} />
+      <Route path="/solicitudes-operacion/edit/:id" element={<PrivateRoute><SolicitudOperacionFormPage /></PrivateRoute>} />
+      <Route path="/dossiers-guardados" element={<PrivateRoute><DossiersGuardadosPage /></PrivateRoute>} />
+      <Route path="/fichas-ruc" element={<PrivateRoute><FichasRucPage /></PrivateRoute>} />
+      <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
+      
+      <Route path="/admin/users" element={<PrivateRoute adminOnly={true}><UsersPage /></PrivateRoute>} />
+
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
 };
 
 function App() {
   return (
-    <SessionContextProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          <Route path="/fichas-ruc" element={<PrivateRoute><FichaRucPage /></PrivateRoute>} />
-          <Route path="/fichas-ruc/:ruc" element={<PrivateRoute><FichaRucDetailsPage /></PrivateRoute>} />
-          <Route path="/eeff" element={<PrivateRoute><EeffPage /></PrivateRoute>} />
-          <Route path="/eeff/new" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
-          <Route path="/eeff/edit/:id" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
-          <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
-          <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
-          <Route path="/comportamiento-crediticio" element={<PrivateRoute><ComportamientoCrediticioPage /></PrivateRoute>} />
-          <Route path="/ventas-mensuales" element={<PrivateRoute><VentasMensualesPage /></PrivateRoute>} />
-          <Route path="/rib-reporte-tributario" element={<PrivateRoute><RibReporteTributarioPage /></PrivateRoute>} />
-          <Route path="/dossiers-guardados" element={<PrivateRoute><DossiersGuardadosPage /></PrivateRoute>} />
-          <Route path="/solicitudes-operacion" element={<PrivateRoute><SolicitudesOperacionPage /></PrivateRoute>} />
-          <Route path="/solicitudes-operacion/new" element={<PrivateRoute><SolicitudOperacionForm /></PrivateRoute>} />
-          <Route path="/solicitudes-operacion/edit/:id" element={<PrivateRoute><SolicitudOperacionForm /></PrivateRoute>} />
-        </Routes>
-      </Router>
-      <Toaster richColors theme="dark" />
-    </SessionContextProvider>
+    <Router>
+      <SessionProvider>
+        <AppRoutes />
+      </SessionProvider>
+    </Router>
   );
 }
 

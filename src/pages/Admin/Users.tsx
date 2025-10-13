@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Shield, Save, Loader2 } from 'lucide-react';
+import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Users } from 'lucide-react';
 import { showSuccess, showError } from '@/utils/toast';
-import { Profile } from '@/contexts/SessionContext';
 
-interface UserWithProfile extends Profile {
+interface UserWithProfile {
+  id: string;
   email: string;
+  role: 'ADMINISTRADOR' | 'COMERCIAL';
 }
 
 const UsersPage = () => {
@@ -23,85 +24,98 @@ const UsersPage = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc('get_users_with_profiles');
-    
-    if (error) {
-      showError('Error al cargar los usuarios.');
-      console.error(error);
-    } else {
+    try {
+      const { data, error } = await supabase.rpc('get_users_with_profiles');
+      if (error) throw error;
       setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showError('No se pudieron cargar los usuarios.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleRoleChange = async (userId: string, newRole: 'ADMINISTRADOR' | 'COMERCIAL') => {
     setSaving(prev => ({ ...prev, [userId]: true }));
-    const { error } = await supabase
-      .from('profiles')
-      .update({ role: newRole })
-      .eq('id', userId);
-    
-    if (error) {
-      showError('Error al actualizar el rol.');
-    } else {
-      showSuccess('Rol actualizado correctamente.');
-      fetchUsers();
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+      
+      if (error) throw error;
+
+      showSuccess('Rol de usuario actualizado.');
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        )
+      );
+    } catch (error) {
+      console.error('Error updating role:', error);
+      showError('No se pudo actualizar el rol.');
+    } finally {
+      setSaving(prev => ({ ...prev, [userId]: false }));
     }
-    setSaving(prev => ({ ...prev, [userId]: false }));
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <h1 className="text-2xl font-bold text-white">Gestión de Usuarios</h1>
-      <Card className="bg-[#121212] border border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <Users className="h-5 w-5 mr-2 text-[#00FF80]" />
-            Usuarios del Sistema
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-800 hover:bg-gray-900/50">
-                <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Rol</TableHead>
-                <TableHead className="text-right text-gray-300">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={3} className="text-center text-gray-400 py-8">Cargando...</TableCell></TableRow>
-              ) : (
-                users.map(user => (
-                  <TableRow key={user.id} className="border-gray-800">
-                    <TableCell className="text-white">{user.email}</TableCell>
-                    <TableCell>
-                      <Select
-                        defaultValue={user.role}
-                        onValueChange={(value: 'ADMINISTRADOR' | 'COMERCIAL') => handleRoleChange(user.id, value)}
-                        disabled={saving[user.id]}
-                      >
-                        <SelectTrigger className="w-[180px] bg-gray-900/50 border-gray-700">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                          <SelectItem value="ADMINISTRADOR" className="hover:bg-gray-800">ADMINISTRADOR</SelectItem>
-                          <SelectItem value="COMERCIAL" className="hover:bg-gray-800">COMERCIAL</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {saving[user.id] && <Loader2 className="h-4 w-4 animate-spin inline-block" />}
-                    </TableCell>
+    <Layout>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold text-white mb-6 flex items-center">
+          <Users className="h-6 w-6 mr-3 text-[#00FF80]" />
+          Gestión de Usuarios
+        </h1>
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-white">Usuarios del Sistema</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-800 hover:bg-gray-900">
+                    <TableHead className="text-white">Email</TableHead>
+                    <TableHead className="text-white w-[200px]">Rol</TableHead>
+                    <TableHead className="text-right"></TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+                </TableHeader>
+                <TableBody>
+                  {users.map(user => (
+                    <TableRow key={user.id} className="border-gray-800">
+                      <TableCell className="text-white">{user.email}</TableCell>
+                      <TableCell>
+                        <Select
+                          defaultValue={user.role}
+                          onValueChange={(value: 'ADMINISTRADOR' | 'COMERCIAL') => handleRoleChange(user.id, value)}
+                          disabled={saving[user.id]}
+                        >
+                          <SelectTrigger className="w-[180px] bg-black border-gray-700 text-white">
+                            <SelectValue placeholder="Seleccionar rol" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#121212] border-gray-700 text-white">
+                            <SelectItem value="ADMINISTRADOR">Administrador</SelectItem>
+                            <SelectItem value="COMERCIAL">Comercial</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {saving[user.id] && <Loader2 className="h-4 w-4 animate-spin inline-block" />}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </Layout>
   );
 };
 
