@@ -23,11 +23,11 @@ export class EeffService {
     return data;
   }
 
-  static async getByRepresentanteLegalId(representanteLegalId: number): Promise<Eeff[]> {
+  static async getByRuc(ruc: string): Promise<Eeff[]> {
     const { data, error } = await supabase
       .from('eeff')
       .select('*')
-      .eq('representante_legal_id', representanteLegalId)
+      .eq('ruc', ruc)
       .order('created_at', { ascending: false });
 
     if (error) throw error;

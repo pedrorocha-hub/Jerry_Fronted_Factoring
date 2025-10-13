@@ -13,14 +13,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { EeffService } from '@/services/eeffService';
-import { RepresentanteLegalService } from '@/services/representanteLegalService';
+import { FichaRucService } from '@/services/fichaRucService';
 import { Eeff } from '@/types/eeff';
-import { RepresentanteLegal } from '@/types/representante-legal';
+import { FichaRuc } from '@/types/ficha-ruc';
 import { toast } from 'sonner';
 
 const EeffPage = () => {
   const [eeffs, setEeffs] = useState<Eeff[]>([]);
-  const [representantes, setRepresentantes] = useState<RepresentanteLegal[]>([]);
+  const [fichas, setFichas] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -31,12 +31,12 @@ const EeffPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [eeffsData, representantesData] = await Promise.all([
+      const [eeffsData, fichasData] = await Promise.all([
         EeffService.getAll(),
-        RepresentanteLegalService.getAll()
+        FichaRucService.getAll()
       ]);
       setEeffs(eeffsData);
-      setRepresentantes(representantesData);
+      setFichas(fichasData);
     } catch (error: any) {
       console.error('Error al cargar datos:', error);
       toast.error('Error al cargar los datos de EEFF');
@@ -45,9 +45,9 @@ const EeffPage = () => {
     }
   };
 
-  const getRepresentanteNombre = (representanteLegalId: number) => {
-    const rep = representantes.find(r => r.id === representanteLegalId);
-    return rep?.nombre_completo || 'Desconocido';
+  const getEmpresaNombre = (ruc: string) => {
+    const ficha = fichas.find(f => f.ruc === ruc);
+    return ficha?.nombre_empresa || ruc;
   };
 
   const handleDelete = async (id: string) => {
@@ -72,8 +72,8 @@ const EeffPage = () => {
   };
 
   const filteredEeffs = eeffs.filter(eeff => {
-    const representanteNombre = getRepresentanteNombre(eeff.representante_legal_id);
-    return representanteNombre.toLowerCase().includes(searchTerm.toLowerCase());
+    const empresaNombre = getEmpresaNombre(eeff.ruc);
+    return empresaNombre.toLowerCase().includes(searchTerm.toLowerCase()) || eeff.ruc.includes(searchTerm);
   });
 
   if (loading) {
@@ -134,7 +134,7 @@ const EeffPage = () => {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Buscar por representante legal..."
+                    placeholder="Buscar por empresa o RUC..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 bg-gray-900 border-gray-700 text-white"
@@ -154,7 +154,7 @@ const EeffPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-800">
-                    <TableHead className="text-gray-400">Representante Legal</TableHead>
+                    <TableHead className="text-gray-400">Empresa (RUC)</TableHead>
                     <TableHead className="text-gray-400">Total Activo</TableHead>
                     <TableHead className="text-gray-400">Total Pasivo</TableHead>
                     <TableHead className="text-gray-400">Total Patrimonio</TableHead>
@@ -173,7 +173,7 @@ const EeffPage = () => {
                     filteredEeffs.map((eeff) => (
                       <TableRow key={eeff.id} className="border-gray-800">
                         <TableCell className="text-white">
-                          {getRepresentanteNombre(eeff.representante_legal_id)}
+                          {getEmpresaNombre(eeff.ruc)}
                         </TableCell>
                         <TableCell className="text-white">
                           {formatCurrency(eeff.activo_total_activo_neto)}

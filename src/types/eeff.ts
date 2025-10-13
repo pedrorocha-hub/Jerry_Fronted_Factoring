@@ -1,6 +1,6 @@
 export interface Eeff {
   id: string;
-  representante_legal_id: number;
+  ruc: string;
   
   // Activos
   activo_efectivo_y_equivalentes_de_efectivo?: number | null;
@@ -70,10 +70,11 @@ export interface Eeff {
 }
 
 export interface CreateEeffDto {
-  representante_legal_id: number;
-  [key: string]: number | null | undefined;
+  ruc: string;
+  [key: string]: number | string | null | undefined;
 }
 
 export interface UpdateEeffDto {
-  [key: string]: number | null | undefined;
+  ruc?: string;
+  [key: string]: number | string | null | undefined;
 }
