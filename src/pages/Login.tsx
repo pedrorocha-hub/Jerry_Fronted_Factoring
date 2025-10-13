@@ -4,38 +4,24 @@ import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
+import { Loader2 } from 'lucide-react';
 
 const Login = () => {
   const { session, loading } = useSession();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Only redirect when loading is complete and session exists
     if (!loading && session) {
-      console.log('Login: Session found, redirecting to dashboard');
       navigate('/', { replace: true });
     }
   }, [session, loading, navigate]);
 
-  // Show loading while session is being checked
-  if (loading) {
+  if (loading || session) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80] mx-auto mb-4"></div>
-          <p className="text-gray-400">Verificando sesión...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If there's already a session, don't show login form
-  if (session) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80] mx-auto mb-4"></div>
-          <p className="text-gray-400">Redirigiendo...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-[#00FF80] mx-auto" />
+          <p className="mt-4 text-gray-400">{loading ? 'Verificando sesión...' : 'Redirigiendo...'}</p>
         </div>
       </div>
     );
