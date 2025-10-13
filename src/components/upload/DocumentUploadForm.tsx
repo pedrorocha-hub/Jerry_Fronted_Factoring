@@ -40,10 +40,10 @@ const DOCUMENT_TYPES: { value: DocumentoTipo; label: string; icon: string; descr
     description: 'Información de cuentas bancarias (Cta. Cte., ahorros, etc.)'
   },
   { 
-    value: 'vigencia_poderes', 
-    label: 'Vigencia de Poderes', 
-    icon: '⚖️',
-    description: 'Documentos de vigencia de poderes notariales'
+    value: 'eeff', 
+    label: 'EEFF (Declaración Jurada)', 
+    icon: '🧾',
+    description: 'Estados Financieros / Declaración Jurada de la empresa'
   },
   { 
     value: 'factura_negociar', 
@@ -55,7 +55,7 @@ const DOCUMENT_TYPES: { value: DocumentoTipo; label: string; icon: string; descr
     value: 'reporte_tributario', 
     label: 'Reporte Tributario', 
     icon: '📊',
-    description: 'Estados financieros y reportes tributarios'
+    description: 'Reportes tributarios y balances'
   },
   { 
     value: 'sentinel', 
@@ -96,13 +96,13 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
       } else if (fileName.includes('representante') || fileName.includes('legal')) {
         setDocumentType('representante_legal');
         console.log('Auto-selected: representante_legal');
-      } else if (fileName.includes('poder') || fileName.includes('vigencia')) {
-        setDocumentType('vigencia_poderes');
-        console.log('Auto-selected: vigencia_poderes');
+      } else if (fileName.includes('eeff') || fileName.includes('financiero') || fileName.includes('declaracion')) {
+        setDocumentType('eeff');
+        console.log('Auto-selected: eeff');
       } else if (fileName.includes('factura') || fileName.includes('negociar')) {
         setDocumentType('factura_negociar');
         console.log('Auto-selected: factura_negociar');
-      } else if (fileName.includes('tributario') || fileName.includes('reporte') || fileName.includes('financiero') || fileName.includes('balance') || fileName.includes('estado')) {
+      } else if (fileName.includes('tributario') || fileName.includes('reporte') || fileName.includes('balance')) {
         setDocumentType('reporte_tributario');
         console.log('Auto-selected: reporte_tributario');
       } else if (fileName.includes('sentinel')) {
