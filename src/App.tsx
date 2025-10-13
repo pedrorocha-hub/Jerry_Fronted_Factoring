@@ -4,7 +4,7 @@ import Dashboard from './pages/Dashboard';
 import SolicitudesOperacionPage from './pages/SolicitudesOperacionPage';
 import DossiersGuardadosPage from './pages/DossiersGuardados';
 import FichasRucPage from './pages/FichasRucPage';
-import UploadPage from './pages/UploadPage';
+import Upload from './pages/Upload';
 import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import SolicitudOperacionFormPage from './pages/SolicitudOperacionFormPage';
@@ -58,7 +58,7 @@ const AppRoutes = () => {
       <Route path="/solicitudes-operacion/edit/:id" element={<PrivateRoute><SolicitudOperacionFormPage /></PrivateRoute>} />
       <Route path="/dossiers-guardados" element={<PrivateRoute><DossiersGuardadosPage /></PrivateRoute>} />
       <Route path="/fichas-ruc" element={<PrivateRoute><FichasRucPage /></PrivateRoute>} />
-      <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
+      <Route path="/upload" element={<PrivateRoute><Upload /></PrivateRoute>} />
       <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
       <Route path="/sentinel/create" element={<PrivateRoute><SentinelCreatePage /></PrivateRoute>} />
       <Route path="/reporte-tributario" element={<PrivateRoute><ReporteTributarioPage /></PrivateRoute>} />
