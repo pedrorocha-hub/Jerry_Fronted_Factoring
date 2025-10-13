@@ -10,7 +10,7 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
-const FichaRucPage = () => {
+const FichasRuc = () => {
   const [fichas, setFichas] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -318,4 +318,4 @@ const FichaRucPage = () => {
   );
 };
 
-export default FichaRucPage;
+export default FichasRuc;

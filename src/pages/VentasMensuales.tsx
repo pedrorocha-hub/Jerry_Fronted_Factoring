@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { VentasMensualesService, VentasMensualesSummary } from '@/services/ventasMensualesService';
+import { VentasMensualesService } from '@/services/ventasMensualesService';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
-import { VentasMensuales, VentasStatus } from '@/types/ventasMensuales';
+import { VentasMensuales, VentasMensualesSummary, VentasStatus } from '@/types/ventasMensuales';
 import VentasMensualesTable from '@/components/ventas-mensuales/VentasMensualesTable';
 import VentasMensualesList from '@/components/ventas-mensuales/VentasMensualesList';
 import VentasStatusManager from '@/components/ventas-mensuales/VentasStatusManager';
@@ -414,7 +414,7 @@ const VentasMensualesPage = () => {
                   </div>
                 ) : (
                   <VentasMensualesList
-                    reports={summaries}
+                    items={summaries}
                     onSelectReport={handleSelectReport}
                     onDeleteReport={handleDeleteReport}
                   />

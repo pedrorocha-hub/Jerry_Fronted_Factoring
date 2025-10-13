@@ -4,9 +4,11 @@ import { FilePenLine, Calendar, User, Building2, Trash2 } from 'lucide-react';
 
 interface VentasMensualesListProps {
   items: VentasMensualesSummary[];
+  onSelectReport: (ruc: string) => void;
+  onDeleteReport: (ruc: string) => void;
 }
 
-const VentasMensualesList = ({ items }: VentasMensualesListProps) => {
+const VentasMensualesList = ({ items, onSelectReport, onDeleteReport }: VentasMensualesListProps) => {
   if (!items || items.length === 0) {
     return <p className="text-gray-400">No hay registros de ventas mensuales.</p>;
   }
@@ -25,8 +27,8 @@ const VentasMensualesList = ({ items }: VentasMensualesListProps) => {
               <span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.status === 'Completado' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                 {item.status}
               </span>
-              <button className="text-gray-400 hover:text-white"><FilePenLine className="w-5 h-5" /></button>
-              <button className="text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+              <button onClick={() => onSelectReport(item.ruc)} className="text-gray-400 hover:text-white"><FilePenLine className="w-5 h-5" /></button>
+              <button onClick={() => onDeleteReport(item.ruc)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
             </div>
           </CardContent>
         </Card>
