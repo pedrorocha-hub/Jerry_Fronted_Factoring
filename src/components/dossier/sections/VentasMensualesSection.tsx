@@ -103,16 +103,21 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
       let hasDeudorData = false;
 
       if (ventasReporte) {
+        console.log('Reporte de ventas encontrado:', ventasReporte);
+        
         // Extraer datos del proveedor
         const proveedorData = extractSalesData(ventasReporte, 'proveedor');
+        console.log('Datos del proveedor extraídos:', proveedorData);
         if (hasDataInSalesData(proveedorData)) {
           setProveedorSalesData(proveedorData);
           hasProveedorData = true;
         }
 
-        // Extraer datos del deudor si existe y coincide
-        if (deudorRuc && ventasReporte.deudor_ruc === deudorRuc) {
+        // Extraer datos del deudor si existe
+        if (ventasReporte.deudor_ruc) {
+          console.log('Deudor RUC en reporte:', ventasReporte.deudor_ruc);
           const deudorData = extractSalesData(ventasReporte, 'deudor');
+          console.log('Datos del deudor extraídos:', deudorData);
           if (hasDataInSalesData(deudorData)) {
             setDeudorSalesData(deudorData);
             hasDeudorData = true;
@@ -176,6 +181,14 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
   const hasProveedorData = hasDataInSalesData(proveedorSalesData);
   const hasDeudorData = hasDataInSalesData(deudorSalesData);
 
+  console.log('Estado de renderizado:', {
+    hasProveedorData,
+    hasDeudorData,
+    deudorRuc,
+    proveedorSalesData,
+    deudorSalesData
+  });
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -206,28 +219,18 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
         </h3>
       </div>
 
-      {/* Tarjeta del Proveedor */}
-      {hasProveedorData ? (
-        <Card className="bg-[#121212] border border-gray-800">
-          <CardHeader>
-            <CardTitle className="flex items-center text-white">
-              <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-              Ventas del Proveedor: {fichaProveedor?.nombre_empresa || ruc}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Tarjeta del Proveedor - SIEMPRE SE MUESTRA */}
+      <Card className="bg-[#121212] border border-gray-800">
+        <CardHeader>
+          <CardTitle className="flex items-center text-white">
+            <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+            Ventas del Proveedor: {fichaProveedor?.nombre_empresa || ruc}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasProveedorData ? (
             <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="bg-[#121212] border border-gray-800">
-          <CardHeader>
-            <CardTitle className="flex items-center text-white">
-              <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-              Ventas del Proveedor: {fichaProveedor?.nombre_empresa || ruc}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+          ) : (
             <div className="text-center py-8 text-gray-400">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-500" />
               <p>No se encontraron datos de ventas mensuales para el proveedor.</p>
@@ -235,33 +238,23 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
                 <Search className="h-4 w-4 mr-2" />Reintentar
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Tarjeta del Deudor (solo si existe deudorRuc) */}
+      {/* Tarjeta del Deudor - SE MUESTRA SI EXISTE deudorRuc */}
       {deudorRuc && (
-        hasDeudorData ? (
-          <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader>
-              <CardTitle className="flex items-center text-white">
-                <Building2 className="h-5 w-5 mr-2 text-blue-400" />
-                Ventas del Deudor: {fichaDeudor?.nombre_empresa || deudorRuc}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardHeader>
+            <CardTitle className="flex items-center text-white">
+              <Building2 className="h-5 w-5 mr-2 text-blue-400" />
+              Ventas del Deudor: {fichaDeudor?.nombre_empresa || deudorRuc}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {hasDeudorData ? (
               <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader>
-              <CardTitle className="flex items-center text-white">
-                <Building2 className="h-5 w-5 mr-2 text-blue-400" />
-                Ventas del Deudor: {fichaDeudor?.nombre_empresa || deudorRuc}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+            ) : (
               <div className="text-center py-8 text-gray-400">
                 <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-500" />
                 <p>No se encontraron datos de ventas mensuales para el deudor.</p>
@@ -269,9 +262,9 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
                   <Search className="h-4 w-4 mr-2" />Reintentar
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
