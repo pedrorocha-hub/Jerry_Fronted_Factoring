@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit, Trash2, Briefcase, User, Info } from 'lucide-react';
+import { Plus, Edit, Trash2, Briefcase, User, Info, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -17,9 +17,10 @@ import GerenteModal from './GerenteModal';
 
 interface GerenciaManagerProps {
   ruc: string;
+  readonly?: boolean;
 }
 
-const GerenciaManager: React.FC<GerenciaManagerProps> = ({ ruc }) => {
+const GerenciaManager: React.FC<GerenciaManagerProps> = ({ ruc, readonly = false }) => {
   const [gerentes, setGerentes] = useState<Gerente[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -53,6 +54,7 @@ const GerenciaManager: React.FC<GerenciaManagerProps> = ({ ruc }) => {
   };
 
   const handleSave = async (data: GerenteInsert | GerenteUpdate) => {
+    if (readonly) return;
     setIsSaving(true);
     try {
       if (selectedGerente) {
@@ -72,6 +74,7 @@ const GerenciaManager: React.FC<GerenciaManagerProps> = ({ ruc }) => {
   };
 
   const handleDelete = async (id: string) => {
+    if (readonly) return;
     if (window.confirm('¿Está seguro de que desea eliminar este gerente?')) {
       try {
         await GerenciaService.delete(id);
@@ -90,10 +93,12 @@ const GerenciaManager: React.FC<GerenciaManagerProps> = ({ ruc }) => {
           <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
           Gestión de Gerencia
         </h3>
-        <Button size="sm" onClick={() => handleOpenModal()} className="bg-[#00FF80] text-black hover:bg-[#00FF80]/90">
-          <Plus className="h-4 w-4 mr-2" />
-          Agregar Gerente
-        </Button>
+        {!readonly && (
+          <Button size="sm" onClick={() => handleOpenModal()} className="bg-[#00FF80] text-black hover:bg-[#00FF80]/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Agregar Gerente
+          </Button>
+        )}
       </div>
 
       <div className="bg-[#1a1a1a] rounded-lg border border-gray-800 overflow-hidden">
@@ -121,11 +126,13 @@ const GerenciaManager: React.FC<GerenciaManagerProps> = ({ ruc }) => {
                   <TableCell className="text-gray-400">{gerente.vinculo || 'N/A'}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenModal(gerente)} className="text-gray-400 hover:text-white">
-                      <Edit className="h-4 w-4" />
+                      {readonly ? <Eye className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(gerente.id)} className="text-gray-400 hover:text-red-500">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!readonly && (
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(gerente.id)} className="text-gray-400 hover:text-red-500">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -141,6 +148,7 @@ const GerenciaManager: React.FC<GerenciaManagerProps> = ({ ruc }) => {
           onSave={handleSave}
           gerente={selectedGerente}
           loading={isSaving}
+          readonly={readonly}
         />
       )}
     </div>

@@ -98,6 +98,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (readonly) return;
     
     try {
       const cleanFormData: CuentaBancariaInsert = {
@@ -139,6 +140,7 @@ const CuentasBancariasManager: React.FC<CuentasBancariasManagerProps> = ({
   };
 
   const handleDelete = async (id: string) => {
+    if (readonly) return;
     try {
       await CuentaBancariaService.delete(id);
       showSuccess('Cuenta bancaria eliminada');
