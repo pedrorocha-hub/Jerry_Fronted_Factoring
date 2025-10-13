@@ -33,6 +33,7 @@ const SolicitudOperacionListPage = () => {
   const [loadingSolicitudes, setLoadingSolicitudes] = useState(true);
   const [pdfData, setPdfData] = useState<{ solicitudOperacion: SolicitudOperacion; ficha: FichaRuc; top10k: Top10kData | null } | null>(null);
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
+  const [generatingPdfToastId, setGeneratingPdfToastId] = useState<string | number | null>(null);
 
   useEffect(() => {
     loadSolicitudes();
@@ -54,12 +55,13 @@ const SolicitudOperacionListPage = () => {
         pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
         pdf.save(`Solicitud_Operacion_${pdfData.solicitudOperacion.ruc}.pdf`);
         
-        dismissToast();
+        if (generatingPdfToastId) dismissToast(generatingPdfToastId);
         showSuccess('PDF generado exitosamente.');
         setPdfData(null);
+        setGeneratingPdfToastId(null);
       });
     }
-  }, [pdfData]);
+  }, [pdfData, generatingPdfToastId]);
 
   const loadSolicitudes = async () => {
     setLoadingSolicitudes(true);
@@ -91,7 +93,7 @@ const SolicitudOperacionListPage = () => {
         const enrichedSolicitudes = solicitudData.map(solicitud => ({
           ...solicitud,
           nombre_empresa: rucToNameMap.get(solicitud.ruc) || 'Razón Social no encontrada',
-          creator_name: solicitud.profiles?.full_name || 'Sistema'
+          creator_name: (solicitud.profiles as any)?.full_name || 'Sistema'
         }));
         
         setSolicitudes(enrichedSolicitudes);
@@ -128,7 +130,8 @@ const SolicitudOperacionListPage = () => {
   };
 
   const handleDownload = async (solicitud: SolicitudOperacion) => {
-    showLoading('Generando PDF...');
+    const toastId = showLoading('Generando PDF...');
+    setGeneratingPdfToastId(toastId);
     try {
       const [fichaData, top10kDataResult] = await Promise.all([
         FichaRucService.getByRuc(solicitud.ruc),
@@ -136,7 +139,7 @@ const SolicitudOperacionListPage = () => {
       ]);
 
       if (!fichaData) {
-        dismissToast();
+        dismissToast(toastId);
         showError('No se pudo encontrar la Ficha RUC para generar el PDF.');
         return;
       }
@@ -147,7 +150,7 @@ const SolicitudOperacionListPage = () => {
         top10k: top10kDataResult.data
       });
     } catch (err) {
-      dismissToast();
+      dismissToast(toastId);
       showError('Error al preparar los datos para el PDF.');
     }
   };

@@ -10,3 +10,6 @@ export interface Accionista {
   created_at: string;
   updated_at: string;
 }
+
+export type AccionistaInsert = Omit<Accionista, 'id' | 'created_at' | 'updated_at'>;
+export type AccionistaUpdate = Partial<AccionistaInsert>;

@@ -8,42 +8,44 @@ import RepresentanteLegal from './pages/RepresentanteLegal';
 import Eeff from './pages/Eeff';
 import FacturaNegociar from './pages/FacturaNegociar';
 import ReporteTributario from './pages/ReporteTributario';
-import SolicitudesOperacion from './pages/SolicitudesOperacion';
+import SolicitudOperacionList from './pages/SolicitudOperacionList';
+import SolicitudOperacionCreateEdit from './pages/SolicitudOperacionCreateEdit';
 import Rib from './pages/Rib';
 import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import RibReporteTributario from './pages/RibReporteTributario';
 import VentasMensuales from './pages/VentasMensuales';
 import PlanillaRib from './pages/PlanillaRib';
-import Sentinel from './pages/Sentinel';
+import SentinelPage from './pages/SentinelPage';
 import Login from './pages/Login';
-import { SessionContextProvider } from '@supabase/auth-helpers-react';
-import { supabase } from '@/integrations/supabase/client';
+import { SessionContextProvider } from '@/contexts/SessionContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function App() {
   return (
-    <SessionContextProvider supabaseClient={supabase}>
+    <SessionContextProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-          <Route path="/ficha-ruc" element={<ProtectedRoute><FichaRuc /></ProtectedRoute>} />
-          <Route path="/representante-legal" element={<ProtectedRoute><RepresentanteLegal /></ProtectedRoute>} />
-          <Route path="/eeff" element={<ProtectedRoute><Eeff /></ProtectedRoute>} />
-          <Route path="/factura-negociar" element={<ProtectedRoute><FacturaNegociar /></ProtectedRoute>} />
-          <Route path="/reporte-tributario" element={<ProtectedRoute><ReporteTributario /></ProtectedRoute>} />
-          <Route path="/solicitudes-operacion" element={<ProtectedRoute><SolicitudesOperacion /></ProtectedRoute>} />
-          <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
-          <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
-          <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributario /></ProtectedRoute>} />
-          <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensuales /></ProtectedRoute>} />
-          <Route path="/planilla-rib" element={<ProtectedRoute><PlanillaRib /></ProtectedRoute>} />
-          <Route path="/sentinel" element={<ProtectedRoute><Sentinel /></ProtectedRoute>} />
-          
-          {/* Redirect old route to new one */}
-          <Route path="/vigencia-poderes" element={<Navigate to="/eeff" replace />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/ficha-ruc" element={<FichaRuc />} />
+            <Route path="/representante-legal" element={<RepresentanteLegal />} />
+            <Route path="/eeff" element={<Eeff />} />
+            <Route path="/factura-negociar" element={<FacturaNegociar />} />
+            <Route path="/reporte-tributario" element={<ReporteTributario />} />
+            <Route path="/solicitudes-operacion" element={<SolicitudOperacionList />} />
+            <Route path="/solicitudes-operacion/new" element={<SolicitudOperacionCreateEdit />} />
+            <Route path="/solicitudes-operacion/edit/:id" element={<SolicitudOperacionCreateEdit />} />
+            <Route path="/rib" element={<Rib />} />
+            <Route path="/comportamiento-crediticio" element={<ComportamientoCrediticio />} />
+            <Route path="/rib-reporte-tributario" element={<RibReporteTributario />} />
+            <Route path="/ventas-mensuales" element={<VentasMensuales />} />
+            <Route path="/planilla-rib" element={<PlanillaRib />} />
+            <Route path="/sentinel" element={<SentinelPage />} />
+            <Route path="/vigencia-poderes" element={<Navigate to="/eeff" replace />} />
+          </Route>
         </Routes>
         <Toaster position="top-right" />
       </Router>

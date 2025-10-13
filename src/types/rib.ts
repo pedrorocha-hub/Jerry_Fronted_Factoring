@@ -22,3 +22,6 @@ export interface RibWithDetails extends Rib {
   nombre_empresa?: string;
   profiles?: { full_name: string | null } | null;
 }
+
+export type RibInsert = Omit<Rib, 'id' | 'created_at' | 'updated_at'>;
+export type RibUpdate = Partial<RibInsert>;

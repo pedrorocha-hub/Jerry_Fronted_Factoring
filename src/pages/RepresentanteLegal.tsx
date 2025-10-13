@@ -6,7 +6,7 @@ import RepresentanteLegalModal from '@/components/representante-legal/Representa
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RepresentanteLegalWithFicha } from '@/types/representante-legal';
+import { RepresentanteLegalWithFicha, RepresentanteLegalInsert } from '@/types/representante-legal';
 import { RepresentanteLegalService } from '@/services/representanteLegalService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
@@ -124,49 +124,48 @@ const RepresentanteLegalPage = () => {
     try {
       // Primero verificar si existe al menos una ficha RUC
       const fichasRuc = await FichaRucService.getAll();
-      let fichaRucId = null;
+      let testRuc = '20123456789';
 
       if (fichasRuc.length > 0) {
-        fichaRucId = fichasRuc[0].id;
+        testRuc = fichasRuc[0].ruc;
       } else {
         // Crear una ficha RUC de prueba primero
-        const nuevaFicha = await FichaRucService.create({
+        await FichaRucService.create({
           nombre_empresa: 'EMPRESA DE PRUEBA S.A.C.',
-          ruc: '20123456789',
+          ruc: testRuc,
           actividad_empresa: 'Actividad de prueba',
           estado_contribuyente: 'Activo'
         });
-        fichaRucId = nuevaFicha.id;
       }
 
       // Crear representantes legales de prueba
-      const testRepresentantes = [
+      const testRepresentantes: RepresentanteLegalInsert[] = [
         {
+          ruc: testRuc,
           nombre_completo: 'JUAN CARLOS EJEMPLO LOPEZ',
           numero_documento_identidad: '12345678',
           cargo: 'Gerente General',
           vigencia_poderes: 'Vigente hasta 2025',
           estado_civil: 'Casado',
           domicilio: 'AV. EJEMPLO 123, LIMA, LIMA, PERU',
-          ficha_ruc_id: fichaRucId
         },
         {
+          ruc: testRuc,
           nombre_completo: 'MARIA ELENA SERVICIOS GARCIA',
           numero_documento_identidad: '87654321',
           cargo: 'Administradora',
           vigencia_poderes: 'Vigente hasta 2024',
           estado_civil: 'Soltera',
           domicilio: 'JR. COMERCIO 456, AREQUIPA, AREQUIPA, PERU',
-          ficha_ruc_id: fichaRucId
         },
         {
+          ruc: testRuc,
           nombre_completo: 'CARLOS ALBERTO CONSTRUCTOR RUIZ',
           numero_documento_identidad: '11223344',
           cargo: 'Representante Legal',
           vigencia_poderes: 'Vigente hasta 2026',
           estado_civil: 'Divorciado',
           domicilio: 'AV. CONSTRUCCION 789, TRUJILLO, LA LIBERTAD, PERU',
-          ficha_ruc_id: fichaRucId
         }
       ];
 

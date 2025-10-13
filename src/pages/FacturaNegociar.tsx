@@ -6,7 +6,7 @@ import FacturaNegociarModal from '@/components/factura-negociar/FacturaNegociarM
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FacturaNegociarWithFicha } from '@/types/factura-negociar';
+import { FacturaNegociarWithFicha, FacturaNegociarInsert } from '@/types/factura-negociar';
 import { FacturaNegociarService } from '@/services/facturaNegociarService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
@@ -114,10 +114,11 @@ const FacturaNegociarPage = () => {
     const loadingToast = showLoading('Creando datos de prueba...');
     
     try {
+      const testRuc = '20123456789';
       // Crear algunas facturas de prueba
-      const testFacturas = [
+      const testFacturas: FacturaNegociarInsert[] = [
         {
-          ficha_ruc_id: 1, // Assuming there's at least one ficha_ruc
+          ruc: testRuc,
           numero_factura: 'F001-00000123',
           fecha_emision: '2024-01-15',
           fecha_vencimiento: '2024-02-15',
@@ -127,7 +128,7 @@ const FacturaNegociarPage = () => {
           estado_negociacion: 'Pendiente'
         },
         {
-          ficha_ruc_id: 1,
+          ruc: testRuc,
           numero_factura: 'F001-00000124',
           fecha_emision: '2024-01-20',
           fecha_vencimiento: '2024-02-20',
@@ -139,7 +140,7 @@ const FacturaNegociarPage = () => {
           monto_negociado: 8000.00
         },
         {
-          ficha_ruc_id: 1,
+          ruc: testRuc,
           numero_factura: 'F001-00000125',
           fecha_emision: '2023-12-10',
           fecha_vencimiento: '2024-01-10',

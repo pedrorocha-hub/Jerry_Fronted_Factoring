@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { SalesData } from '@/pages/VentasMensualesProveedor';
+import { SalesData } from '@/pages/VentasMensuales';
 
 interface VentasMensualesTableProps {
   data: SalesData;

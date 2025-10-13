@@ -40,8 +40,8 @@ export class ReporteTributarioService {
 
       return data?.map(item => ({
         ...item,
-        nombre_empresa: item.ficha_ruc?.nombre_empresa || 'Sin nombre',
-        ruc: item.ficha_ruc?.ruc || item.ruc
+        nombre_empresa: (item.ficha_ruc as any)?.nombre_empresa || 'Sin nombre',
+        ruc: (item.ficha_ruc as any)?.ruc || item.ruc
       })) || [];
     } catch (error) {
       console.error('Error in getAll:', error);
@@ -76,7 +76,7 @@ export class ReporteTributarioService {
         if (!acc[ruc]) {
           acc[ruc] = {
             ruc,
-            nombre_empresa: item.ficha_ruc?.nombre_empresa || 'Sin nombre',
+            nombre_empresa: (item.ficha_ruc as any)?.nombre_empresa || 'Sin nombre',
             reportes: [],
             años: new Set(),
             ingresos: []
@@ -95,8 +95,8 @@ export class ReporteTributarioService {
         ruc: group.ruc,
         nombre_empresa: group.nombre_empresa,
         total_reportes: group.reportes.length,
-        años_disponibles: Array.from(group.años).sort((a, b) => b - a),
-        ultimo_reporte: Math.max(...Array.from(group.años)).toString(),
+        años_disponibles: Array.from(group.años).sort((a: any, b: any) => b - a) as number[],
+        ultimo_reporte: Math.max(...(Array.from(group.años) as number[])).toString(),
         promedio_ingresos: group.ingresos.length > 0 
           ? group.ingresos.reduce((sum: number, val: number) => sum + val, 0) / group.ingresos.length 
           : 0
@@ -201,8 +201,8 @@ export class ReporteTributarioService {
 
       return {
         ...data,
-        nombre_empresa: data.ficha_ruc?.nombre_empresa || 'Sin nombre',
-        ruc: data.ficha_ruc?.ruc || data.ruc
+        nombre_empresa: (data.ficha_ruc as any)?.nombre_empresa || 'Sin nombre',
+        ruc: (data.ficha_ruc as any)?.ruc || data.ruc
       };
     } catch (error) {
       console.error('Error in getById:', error);

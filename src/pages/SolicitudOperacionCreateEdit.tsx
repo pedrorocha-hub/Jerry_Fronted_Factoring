@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, PlusCircle, Trash2 } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, PlusCircle, Trash2, Clock } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,8 +43,27 @@ interface RiesgoRow {
 }
 
 type SolicitudStatus = 'Borrador' | 'Completado' | 'En revisión';
+type DbSolicitudStatus = 'draft' | 'in_review' | 'completed';
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
+
+const mapStatusToDb = (status: SolicitudStatus): DbSolicitudStatus => {
+  switch (status) {
+    case 'Borrador': return 'draft';
+    case 'En revisión': return 'in_review';
+    case 'Completado': return 'completed';
+    default: return 'draft';
+  }
+};
+
+const mapDbToStatus = (dbStatus: DbSolicitudStatus | string): SolicitudStatus => {
+  switch (dbStatus) {
+    case 'draft': return 'Borrador';
+    case 'in_review': return 'En revisión';
+    case 'completed': return 'Completado';
+    default: return 'Borrador';
+  }
+};
 
 const SolicitudOperacionCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -121,7 +140,7 @@ const SolicitudOperacionCreateEditPage = () => {
     }
 
     setSolicitudFormData({
-      status: (solicitud.status as SolicitudStatus) || 'Borrador',
+      status: mapDbToStatus(solicitud.status),
       direccion: solicitud.direccion || '',
       visita: solicitud.visita || '',
       contacto: solicitud.contacto || '',
@@ -151,15 +170,15 @@ const SolicitudOperacionCreateEditPage = () => {
             await handleEditSolicitud(solicitudData);
             if (solicitudData.user_id) {
               const { data: creatorData, error: creatorError } = await supabase
-                .rpc('get_user_details', { user_id_input: solicitudData.user_id })
-                .single();
+                .rpc('get_user_details', { user_id_input: solicitudData.user_id });
 
               if (creatorError) {
                 console.error("Error fetching creator details:", creatorError);
-              } else if (creatorData) {
+              } else if (creatorData && creatorData.length > 0) {
+                const userDetails = creatorData[0] as { full_name: string; email: string };
                 setCreatorInfo({
-                  fullName: creatorData.full_name,
-                  email: creatorData.email
+                  fullName: userDetails.full_name,
+                  email: userDetails.email
                 });
               }
             }
@@ -267,17 +286,18 @@ const SolicitudOperacionCreateEditPage = () => {
     }
     setSaving(true);
     try {
-      const firstRiesgoRow = riesgoRows[0] || {};
+      const firstRiesgoRow = riesgoRows[0];
       const dataToSave = {
         ...solicitudFormData,
+        status: mapStatusToDb(solicitudFormData.status),
         ruc,
         tipo_cambio: parseFloat(solicitudFormData.tipo_cambio) || null,
-        lp: firstRiesgoRow.lp,
-        producto: firstRiesgoRow.producto,
-        deudor: firstRiesgoRow.deudor,
-        lp_vigente_gve: firstRiesgoRow.lp_vigente_gve,
-        riesgo_aprobado: firstRiesgoRow.riesgo_aprobado,
-        propuesta_comercial: firstRiesgoRow.propuesta_comercial,
+        lp: firstRiesgoRow?.lp,
+        producto: firstRiesgoRow?.producto,
+        deudor: firstRiesgoRow?.deudor,
+        lp_vigente_gve: firstRiesgoRow?.lp_vigente_gve,
+        riesgo_aprobado: firstRiesgoRow?.riesgo_aprobado,
+        propuesta_comercial: firstRiesgoRow?.propuesta_comercial,
       };
 
       if (editingSolicitud) {
@@ -507,12 +527,11 @@ const SolicitudOperacionCreateEditPage = () => {
                       </Select>
                     </div>
                     {editingSolicitud && (
-                      <div className="mt-6 border-t border-gray-800 pt-4 text-sm text-gray-400 space-y-3">
+                      <div className="mt-6 border-t border-gray-800 pt-4 text-sm text-gray-300 space-y-3">
                         {creatorInfo && (
-                          <div className="flex items-center gap-2"><User className="h-4 w-4 flex-shrink-0" /><span>Creado por: <strong className="text-gray-200">{creatorInfo.fullName || 'N/A'}</strong> ({creatorInfo.email || 'N/A'})</span></div>
+                          <div className="flex items-start"><User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" /><div><p><strong className="text-gray-400">Ejecutivo:</strong>{creatorInfo ? <span> {creatorInfo.fullName} ({creatorInfo.email})</span> : <span> Cargando...</span>}</p><div className="flex items-center mt-1 text-gray-500"><Calendar className="h-4 w-4 mr-2" /><span className="text-xs">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</span></div></div></div>
                         )}
-                        <div className="flex items-center gap-2"><Calendar className="h-4 w-4 flex-shrink-0" /><span>Fecha de creación: <strong className="text-gray-200">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</strong></span></div>
-                        <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 flex-shrink-0" /><span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span></div>
+                        <div className="flex items-center"><Clock className="h-4 w-4 mr-2 text-gray-400" /><div><strong className="text-gray-400">Última modificación:</strong> {new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</div></div>
                       </div>
                     )}
                   </CardContent>

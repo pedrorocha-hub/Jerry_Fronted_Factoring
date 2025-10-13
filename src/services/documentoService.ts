@@ -241,47 +241,38 @@ export class DocumentoService {
 
   // Obtener estadísticas
   static async getStats() {
-    const { count: totalCount } = await supabase
-      .from('documentos')
-      .select('*', { count: 'exact', head: true });
+    const { data, error } = await supabase.from('documentos').select('tipo, estado, created_at');
+    if (error) throw error;
+    if (!data) {
+      return {
+        total: 0,
+        procesados: 0,
+        pendientes: 0,
+        errores: 0,
+        thisMonth: 0,
+        typeDistribution: {},
+        statusDistribution: {}
+      };
+    }
 
-    const { count: pendingCount } = await supabase
-      .from('documentos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'pending');
+    const total = data.length;
+    const typeDistribution: { [key: string]: number } = {};
+    const statusDistribution: { [key: string]: number } = {};
+    let thisMonth = 0;
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-    const { count: processingCount } = await supabase
-      .from('documentos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'processing');
+    data.forEach(doc => {
+      if (doc.tipo) typeDistribution[doc.tipo] = (typeDistribution[doc.tipo] || 0) + 1;
+      if (doc.estado) statusDistribution[doc.estado] = (statusDistribution[doc.estado] || 0) + 1;
+      if (new Date(doc.created_at) >= oneMonthAgo) thisMonth++;
+    });
 
-    const { count: completedCount } = await supabase
-      .from('documentos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'completed');
+    const procesados = statusDistribution['completed'] || 0;
+    const pendientes = (statusDistribution['pending'] || 0) + (statusDistribution['processing'] || 0);
+    const errores = statusDistribution['error'] || 0;
 
-    const { count: errorCount } = await supabase
-      .from('documentos')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'error');
-
-    const { count: todayCount } = await supabase
-      .from('documentos')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', new Date().toISOString().split('T')[0]);
-
-    return {
-      total: totalCount || 0,
-      pending: pendingCount || 0,
-      processing: processingCount || 0,
-      completed: completedCount || 0,
-      error: errorCount || 0,
-      today: todayCount || 0,
-      procesados: completedCount || 0,
-      pendientes: (pendingCount || 0) + (processingCount || 0),
-      errores: errorCount || 0,
-      thisMonth: todayCount || 0 // Simplified for now
-    };
+    return { total, procesados, pendientes, errores, thisMonth, typeDistribution, statusDistribution };
   }
 }
 
