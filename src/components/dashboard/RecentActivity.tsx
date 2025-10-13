@@ -10,19 +10,19 @@ interface RecentActivityProps {
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   return (
-    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-      <CardHeader className="border-b border-gray-100">
+    <Card className="bg-[#121212] border border-gray-800">
+      <CardHeader className="border-b border-gray-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Activity className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-[#00FF80]/10 rounded-lg border border-[#00FF80]/20">
+              <Activity className="h-5 w-5 text-[#00FF80]" />
             </div>
             <div>
-              <CardTitle className="text-xl">Actividad Reciente</CardTitle>
-              <p className="text-sm text-gray-500">Últimas empresas procesadas por IA</p>
+              <CardTitle className="text-xl text-white">Actividad Reciente</CardTitle>
+              <p className="text-sm text-gray-400">Últimas empresas procesadas por IA</p>
             </div>
           </div>
-          <Badge variant="secondary" className="bg-blue-50 text-blue-700">
+          <Badge variant="secondary" className="bg-gray-800 text-gray-300 border border-gray-700">
             {activities.length} registros
           </Badge>
         </div>
@@ -30,14 +30,14 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
       <CardContent className="p-6">
         {activities.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="h-8 w-8 text-blue-500" />
+            <div className="w-16 h-16 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-800">
+              <FileText className="h-8 w-8 text-gray-500" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay actividad reciente</h3>
-            <p className="text-gray-500 mb-6">Los datos procesados por tu agente de IA aparecerán aquí automáticamente</p>
+            <h3 className="text-lg font-medium text-white mb-2">No hay actividad reciente</h3>
+            <p className="text-gray-400 mb-6">Los datos procesados por tu agente de IA aparecerán aquí automáticamente</p>
             <Button 
               onClick={() => window.location.href = '/upload'} 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
             >
               <Upload className="h-4 w-4 mr-2" />
               Subir Documentos
@@ -48,30 +48,30 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
             {activities.map((activity, index) => (
               <div 
                 key={index} 
-                className="group flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-gray-50 to-blue-50 hover:from-blue-50 hover:to-purple-50 transition-all duration-300 border border-gray-100 hover:border-blue-200 hover:shadow-md"
+                className="group flex items-center space-x-4 p-4 rounded-xl bg-gray-900/50 hover:bg-gray-800 transition-all duration-300 border border-gray-800 hover:border-[#00FF80]/30"
               >
                 <div className="flex-shrink-0">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                    <Building2 className="h-6 w-6 text-white" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#00FF80]/10 to-gray-900 rounded-xl flex items-center justify-center border border-gray-700">
+                    <Building2 className="h-6 w-6 text-[#00FF80]" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-semibold text-gray-900 truncate">
+                    <h4 className="text-sm font-semibold text-white truncate">
                       {activity.nombre_empresa || 'Nueva empresa procesada'}
                     </h4>
-                    <Badge className="bg-green-100 text-green-800 border-0 text-xs shadow-sm">
+                    <Badge className="bg-[#00FF80]/10 text-[#00FF80] border-0 text-xs">
                       ✨ Procesado por IA
                     </Badge>
                   </div>
-                  <p className="text-xs text-gray-600 mb-1 flex items-center">
+                  <p className="text-xs text-gray-400 mb-1 flex items-center">
                     <span className="font-medium">RUC:</span> 
-                    <span className="font-mono ml-1 bg-gray-100 px-2 py-0.5 rounded text-xs">
+                    <span className="font-mono ml-1 bg-gray-800 px-2 py-0.5 rounded text-xs text-gray-300">
                       {activity.ruc || 'N/A'}
                     </span>
                   </p>
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-400 flex items-center">
+                    <p className="text-xs text-gray-500 flex items-center">
                       <span className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 animate-pulse"></span>
                       {new Date(activity.created_at).toLocaleString('es-ES', {
                         day: '2-digit',
@@ -84,8 +84,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs h-6 px-2"
-                      onClick={() => window.location.href = '/ficha-ruc'}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xs h-6 px-2 text-[#00FF80] hover:bg-[#00FF80]/10"
+                      onClick={() => window.location.href = '/fichas-ruc'}
                     >
                       Ver →
                     </Button>
@@ -94,16 +94,16 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
               </div>
             ))}
             
-            <div className="pt-4 border-t border-gray-100">
+            <div className="pt-4 border-t border-gray-800">
               <div className="flex justify-between items-center">
                 <Button 
                   variant="ghost" 
-                  className="text-blue-600 hover:bg-blue-50 font-medium"
-                  onClick={() => window.location.href = '/ficha-ruc'}
+                  className="text-[#00FF80] hover:bg-[#00FF80]/10 font-medium"
+                  onClick={() => window.location.href = '/fichas-ruc'}
                 >
                   Ver todas las fichas RUC →
                 </Button>
-                <div className="text-xs text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                <div className="text-xs text-gray-500 bg-gray-800 px-3 py-1 rounded-full">
                   Mostrando últimas {Math.min(activities.length, 5)} actividades
                 </div>
               </div>

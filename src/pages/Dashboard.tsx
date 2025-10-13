@@ -1,75 +1,113 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/layout/Layout';
-import { FileText, Banknote, BarChart2 } from 'lucide-react';
+import { FileText, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { FichaRucService } from '@/services/fichaRucService';
-import { CuentaBancariaService } from '@/services/cuentaBancariaService';
-import { EeffService } from '@/services/eeffService';
-
-const StatCard = ({ title, value, icon }: { title: string, value: number, icon: React.ReactNode }) => (
-  <Card className="bg-[#121212] border-gray-800">
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium text-gray-400">{title}</CardTitle>
-      {icon}
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-white">{value}</div>
-    </CardContent>
-  </Card>
-);
+import { DocumentoService } from '@/services/documentoService';
+import { FichaRuc } from '@/types/ficha-ruc';
+import StatsCard from '@/components/dashboard/StatsCard';
+import RecentActivity from '@/components/dashboard/RecentActivity';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 const Dashboard = () => {
-  const [counts, setCounts] = useState({
-    fichas: 0,
-    cuentas: 0,
-    eeff: 0,
+  const [stats, setStats] = useState({
+    totalFichas: 0,
+    nuevasEsteMes: 0,
+    pendientes: 0,
+    conErrores: 0,
   });
+  const [recentActivity, setRecentActivity] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCounts = async () => {
+    const fetchData = async () => {
       try {
-        const [fichasData, cuentasData, eeffData] = await Promise.all([
+        const [fichaStats, docStats, recentFichas] = await Promise.all([
+          FichaRucService.getStats(),
+          DocumentoService.getStats(),
           FichaRucService.getAll(),
-          CuentaBancariaService.getAll(),
-          EeffService.getAll(),
         ]);
-        setCounts({
-          fichas: fichasData.length,
-          cuentas: cuentasData.length,
-          eeff: eeffData.length,
+
+        setStats({
+          totalFichas: fichaStats.total,
+          nuevasEsteMes: fichaStats.thisMonth,
+          pendientes: docStats.pendientes,
+          conErrores: docStats.errores,
         });
+
+        setRecentActivity(recentFichas.slice(0, 5));
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchCounts();
+    fetchData();
   }, []);
 
   return (
     <Layout>
       <div className="min-h-screen bg-black text-white p-6">
         <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i} className="bg-[#121212] border-gray-800 animate-pulse">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="h-4 bg-gray-700 rounded w-2/4"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-8 bg-gray-700 rounded w-1/4"></div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="bg-[#121212] border-gray-800 animate-pulse h-36">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="h-4 bg-gray-700 rounded w-2/4"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-8 bg-gray-700 rounded w-1/4 mt-4"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <Card className="bg-[#121212] border-gray-800 animate-pulse h-96">
+              <CardHeader>
+                <div className="h-6 bg-gray-700 rounded w-1/3"></div>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                <div className="h-16 bg-gray-700 rounded"></div>
+                <div className="h-16 bg-gray-700 rounded"></div>
+                <div className="h-16 bg-gray-700 rounded"></div>
+              </CardContent>
+            </Card>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <StatCard title="Fichas RUC" value={counts.fichas} icon={<FileText className="h-6 w-6 text-blue-400" />} />
-            <StatCard title="Cuentas Bancarias" value={counts.cuentas} icon={<Banknote className="h-6 w-6 text-green-400" />} />
-            <StatCard title="EEFF" value={counts.eeff} icon={<BarChart2 className="h-6 w-6 text-indigo-400" />} />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatsCard 
+                title="Total Fichas RUC"
+                value={stats.totalFichas}
+                icon={FileText}
+                gradient="from-blue-500 to-blue-600"
+                href="/fichas-ruc"
+              />
+              <StatsCard 
+                title="Nuevas este Mes"
+                value={stats.nuevasEsteMes}
+                icon={Calendar}
+                gradient="from-purple-500 to-purple-600"
+                href="/fichas-ruc"
+              />
+              <StatsCard 
+                title="Documentos Pendientes"
+                value={stats.pendientes}
+                icon={Clock}
+                gradient="from-yellow-500 to-yellow-600"
+                href="/upload"
+              />
+              <StatsCard 
+                title="Documentos con Errores"
+                value={stats.conErrores}
+                icon={AlertCircle}
+                gradient="from-red-500 to-red-600"
+                href="/upload"
+              />
+            </div>
+            
+            <RecentActivity activities={recentActivity} />
           </div>
         )}
       </div>
