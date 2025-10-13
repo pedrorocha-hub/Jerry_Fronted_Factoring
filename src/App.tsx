@@ -9,6 +9,9 @@ import LoginPage from './pages/LoginPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import SolicitudOperacionFormPage from './pages/SolicitudOperacionFormPage';
 import UsersPage from './pages/Admin/Users';
+import SentinelPage from './pages/SentinelPage';
+import SentinelCreatePage from './pages/SentinelCreatePage';
+import ReporteTributarioPage from './pages/ReporteTributario';
 import { Loader2 } from 'lucide-react';
 
 const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
@@ -56,6 +59,9 @@ const AppRoutes = () => {
       <Route path="/dossiers-guardados" element={<PrivateRoute><DossiersGuardadosPage /></PrivateRoute>} />
       <Route path="/fichas-ruc" element={<PrivateRoute><FichasRucPage /></PrivateRoute>} />
       <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
+      <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
+      <Route path="/sentinel/create" element={<PrivateRoute><SentinelCreatePage /></PrivateRoute>} />
+      <Route path="/reporte-tributario" element={<PrivateRoute><ReporteTributarioPage /></PrivateRoute>} />
       
       <Route path="/admin/users" element={<PrivateRoute adminOnly={true}><UsersPage /></PrivateRoute>} />
 

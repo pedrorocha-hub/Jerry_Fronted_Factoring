@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, FileText, FolderCheck, Building, Upload, Users } from 'lucide-react';
+import { Home, FileText, FolderCheck, Building, Upload, Users, Shield } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 
 const Sidebar: React.FC = () => {
@@ -11,6 +11,7 @@ const Sidebar: React.FC = () => {
     { to: '/solicitudes-operacion', icon: FileText, label: 'Solicitudes de Operación' },
     { to: '/dossiers-guardados', icon: FolderCheck, label: 'Dossiers Guardados' },
     { to: '/fichas-ruc', icon: Building, label: 'Fichas RUC' },
+    { to: '/sentinel', icon: Shield, label: 'Sentinel' },
     { to: '/upload', icon: Upload, label: 'Subir Documentos' },
   ];
 

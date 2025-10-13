@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import { FileText, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { FileText, Calendar, FileBarChart } from 'lucide-react';
 import { FichaRucService } from '@/services/fichaRucService';
 import { DocumentoService } from '@/services/documentoService';
 import { FichaRuc } from '@/types/ficha-ruc';
 import StatsCard from '@/components/dashboard/StatsCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { ReporteTributarioService } from '@/services/reporteTributarioService';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalFichas: 0,
     nuevasEsteMes: 0,
-    pendientes: 0,
-    conErrores: 0,
+    totalReportes: 0,
+    reportesEsteAno: 0,
   });
   const [recentActivity, setRecentActivity] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,17 +22,17 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [fichaStats, docStats, recentFichas] = await Promise.all([
+        const [fichaStats, reporteStats, recentFichas] = await Promise.all([
           FichaRucService.getStats(),
-          DocumentoService.getStats(),
+          ReporteTributarioService.getStats(),
           FichaRucService.getAll(),
         ]);
 
         setStats({
           totalFichas: fichaStats.total,
           nuevasEsteMes: fichaStats.thisMonth,
-          pendientes: docStats.pendientes,
-          conErrores: docStats.errores,
+          totalReportes: reporteStats.total,
+          reportesEsteAno: reporteStats.thisYear,
         });
 
         setRecentActivity(recentFichas.slice(0, 5));
@@ -84,22 +85,22 @@ const Dashboard = () => {
                 href="/fichas-ruc"
               />
               <StatsCard 
-                title="Nuevas este Mes"
+                title="Nuevas Fichas este Mes"
                 value={stats.nuevasEsteMes}
                 icon={Calendar}
                 href="/fichas-ruc"
               />
               <StatsCard 
-                title="Documentos Pendientes"
-                value={stats.pendientes}
-                icon={Clock}
-                href="/upload"
+                title="Total Reportes Tributarios"
+                value={stats.totalReportes}
+                icon={FileBarChart}
+                href="/reporte-tributario"
               />
               <StatsCard 
-                title="Documentos con Errores"
-                value={stats.conErrores}
-                icon={AlertCircle}
-                href="/upload"
+                title="Reportes de este Año"
+                value={stats.reportesEsteAno}
+                icon={Calendar}
+                href="/reporte-tributario"
               />
             </div>
             
