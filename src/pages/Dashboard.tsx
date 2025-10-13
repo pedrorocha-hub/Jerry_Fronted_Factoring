@@ -81,28 +81,24 @@ const Dashboard = () => {
                 title="Total Fichas RUC"
                 value={stats.totalFichas}
                 icon={FileText}
-                gradient="from-blue-500 to-blue-600"
                 href="/fichas-ruc"
               />
               <StatsCard 
                 title="Nuevas este Mes"
                 value={stats.nuevasEsteMes}
                 icon={Calendar}
-                gradient="from-purple-500 to-purple-600"
                 href="/fichas-ruc"
               />
               <StatsCard 
                 title="Documentos Pendientes"
                 value={stats.pendientes}
                 icon={Clock}
-                gradient="from-yellow-500 to-yellow-600"
                 href="/upload"
               />
               <StatsCard 
                 title="Documentos con Errores"
                 value={stats.conErrores}
                 icon={AlertCircle}
-                gradient="from-red-500 to-red-600"
                 href="/upload"
               />
             </div>
