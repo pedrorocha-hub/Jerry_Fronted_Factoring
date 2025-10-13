@@ -15,19 +15,19 @@ import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import RibReporteTributario from './pages/RibReporteTributario';
 import VentasMensuales from './pages/VentasMensuales';
 import PlanillaRib from './pages/PlanillaRib';
-import Sentinel from './pages/Sentinel';
+import SentinelPage from './pages/SentinelPage';
+import SentinelCreatePage from './pages/SentinelCreatePage';
 import Login from './pages/Login';
-import { SessionContextProvider } from '@supabase/auth-helpers-react';
-import { supabase } from '@/integrations/supabase/client';
+import { SessionContextProvider } from './contexts/SessionContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function App() {
   return (
-    <SessionContextProvider supabaseClient={supabase}>
+    <SessionContextProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
           <Route path="/ficha-ruc" element={<ProtectedRoute><FichaRuc /></ProtectedRoute>} />
@@ -43,7 +43,8 @@ function App() {
           <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributario /></ProtectedRoute>} />
           <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensuales /></ProtectedRoute>} />
           <Route path="/planilla-rib" element={<ProtectedRoute><PlanillaRib /></ProtectedRoute>} />
-          <Route path="/sentinel" element={<ProtectedRoute><Sentinel /></ProtectedRoute>} />
+          <Route path="/sentinel" element={<ProtectedRoute><SentinelPage /></ProtectedRoute>} />
+          <Route path="/sentinel/create" element={<ProtectedRoute><SentinelCreatePage /></ProtectedRoute>} />
           
           {/* Redirect old route to new one */}
           <Route path="/vigencia-poderes" element={<Navigate to="/eeff" replace />} />
