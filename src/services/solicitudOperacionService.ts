@@ -1,18 +1,14 @@
 import { supabase } from '@/integrations/supabase/client';
-import { SolicitudOperacion } from '@/types/solicitud-operacion';
+import { SolicitudOperacion } from '@/types/solicitudOperacion';
 
 export class SolicitudOperacionService {
   static async getAll(): Promise<SolicitudOperacion[]> {
     const { data, error } = await supabase
       .from('solicitudes_operacion')
       .select('*')
-      .order('updated_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching solicitudes:', error);
-      throw new Error(`Error al obtener las solicitudes: ${error.message}`);
-    }
-
+    if (error) throw error;
     return data || [];
   }
 
@@ -23,14 +19,7 @@ export class SolicitudOperacionService {
       .eq('id', id)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // No encontrado
-      }
-      console.error('Error fetching solicitud by ID:', error);
-      throw new Error(`Error al obtener la solicitud: ${error.message}`);
-    }
-
+    if (error) throw error;
     return data;
   }
 
@@ -39,58 +28,38 @@ export class SolicitudOperacionService {
       .from('solicitudes_operacion')
       .select('*')
       .eq('ruc', ruc)
-      .order('updated_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching solicitudes by RUC:', error);
-      throw new Error(`Error al obtener las solicitudes por RUC: ${error.message}`);
-    }
-
+    if (error) throw error;
     return data || [];
   }
 
-  static async create(solicitudData: Partial<SolicitudOperacion>): Promise<SolicitudOperacion> {
-    const { data: userData } = await supabase.auth.getUser();
-    
-    const dataToInsert = {
-      ...solicitudData,
-      user_id: userData.user?.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+  static async create(solicitud: Partial<SolicitudOperacion>): Promise<SolicitudOperacion> {
+    const { data: { user } } = await supabase.auth.getUser();
 
     const { data, error } = await supabase
       .from('solicitudes_operacion')
-      .insert([dataToInsert])
+      .insert({
+        ...solicitud,
+        user_id: user?.id,
+        status: solicitud.status || 'Borrador',
+      })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating solicitud:', error);
-      throw new Error(`Error al crear la solicitud: ${error.message}`);
-    }
-
+    if (error) throw error;
     return data;
   }
 
-  static async update(id: string, solicitudData: Partial<SolicitudOperacion>): Promise<SolicitudOperacion> {
-    const dataToUpdate = {
-      ...solicitudData,
-      updated_at: new Date().toISOString(),
-    };
-
+  static async update(id: string, solicitud: Partial<SolicitudOperacion>): Promise<SolicitudOperacion> {
     const { data, error } = await supabase
       .from('solicitudes_operacion')
-      .update(dataToUpdate)
+      .update(solicitud)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) {
-      console.error('Error updating solicitud:', error);
-      throw new Error(`Error al actualizar la solicitud: ${error.message}`);
-    }
-
+    if (error) throw error;
     return data;
   }
 
@@ -100,9 +69,18 @@ export class SolicitudOperacionService {
       .delete()
       .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting solicitud:', error);
-      throw new Error(`Error al eliminar la solicitud: ${error.message}`);
-    }
+    if (error) throw error;
+  }
+
+  static async updateStatus(id: string, status: string): Promise<SolicitudOperacion> {
+    const { data, error } = await supabase
+      .from('solicitudes_operacion')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 }
