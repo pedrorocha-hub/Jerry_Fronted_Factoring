@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Shield, FileBarChart, ArrowRight } from 'lucide-react';
+import { FileText, Shield, FileBarChart, ArrowRight, FileSpreadsheet } from 'lucide-react';
 
 const DocumentsCard = () => {
   return (
@@ -18,6 +18,15 @@ const DocumentsCard = () => {
             <div className="flex items-center">
               <FileText className="h-4 w-4 mr-2 text-[#00FF80]" />
               Ficha RUC
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-500" />
+          </Button>
+        </Link>
+        <Link to="/eeff">
+          <Button variant="outline" className="w-full justify-between border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white transition-all">
+            <div className="flex items-center">
+              <FileSpreadsheet className="h-4 w-4 mr-2 text-[#00FF80]" />
+              EEFF
             </div>
             <ArrowRight className="h-4 w-4 text-gray-500" />
           </Button>

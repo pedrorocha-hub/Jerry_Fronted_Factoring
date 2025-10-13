@@ -12,6 +12,8 @@ import UsersPage from './pages/Admin/Users';
 import SentinelPage from './pages/SentinelPage';
 import SentinelCreatePage from './pages/SentinelCreatePage';
 import ReporteTributarioPage from './pages/ReporteTributario';
+import EeffPage from './pages/Eeff';
+import EeffForm from './pages/EeffForm';
 import { Loader2 } from 'lucide-react';
 
 const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
@@ -62,6 +64,9 @@ const AppRoutes = () => {
       <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
       <Route path="/sentinel/create" element={<PrivateRoute><SentinelCreatePage /></PrivateRoute>} />
       <Route path="/reporte-tributario" element={<PrivateRoute><ReporteTributarioPage /></PrivateRoute>} />
+      <Route path="/eeff" element={<PrivateRoute><EeffPage /></PrivateRoute>} />
+      <Route path="/eeff/nuevo" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
+      <Route path="/eeff/edit/:id" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
       
       <Route path="/admin/users" element={<PrivateRoute adminOnly={true}><UsersPage /></PrivateRoute>} />
 
