@@ -26,7 +26,7 @@ interface SolicitudOperacionWithDetails extends SolicitudOperacion {
   creator_name?: string;
 }
 
-const SolicitudOperacionListPage = () => {
+const SolicitudesOperacionPage = () => {
   const { isAdmin } = useSession();
   const navigate = useNavigate();
   const [solicitudes, setSolicitudes] = useState<SolicitudOperacionWithDetails[]>([]);
@@ -200,4 +200,4 @@ const SolicitudOperacionListPage = () => {
   );
 };
 
-export default SolicitudOperacionListPage;
+export default SolicitudesOperacionPage;
