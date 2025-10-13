@@ -31,7 +31,7 @@ import { DocumentoService } from '@/services/documentoService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RepresentanteLegalService } from '@/services/representanteLegalService';
 import { CuentaBancariaService } from '@/services/cuentaBancariaService';
-import { VigenciaPoderesService } from '@/services/vigenciaPoderesService';
+import { EeffService } from '@/services/eeffService';
 import { FacturaNegociarService } from '@/services/facturaNegociarService';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
 
@@ -42,7 +42,7 @@ const Dashboard = () => {
     fichasRuc: { total: 0, activas: 0, inactivas: 0 },
     representantes: { total: 0, conCargo: 0, sinCargo: 0 },
     cuentasBancarias: { total: 0, activas: 0, cerradas: 0 },
-    vigenciaPoderes: { total: 0, vigentes: 0, vencidos: 0 },
+    eeff: { total: 0, recent: 0 },
     facturas: { total: 0, pendientes: 0, negociadas: 0, vencidas: 0 },
     reportes: { total: 0, thisYear: 0, lastYear: 0 }
   });
@@ -59,7 +59,7 @@ const Dashboard = () => {
           FichaRucService.getStats(),
           RepresentanteLegalService.getStats(),
           CuentaBancariaService.getStats(),
-          VigenciaPoderesService.getStats(),
+          EeffService.getStats(),
           FacturaNegociarService.getStats(),
           ReporteTributarioService.getStats(),
           FichaRucService.getAll() // For recent activity
@@ -77,7 +77,7 @@ const Dashboard = () => {
         const fichasRucStats = getResultValue(results[1], { total: 0, active: 0, inactive: 0 });
         const representantesStats = getResultValue(results[2], { total: 0, withCargo: 0, withoutCargo: 0 });
         const cuentasStats = getResultValue(results[3], { total: 0, activeCounts: 0, inactiveCounts: 0 });
-        const vigenciasStats = getResultValue(results[4], { total: 0, vigentes: 0, vencidos: 0 });
+        const eeffStats = getResultValue(results[4], { total: 0, recent: 0 });
         const facturasStats = getResultValue(results[5], { total: 0, pendientes: 0, negociadas: 0, vencidas: 0 });
         const reportesStats = getResultValue(results[6], { total: 0, thisYear: 0, lastYear: 0 });
         const recentFichas = getResultValue(results[7], []);
@@ -104,10 +104,9 @@ const Dashboard = () => {
             activas: cuentasStats.activeCounts || 0,
             cerradas: cuentasStats.inactiveCounts || 0
           },
-          vigenciaPoderes: {
-            total: vigenciasStats.total || 0,
-            vigentes: vigenciasStats.vigentes || 0,
-            vencidos: vigenciasStats.vencidos || 0
+          eeff: {
+            total: eeffStats.total || 0,
+            recent: eeffStats.recent || 0
           },
           facturas: {
             total: facturasStats.total || 0,
@@ -297,16 +296,16 @@ const Dashboard = () => {
             <Card className="bg-[#121212] border border-gray-800 hover:border-orange-500/30 transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-400">
-                  Vigencia Poderes
+                  Estados Financieros (EEFF)
                 </CardTitle>
                 <div className="p-2 bg-orange-500/10 rounded-lg border border-orange-500/20">
                   <Scale className="h-4 w-4 text-orange-400" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-400 font-mono">{stats.vigenciaPoderes.total}</div>
+                <div className="text-2xl font-bold text-orange-400 font-mono">{stats.eeff.total}</div>
                 <p className="text-xs text-gray-500">
-                  {stats.vigenciaPoderes.vigentes} vigentes
+                  {stats.eeff.recent} recientes (últimos 30 días)
                 </p>
               </CardContent>
             </Card>
@@ -449,10 +448,10 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   className="h-20 flex-col space-y-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-orange-500/50"
-                  onClick={() => navigate('/vigencia-poderes')}
+                  onClick={() => navigate('/eeff')}
                 >
                   <Scale className="h-6 w-6" />
-                  <span className="text-xs">Vigencia Poderes</span>
+                  <span className="text-xs">EEFF</span>
                 </Button>
                 <Button 
                   variant="outline" 
