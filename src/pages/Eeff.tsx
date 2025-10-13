@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ const EeffPage = () => {
   const [fichas, setFichas] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadData();
@@ -105,7 +107,7 @@ const EeffPage = () => {
             </div>
             <Button 
               className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium"
-              onClick={() => window.location.href = '/eeff/nuevo'}
+              onClick={() => navigate('/eeff/nuevo')}
             >
               <Plus className="h-4 w-4 mr-2" />
               Nuevo EEFF
@@ -192,7 +194,7 @@ const EeffPage = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.location.href = `/eeff/${eeff.id}`}
+                              onClick={() => navigate(`/eeff/edit/${eeff.id}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
