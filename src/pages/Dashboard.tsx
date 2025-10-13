@@ -22,28 +22,22 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [fichaStats, docStats, recentFichas] = await Promise.all([
-          FichaRucService.getStats(),
-          DocumentoService.getStats(),
-          FichaRucService.getAll(),
-        ]);
+      setLoading(true);
+      const [fichaStats, docStats, recentFichas] = await Promise.all([
+        FichaRucService.getStats(),
+        DocumentoService.getStats(),
+        FichaRucService.getAll(),
+      ]);
 
-        setStats({
-          totalFichas: fichaStats.total,
-          pdfsThisMonth: docStats.thisMonth,
-          pendingReview: docStats.pendientes,
-          errors: docStats.errores,
-        });
-        
-        setRecentActivity(recentFichas.slice(0, 5));
-
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
+      setStats({
+        totalFichas: fichaStats.total,
+        pdfsThisMonth: docStats.thisMonth,
+        pendingReview: docStats.pendientes,
+        errors: docStats.errores,
+      });
+      
+      setRecentActivity(recentFichas.slice(0, 5));
+      setLoading(false);
     };
     fetchData();
   }, []);
@@ -58,14 +52,12 @@ const Dashboard = () => {
           <StatsCard title="Pendientes de Revisión" value={stats.pendingReview} icon={Clock} href="/upload" />
           <StatsCard title="Documentos con Error" value={stats.errors} icon={AlertCircle} href="/upload" />
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <RecentActivity activities={recentActivity} />
-          </div>
-          <div className="space-y-6">
-            <DocumentsCard />
-            <RibCard />
-          </div>
+        <div className="grid grid-cols-1 gap-6">
+          <RecentActivity activities={recentActivity} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <DocumentsCard />
+          <RibCard />
         </div>
       </div>
     </Layout>

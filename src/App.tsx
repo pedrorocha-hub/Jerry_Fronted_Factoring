@@ -1,87 +1,44 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { SessionProvider, useSession } from './contexts/SessionContext';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { SessionProvider } from './contexts/SessionContext';
 import Dashboard from './pages/Dashboard';
-import SolicitudesOperacionPage from './pages/SolicitudesOperacionPage';
-import DossiersGuardadosPage from './pages/DossiersGuardados';
-import FichasRucPage from './pages/FichasRucPage';
+import SolicitudesOperacion from './pages/SolicitudesOperacion';
+import DossiersGuardados from './pages/DossiersGuardados';
+import FichasRuc from './pages/FichasRuc';
+import EEFF from './pages/Eeff';
+import Sentinel from './pages/Sentinel';
 import Upload from './pages/Upload';
-import LoginPage from './pages/LoginPage';
-import AuthCallbackPage from './pages/AuthCallbackPage';
-import SolicitudOperacionFormPage from './pages/SolicitudOperacionFormPage';
-import UsersPage from './pages/Admin/Users';
-import SentinelPage from './pages/SentinelPage';
-import SentinelCreatePage from './pages/SentinelCreatePage';
-import ReporteTributarioPage from './pages/ReporteTributario';
-import EeffPage from './pages/Eeff';
-import EeffForm from './pages/EeffForm';
-import { Loader2 } from 'lucide-react';
-
-const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
-  const { session, loading, isAdmin } = useSession();
-  
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return <Navigate to="/login" />;
-  }
-
-  if (adminOnly && !isAdmin) {
-    return <Navigate to="/" />;
-  }
-
-  return children;
-};
-
-const AppRoutes = () => {
-  const { session, loading } = useSession();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
-      </div>
-    );
-  }
-
-  return (
-    <Routes>
-      <Route path="/login" element={session ? <Navigate to="/" /> : <LoginPage />} />
-      <Route path="/auth/callback" element={<AuthCallbackPage />} />
-      
-      <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-      <Route path="/solicitudes-operacion" element={<PrivateRoute><SolicitudesOperacionPage /></PrivateRoute>} />
-      <Route path="/solicitudes-operacion/new" element={<PrivateRoute><SolicitudOperacionFormPage /></PrivateRoute>} />
-      <Route path="/solicitudes-operacion/edit/:id" element={<PrivateRoute><SolicitudOperacionFormPage /></PrivateRoute>} />
-      <Route path="/dossiers-guardados" element={<PrivateRoute><DossiersGuardadosPage /></PrivateRoute>} />
-      <Route path="/fichas-ruc" element={<PrivateRoute><FichasRucPage /></PrivateRoute>} />
-      <Route path="/upload" element={<PrivateRoute><Upload /></PrivateRoute>} />
-      <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
-      <Route path="/sentinel/create" element={<PrivateRoute><SentinelCreatePage /></PrivateRoute>} />
-      <Route path="/reporte-tributario" element={<PrivateRoute><ReporteTributarioPage /></PrivateRoute>} />
-      <Route path="/eeff" element={<PrivateRoute><EeffPage /></PrivateRoute>} />
-      <Route path="/eeff/nuevo" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
-      <Route path="/eeff/edit/:id" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
-      
-      <Route path="/admin/users" element={<PrivateRoute adminOnly={true}><UsersPage /></PrivateRoute>} />
-
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
-  );
-};
+import AdminUsers from './pages/Admin/Users';
+import Login from './pages/Login';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Rib from './pages/Rib';
+import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
+import RibReporteTributario from './pages/RibReporteTributario';
+import VentasMensuales from './pages/VentasMensuales';
 
 function App() {
   return (
-    <Router>
-      <SessionProvider>
-        <AppRoutes />
-      </SessionProvider>
-    </Router>
+    <SessionProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/solicitudes-operacion" element={<ProtectedRoute><SolicitudesOperacion /></ProtectedRoute>} />
+          <Route path="/dossiers-guardados" element={<ProtectedRoute><DossiersGuardados /></ProtectedRoute>} />
+          <Route path="/fichas-ruc" element={<ProtectedRoute><FichasRuc /></ProtectedRoute>} />
+          <Route path="/eeff" element={<ProtectedRoute><EEFF /></ProtectedRoute>} />
+          <Route path="/sentinel" element={<ProtectedRoute><Sentinel /></ProtectedRoute>} />
+          <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+          
+          <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
+          <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
+          <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributario /></ProtectedRoute>} />
+          <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensuales /></ProtectedRoute>} />
+
+          <Route path="/admin/users" element={<ProtectedRoute adminOnly><AdminUsers /></ProtectedRoute>} />
+        </Routes>
+      </Router>
+    </SessionProvider>
   );
 }
 
