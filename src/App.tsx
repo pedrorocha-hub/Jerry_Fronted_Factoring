@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import AuthProvider, { useAuth } from '@/contexts/AuthContext';
+import { SessionContextProvider, useSession } from '@/contexts/SessionContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import FichaRucPage from './pages/FichaRuc';
@@ -17,13 +17,22 @@ import SolicitudesOperacionPage from './pages/SolicitudesOperacion';
 import SolicitudOperacionForm from './pages/SolicitudOperacionForm';
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
-  const { session } = useAuth();
-  return session ? children : <Navigate to="/login" />;
+  const { session, loading } = useSession();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80]"></div>
+      </div>
+    );
+  }
+
+  return session ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
   return (
-    <AuthProvider>
+    <SessionContextProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -45,7 +54,7 @@ function App() {
         </Routes>
       </Router>
       <Toaster richColors theme="dark" />
-    </AuthProvider>
+    </SessionContextProvider>
   );
 }
 
