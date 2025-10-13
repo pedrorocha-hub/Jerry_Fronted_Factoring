@@ -1,59 +1,51 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { SessionContextProvider } from '@/contexts/SessionContext';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import Login from '@/pages/Login';
-import Dashboard from '@/pages/Dashboard';
-import UploadPage from '@/pages/Upload';
-import FichaRucPage from '@/pages/FichaRuc';
-import RepresentanteLegalPage from '@/pages/RepresentanteLegal';
-import FacturaNegociarPage from '@/pages/FacturaNegociar';
-import ReporteTributarioPage from '@/pages/ReporteTributario';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import AuthProvider, { useAuth } from '@/contexts/AuthContext';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import FichaRucPage from './pages/FichaRuc';
+import FichaRucDetailsPage from './pages/FichaRucDetails';
 import EeffPage from './pages/Eeff';
 import EeffForm from './pages/EeffForm';
-import SentinelPage from './pages/SentinelPage';
-import SentinelCreatePage from './pages/SentinelCreatePage';
-import SolicitudOperacionListPage from './pages/SolicitudOperacionList';
-import SolicitudOperacionCreateEditPage from './pages/SolicitudOperacionCreateEdit';
-import RibPage from './pages/Rib';
+import UploadPage from './pages/Upload';
+import SentinelPage from './pages/Sentinel';
 import ComportamientoCrediticioPage from './pages/ComportamientoCrediticio';
-import RibReporteTributarioPage from './pages/RibReporteTributario';
 import VentasMensualesPage from './pages/VentasMensuales';
-import PlanillaRibPage from './pages/PlanillaRib';
-import UsersPage from './pages/Admin/Users';
-import { Toaster } from '@/components/ui/sonner';
+import RibReporteTributarioPage from './pages/RibReporteTributario';
+import DossiersGuardadosPage from './pages/DossiersGuardados';
+import SolicitudesOperacionPage from './pages/SolicitudesOperacion';
+import SolicitudOperacionForm from './pages/SolicitudOperacionForm';
+
+const PrivateRoute = ({ children }: { children: JSX.Element }) => {
+  const { session } = useAuth();
+  return session ? children : <Navigate to="/login" />;
+};
 
 function App() {
   return (
-    <SessionContextProvider>
+    <AuthProvider>
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/upload" element={<UploadPage />} />
-            <Route path="/ficha-ruc" element={<FichaRucPage />} />
-            <Route path="/representante-legal" element={<RepresentanteLegalPage />} />
-            <Route path="/factura-negociar" element={<FacturaNegociarPage />} />
-            <Route path="/reporte-tributario" element={<ReporteTributarioPage />} />
-            <Route path="/eeff" element={<EeffPage />} />
-            <Route path="/eeff/nuevo" element={<EeffForm />} />
-            <Route path="/eeff/edit/:id" element={<EeffForm />} />
-            <Route path="/sentinel" element={<SentinelPage />} />
-            <Route path="/sentinel/create" element={<SentinelCreatePage />} />
-            <Route path="/solicitudes-operacion" element={<SolicitudOperacionListPage />} />
-            <Route path="/solicitudes-operacion/new" element={<SolicitudOperacionCreateEditPage />} />
-            <Route path="/solicitudes-operacion/edit/:id" element={<SolicitudOperacionCreateEditPage />} />
-            <Route path="/rib" element={<RibPage />} />
-            <Route path="/comportamiento-crediticio" element={<ComportamientoCrediticioPage />} />
-            <Route path="/rib-reporte-tributario" element={<RibReporteTributarioPage />} />
-            <Route path="/ventas-mensuales" element={<VentasMensualesPage />} />
-            <Route path="/planilla-rib" element={<PlanillaRibPage />} />
-            <Route path="/admin/users" element={<UsersPage />} />
-          </Route>
+          <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/fichas-ruc" element={<PrivateRoute><FichaRucPage /></PrivateRoute>} />
+          <Route path="/fichas-ruc/:ruc" element={<PrivateRoute><FichaRucDetailsPage /></PrivateRoute>} />
+          <Route path="/eeff" element={<PrivateRoute><EeffPage /></PrivateRoute>} />
+          <Route path="/eeff/new" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
+          <Route path="/eeff/edit/:id" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
+          <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
+          <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
+          <Route path="/comportamiento-crediticio" element={<PrivateRoute><ComportamientoCrediticioPage /></PrivateRoute>} />
+          <Route path="/ventas-mensuales" element={<PrivateRoute><VentasMensualesPage /></PrivateRoute>} />
+          <Route path="/rib-reporte-tributario" element={<PrivateRoute><RibReporteTributarioPage /></PrivateRoute>} />
+          <Route path="/dossiers-guardados" element={<PrivateRoute><DossiersGuardadosPage /></PrivateRoute>} />
+          <Route path="/solicitudes-operacion" element={<PrivateRoute><SolicitudesOperacionPage /></PrivateRoute>} />
+          <Route path="/solicitudes-operacion/new" element={<PrivateRoute><SolicitudOperacionForm /></PrivateRoute>} />
+          <Route path="/solicitudes-operacion/edit/:id" element={<PrivateRoute><SolicitudOperacionForm /></PrivateRoute>} />
         </Routes>
       </Router>
       <Toaster richColors theme="dark" />
-    </SessionContextProvider>
+    </AuthProvider>
   );
 }
 
