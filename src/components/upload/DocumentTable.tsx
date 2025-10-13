@@ -47,9 +47,10 @@ const DOCUMENT_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   'ficha_ruc': { label: 'Ficha RUC', icon: '📋' },
   'representante_legal': { label: 'Representante Legal', icon: '👤' },
   'cuenta_bancaria': { label: 'Cuenta Bancaria', icon: '🏦' },
-  'vigencia_poderes': { label: 'Vigencia de Poderes', icon: '⚖️' },
+  'eeff': { label: 'EEFF (Declaración Jurada)', icon: '🧾' },
   'factura_negociar': { label: 'Factura a Negociar', icon: '💰' },
   'reporte_tributario': { label: 'Reporte Tributario', icon: '📊' },
+  'sentinel': { label: 'Sentinel', icon: '🛡️' },
 };
 
 const DocumentTable: React.FC<DocumentTableProps> = ({

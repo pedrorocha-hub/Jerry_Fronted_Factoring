@@ -5,14 +5,15 @@ export async function testDocumentTypes() {
     'ficha_ruc',
     'representante_legal', 
     'cuenta_bancaria',
-    'vigencia_poderes',
+    'eeff',
     'factura_negociar',
     'reporte_tributario',
+    'sentinel',
     // Variaciones posibles
     'ficha-ruc',
     'representante-legal',
     'cuenta-bancaria', 
-    'vigencia-poderes',
+    'eeff',
     'factura-negociar',
     'reporte-tributario',
     // Otras posibilidades
