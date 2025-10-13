@@ -162,6 +162,7 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
       }
 
     } catch (err: any) {
+      console.error('Error al cargar ventas mensuales:', err);
       setError(err.message || 'Error al cargar datos de ventas mensuales.');
     } finally {
       setLoading(false);
@@ -205,49 +206,73 @@ const VentasMensualesSection: React.FC<VentasMensualesSectionProps> = ({ dossier
         </h3>
       </div>
 
-      <Card className="bg-[#121212] border border-gray-800">
-        <CardHeader>
-          <CardTitle className="flex items-center text-white">
-            <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-            Ventas Mensuales
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-8">
-          {hasProveedorData || hasDeudorData ? (
-            <>
-              {/* Tabla del Proveedor */}
-              {hasProveedorData && (
-                <div>
-                  <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-                    <Building2 className="h-4 w-4 mr-2 text-[#00FF80]" />
-                    Proveedor: {fichaProveedor?.nombre_empresa || ruc}
-                  </h4>
-                  <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
-                </div>
-              )}
-
-              {/* Tabla del Deudor */}
-              {hasDeudorData && deudorRuc && (
-                <div>
-                  <h4 className="text-lg font-semibold text-white mb-4 flex items-center">
-                    <Building2 className="h-4 w-4 mr-2 text-blue-400" />
-                    Deudor: {fichaDeudor?.nombre_empresa || deudorRuc}
-                  </h4>
-                  <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
-                </div>
-              )}
-            </>
-          ) : (
+      {/* Tarjeta del Proveedor */}
+      {hasProveedorData ? (
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardHeader>
+            <CardTitle className="flex items-center text-white">
+              <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+              Ventas del Proveedor: {fichaProveedor?.nombre_empresa || ruc}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <VentasMensualesTable data={proveedorSalesData} onDataChange={() => {}} />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="bg-[#121212] border border-gray-800">
+          <CardHeader>
+            <CardTitle className="flex items-center text-white">
+              <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+              Ventas del Proveedor: {fichaProveedor?.nombre_empresa || ruc}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="text-center py-8 text-gray-400">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-500" />
-              <p>{error || 'No se encontraron datos de ventas mensuales.'}</p>
+              <p>No se encontraron datos de ventas mensuales para el proveedor.</p>
               <Button onClick={fetchData} variant="outline" size="sm" className="mt-4">
                 <Search className="h-4 w-4 mr-2" />Reintentar
               </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tarjeta del Deudor (solo si existe deudorRuc) */}
+      {deudorRuc && (
+        hasDeudorData ? (
+          <Card className="bg-[#121212] border border-gray-800">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <Building2 className="h-5 w-5 mr-2 text-blue-400" />
+                Ventas del Deudor: {fichaDeudor?.nombre_empresa || deudorRuc}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VentasMensualesTable data={deudorSalesData} onDataChange={() => {}} />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-[#121212] border border-gray-800">
+            <CardHeader>
+              <CardTitle className="flex items-center text-white">
+                <Building2 className="h-5 w-5 mr-2 text-blue-400" />
+                Ventas del Deudor: {fichaDeudor?.nombre_empresa || deudorRuc}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-400">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-500" />
+                <p>No se encontraron datos de ventas mensuales para el deudor.</p>
+                <Button onClick={fetchData} variant="outline" size="sm" className="mt-4">
+                  <Search className="h-4 w-4 mr-2" />Reintentar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      )}
     </div>
   );
 };
