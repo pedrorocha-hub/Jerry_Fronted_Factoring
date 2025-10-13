@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { FileText, Calendar, FileBarChart } from 'lucide-react';
 import { FichaRucService } from '@/services/fichaRucService';
-import { DocumentoService } from '@/services/documentoService';
 import { FichaRuc } from '@/types/ficha-ruc';
 import StatsCard from '@/components/dashboard/StatsCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
+import DocumentsCard from '@/components/dashboard/DocumentsCard';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
 
@@ -64,16 +64,28 @@ const Dashboard = () => {
                 </Card>
               ))}
             </div>
-            <Card className="bg-[#121212] border-gray-800 animate-pulse h-96">
-              <CardHeader>
-                <div className="h-6 bg-gray-700 rounded w-1/3"></div>
-              </CardHeader>
-              <CardContent className="space-y-4 pt-6">
-                <div className="h-16 bg-gray-700 rounded"></div>
-                <div className="h-16 bg-gray-700 rounded"></div>
-                <div className="h-16 bg-gray-700 rounded"></div>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-1 bg-[#121212] border-gray-800 animate-pulse">
+                <CardHeader>
+                  <div className="h-6 bg-gray-700 rounded w-1/3"></div>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-6">
+                  <div className="h-10 bg-gray-700 rounded"></div>
+                  <div className="h-10 bg-gray-700 rounded"></div>
+                  <div className="h-10 bg-gray-700 rounded"></div>
+                </CardContent>
+              </Card>
+              <Card className="lg:col-span-2 bg-[#121212] border-gray-800 animate-pulse">
+                <CardHeader>
+                  <div className="h-6 bg-gray-700 rounded w-1/3"></div>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-6">
+                  <div className="h-16 bg-gray-700 rounded"></div>
+                  <div className="h-16 bg-gray-700 rounded"></div>
+                  <div className="h-16 bg-gray-700 rounded"></div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -104,7 +116,14 @@ const Dashboard = () => {
               />
             </div>
             
-            <RecentActivity activities={recentActivity} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <DocumentsCard />
+              </div>
+              <div className="lg:col-span-2">
+                <RecentActivity activities={recentActivity} />
+              </div>
+            </div>
           </div>
         )}
       </div>
