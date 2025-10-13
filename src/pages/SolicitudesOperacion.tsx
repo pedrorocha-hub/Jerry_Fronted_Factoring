@@ -21,10 +21,10 @@ interface CompanyData {
   descripcion_ciiu_rev3: string | null;
   ranking_2024: number | null;
   facturado_2024_soles_maximo: number | null;
-  facturado_2023_soles_maximo: string | null; // Es TEXT en la DB
+  facturado_2023_soles_maximo: string | null;
 }
 
-const SolicitudOperacion = () => {
+const SolicitudesOperacion = () => {
   const [rucInput, setRucInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -253,27 +253,39 @@ const SolicitudOperacion = () => {
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader><CardTitle className="text-white">Operaciones Registradas</CardTitle></CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader><TableRow className="border-gray-800 hover:bg-gray-900/50"><TableHead className="text-gray-300">RUC</TableHead><TableHead className="text-gray-300">Producto</TableHead><TableHead className="text-gray-300">Proveedor</TableHead><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {operaciones.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-gray-400 py-8">No hay operaciones registradas.</TableCell></TableRow>
-                  ) : (
-                    operaciones.map(op => (
-                      <TableRow key={op.id} className="border-gray-800">
+              {operaciones.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <ClipboardEdit className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No hay operaciones registradas.</p>
+                  <p className="text-sm mt-2">Busca un deudor por su RUC para empezar</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-gray-800 hover:bg-gray-900/50">
+                      <TableHead className="text-gray-300">RUC</TableHead>
+                      <TableHead className="text-gray-300">Producto</TableHead>
+                      <TableHead className="text-gray-300">Proveedor</TableHead>
+                      <TableHead className="text-gray-300">Fecha</TableHead>
+                      <TableHead className="text-right text-gray-300">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {operaciones.map(op => (
+                      <TableRow key={op.id} className="border-gray-800 hover:bg-gray-900/30">
                         <TableCell className="font-mono text-white">{op.ruc}</TableCell>
-                        <TableCell className="text-white">{op.producto}</TableCell>
-                        <TableCell className="text-white">{op.proveedor}</TableCell>
+                        <TableCell className="text-white">{op.producto || '-'}</TableCell>
+                        <TableCell className="text-white">{op.proveedor || '-'}</TableCell>
                         <TableCell className="text-gray-400">{new Date(op.created_at).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(op)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" onClick={() => handleDelete(op.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -282,4 +294,4 @@ const SolicitudOperacion = () => {
   );
 };
 
-export default SolicitudOperacion;
+export default SolicitudesOperacion;
