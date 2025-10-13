@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, PlusCircle, Trash2 } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, PlusCircle, Trash2, Plus } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,12 +11,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { FichaRuc } from '@/types/ficha-ruc';
-import { SolicitudOperacion } from '@/types/solicitud-operacion';
+import { SolicitudOperacion, SolicitudOperacionRiesgo, SolicitudOperacionWithRiesgos, SolicitudStatus } from '@/types/solicitud-operacion';
 import { SolicitudOperacionService } from '@/services/solicitudOperacionService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
+import { toast } from 'sonner';
 
 interface Top10kData {
   descripcion_ciiu_rev3: string | null;
@@ -42,14 +43,13 @@ interface RiesgoRow {
   exposicion_total: string;
 }
 
-type SolicitudStatus = 'Borrador' | 'Completado' | 'En revisión';
-
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 const SolicitudOperacionCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useSession();
+  const isEditMode = !!id;
 
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -57,10 +57,10 @@ const SolicitudOperacionCreateEditPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
-  const [editingSolicitud, setEditingSolicitud] = useState<SolicitudOperacion | null>(null);
+  const [editingSolicitud, setEditingSolicitud] = useState<SolicitudOperacionWithRiesgos | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   
-  const [riesgoRows, setRiesgoRows] = useState<RiesgoRow[]>([
+  const [riesgoRows, setRiesgoRows] = useState<Partial<RiesgoRow>[]>([
     { lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }
   ]);
 
@@ -83,7 +83,7 @@ const SolicitudOperacionCreateEditPage = () => {
     condiciones_desembolso: '',
   });
 
-  const handleEditSolicitud = async (solicitud: SolicitudOperacion) => {
+  const handleEditSolicitud = useCallback(async (solicitud: SolicitudOperacionWithRiesgos) => {
     setEditingSolicitud(solicitud);
     setRucInput(solicitud.ruc);
 
@@ -121,7 +121,7 @@ const SolicitudOperacionCreateEditPage = () => {
     }
 
     setSolicitudFormData({
-      status: (solicitud.status as SolicitudStatus) || 'Borrador',
+      status: solicitud.status || 'Borrador',
       direccion: solicitud.direccion || '',
       visita: solicitud.visita || '',
       contacto: solicitud.contacto || '',
@@ -138,9 +138,9 @@ const SolicitudOperacionCreateEditPage = () => {
       garantias: solicitud.garantias || '',
       condiciones_desembolso: solicitud.condiciones_desembolso || '',
     });
-    handleSearch(solicitud.ruc);
+    await handleSearch(solicitud.ruc);
     window.scrollTo(0, 0);
-  };
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -151,15 +151,15 @@ const SolicitudOperacionCreateEditPage = () => {
             await handleEditSolicitud(solicitudData);
             if (solicitudData.user_id) {
               const { data: creatorData, error: creatorError } = await supabase
-                .rpc('get_user_details', { user_id_input: solicitudData.user_id })
-                .single();
+                .rpc('get_user_details', { user_id_input: solicitudData.user_id });
 
               if (creatorError) {
                 console.error("Error fetching creator details:", creatorError);
-              } else if (creatorData) {
+              } else if (creatorData && creatorData.length > 0) {
+                const userDetails = creatorData[0] as { full_name: string; email: string };
                 setCreatorInfo({
-                  fullName: creatorData.full_name,
-                  email: creatorData.email
+                  fullName: userDetails.full_name,
+                  email: userDetails.email
                 });
               }
             }
@@ -174,12 +174,12 @@ const SolicitudOperacionCreateEditPage = () => {
       };
       loadSolicitudForEdit();
     }
-  }, [id, navigate]);
+  }, [id, navigate, handleEditSolicitud]);
 
   useEffect(() => {
     const grandTotal = riesgoRows.reduce((acc, row) => {
-      const riesgo = parseFloat(row.riesgo_aprobado) || 0;
-      const propuesta = parseFloat(row.propuesta_comercial) || 0;
+      const riesgo = parseFloat(row.riesgo_aprobado || '0') || 0;
+      const propuesta = parseFloat(row.propuesta_comercial || '0') || 0;
       return acc + riesgo + propuesta;
     }, 0);
     const formattedGrandTotal = grandTotal % 1 === 0 ? grandTotal.toString() : grandTotal.toFixed(2);
@@ -255,7 +255,7 @@ const SolicitudOperacionCreateEditPage = () => {
   };
 
   const handleSave = async () => {
-    if (saving) return; // Previene duplicados por doble clic
+    if (saving) return;
     if (!isAdmin) {
       showError('No tienes permisos para guardar la solicitud.');
       return;
@@ -268,16 +268,16 @@ const SolicitudOperacionCreateEditPage = () => {
     setSaving(true);
     try {
       const firstRiesgoRow = riesgoRows[0] || {};
-      const dataToSave = {
+      const dataToSave: Partial<SolicitudOperacion> = {
         ...solicitudFormData,
         ruc,
         tipo_cambio: parseFloat(solicitudFormData.tipo_cambio) || null,
-        lp: firstRiesgoRow.lp,
-        producto: firstRiesgoRow.producto,
-        deudor: firstRiesgoRow.deudor,
-        lp_vigente_gve: firstRiesgoRow.lp_vigente_gve,
-        riesgo_aprobado: firstRiesgoRow.riesgo_aprobado,
-        propuesta_comercial: firstRiesgoRow.propuesta_comercial,
+        lp: firstRiesgoRow.lp || null,
+        producto: firstRiesgoRow.producto || null,
+        deudor: firstRiesgoRow.deudor || null,
+        lp_vigente_gve: firstRiesgoRow.lp_vigente_gve || null,
+        riesgo_aprobado: String(firstRiesgoRow.riesgo_aprobado || ''),
+        propuesta_comercial: String(firstRiesgoRow.propuesta_comercial || ''),
       };
 
       if (editingSolicitud) {
@@ -289,8 +289,8 @@ const SolicitudOperacionCreateEditPage = () => {
           producto: row.producto,
           deudor: row.deudor,
           lp_vigente_gve: row.lp_vigente_gve,
-          riesgo_aprobado: parseFloat(row.riesgo_aprobado) || null,
-          propuesta_comercial: parseFloat(row.propuesta_comercial) || null,
+          riesgo_aprobado: parseFloat(row.riesgo_aprobado || '0') || null,
+          propuesta_comercial: parseFloat(row.propuesta_comercial || '0') || null,
         }));
         await supabase.from('solicitud_operacion_riesgos').insert(riesgosToInsert);
         showSuccess('Solicitud actualizada exitosamente.');
@@ -303,8 +303,8 @@ const SolicitudOperacionCreateEditPage = () => {
           producto: row.producto,
           deudor: row.deudor,
           lp_vigente_gve: row.lp_vigente_gve,
-          riesgo_aprobado: parseFloat(row.riesgo_aprobado) || null,
-          propuesta_comercial: parseFloat(row.propuesta_comercial) || null,
+          riesgo_aprobado: parseFloat(row.riesgo_aprobado || '0') || null,
+          propuesta_comercial: parseFloat(row.propuesta_comercial || '0') || null,
         }));
         await supabase.from('solicitud_operacion_riesgos').insert(riesgosToInsert);
         showSuccess('Solicitud creada exitosamente.');
@@ -326,7 +326,8 @@ const SolicitudOperacionCreateEditPage = () => {
 
   const handleRiesgoChange = (index: number, field: keyof RiesgoRow, value: string) => {
     const updatedRows = [...riesgoRows];
-    updatedRows[index] = { ...updatedRows[index], [field]: value };
+    const newRow = { ...updatedRows[index], [field]: value };
+    updatedRows[index] = newRow;
     setRiesgoRows(updatedRows);
   };
 
@@ -430,13 +431,13 @@ const SolicitudOperacionCreateEditPage = () => {
                           </Button>
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                          <div><Label>L/P</Label><Input value={row.lp} onChange={(e) => handleRiesgoChange(index, 'lp', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Producto</Label><Input value={row.producto} onChange={(e) => handleRiesgoChange(index, 'producto', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Deudor</Label><Input value={row.deudor} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>L/P Vigente (GVE)</Label><Input value={row.lp_vigente_gve} onChange={(e) => handleRiesgoChange(index, 'lp_vigente_gve', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Riesgo Aprobado</Label><Input type="number" step="0.01" value={row.riesgo_aprobado} onChange={(e) => handleRiesgoChange(index, 'riesgo_aprobado', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Propuesta Comercial</Label><Input type="number" step="0.01" value={row.propuesta_comercial} onChange={(e) => handleRiesgoChange(index, 'propuesta_comercial', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Exposición Total</Label><Input value={((parseFloat(row.riesgo_aprobado) || 0) + (parseFloat(row.propuesta_comercial) || 0)).toFixed(2)} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
+                          <div><Label>L/P</Label><Input value={row.lp || ''} onChange={(e) => handleRiesgoChange(index, 'lp', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label>Producto</Label><Input value={row.producto || ''} onChange={(e) => handleRiesgoChange(index, 'producto', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label>Deudor</Label><Input value={row.deudor || ''} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label>L/P Vigente (GVE)</Label><Input value={row.lp_vigente_gve || ''} onChange={(e) => handleRiesgoChange(index, 'lp_vigente_gve', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label>Riesgo Aprobado</Label><Input type="number" step="0.01" value={row.riesgo_aprobado || ''} onChange={(e) => handleRiesgoChange(index, 'riesgo_aprobado', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label>Propuesta Comercial</Label><Input type="number" step="0.01" value={row.propuesta_comercial || ''} onChange={(e) => handleRiesgoChange(index, 'propuesta_comercial', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label>Exposición Total</Label><Input value={((parseFloat(row.riesgo_aprobado || '0') || 0) + (parseFloat(row.propuesta_comercial || '0') || 0)).toFixed(2)} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
                         </div>
                       </div>
                     ))}
@@ -447,7 +448,7 @@ const SolicitudOperacionCreateEditPage = () => {
                           <span className="font-bold text-lg text-white">{solicitudFormData.exposicion_total}</span>
                         </div>
                         <Button variant="outline" onClick={handleAddRiesgoRow} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                          <PlusCircle className="h-4 w-4 mr-2" />
+                          <Plus className="h-4 w-4 mr-2" />
                           Agregar Fila
                         </Button>
                       </div>
@@ -501,7 +502,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue /></SelectTrigger>
                         <SelectContent className="bg-[#121212] border-gray-800 text-white">
                           <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
-                          <SelectItem value="En revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
+                          <SelectItem value="En Revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
                           <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
                         </SelectContent>
                       </Select>
