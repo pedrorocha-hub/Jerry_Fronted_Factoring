@@ -51,9 +51,13 @@ function App() {
           <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
           <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
 
+          
+
+
+
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
           
-          
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
