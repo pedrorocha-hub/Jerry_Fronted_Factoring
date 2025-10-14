@@ -206,14 +206,30 @@ const EeffForm = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Label htmlFor="ruc" className="text-gray-300">Empresa (RUC)</Label>
-                <Combobox
-                  options={rucOptions}
-                  value={formData.ruc || ''}
-                  onChange={handleRucChange}
-                  placeholder="Seleccione una empresa..."
-                  searchPlaceholder="Buscar empresa por RUC o nombre..."
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="ruc" className="text-gray-300">Empresa (RUC)</Label>
+                    <Combobox
+                      options={rucOptions}
+                      value={formData.ruc || ''}
+                      onChange={handleRucChange}
+                      placeholder="Seleccione una empresa..."
+                      searchPlaceholder="Buscar empresa por RUC o nombre..."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="anio_reporte" className="text-gray-300">Año del Reporte</Label>
+                    <Input
+                      id="anio_reporte"
+                      name="anio_reporte"
+                      type="number"
+                      placeholder="Ej: 2023"
+                      value={formData.anio_reporte || ''}
+                      onChange={handleChange}
+                      className="bg-gray-900 border-gray-700 mt-1"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

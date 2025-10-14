@@ -157,6 +157,7 @@ const EeffPage = () => {
                 <TableHeader>
                   <TableRow className="border-gray-800">
                     <TableHead className="text-gray-400">Empresa (RUC)</TableHead>
+                    <TableHead className="text-gray-400">Año</TableHead>
                     <TableHead className="text-gray-400">Total Activo</TableHead>
                     <TableHead className="text-gray-400">Total Pasivo</TableHead>
                     <TableHead className="text-gray-400">Total Patrimonio</TableHead>
@@ -167,7 +168,7 @@ const EeffPage = () => {
                 <TableBody>
                   {filteredEeffs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-gray-400">
+                      <TableCell colSpan={7} className="text-center py-8 text-gray-400">
                         No se encontraron registros de EEFF
                       </TableCell>
                     </TableRow>
@@ -177,6 +178,7 @@ const EeffPage = () => {
                         <TableCell className="text-white">
                           {getEmpresaNombre(eeff.ruc)}
                         </TableCell>
+                        <TableCell className="text-white">{eeff.anio_reporte || '-'}</TableCell>
                         <TableCell className="text-white">
                           {formatCurrency(eeff.activo_total_activo_neto)}
                         </TableCell>

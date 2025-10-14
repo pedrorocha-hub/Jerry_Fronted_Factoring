@@ -1,6 +1,7 @@
 export interface Eeff {
   id: string;
   ruc: string;
+  anio_reporte?: number | null;
   
   // Activos
   activo_efectivo_y_equivalentes_de_efectivo?: number | null;
@@ -73,10 +74,12 @@ export interface Eeff {
 
 export interface CreateEeffDto {
   ruc: string;
+  anio_reporte?: number | null;
   [key: string]: number | string | null | undefined;
 }
 
 export interface UpdateEeffDto {
   ruc?: string;
+  anio_reporte?: number | null;
   [key: string]: number | string | null | undefined;
 }
