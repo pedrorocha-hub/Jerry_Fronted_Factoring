@@ -1,255 +1,201 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FileText, FilePlus, Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Search, FileText, Eye, Edit, Calendar } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { SolicitudOperacion } from '@/types/solicitud-operacion';
+import { FichaRuc } from '@/types/ficha-ruc';
+import { FichaRucService } from '@/services/fichaRucService';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import SolicitudOperacionTable from '@/components/solicitud-operacion/SolicitudOperacionTable';
+import SolicitudOperacionPdfTemplate from '@/components/solicitud-operacion/SolicitudOperacionPdfTemplate';
 import { supabase } from '@/integrations/supabase/client';
-import { showSuccess, showError } from '@/utils/toast';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { useSession } from '@/contexts/SessionContext';
 
-interface Solicitud {
-  id: string;
-  ruc: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  proveedor?: string;
-  deudor?: string;
+interface Top10kData {
+  descripcion_ciiu_rev3: string | null;
+  sector: string | null;
+  ranking_2024: number | null;
+}
+
+interface SolicitudOperacionWithDetails extends SolicitudOperacion {
+  nombre_empresa?: string;
+  creator_name?: string;
 }
 
 const SolicitudesOperacionPage = () => {
+  const { isAdmin } = useSession();
   const navigate = useNavigate();
-  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [newRuc, setNewRuc] = useState('');
+  const [solicitudes, setSolicitudes] = useState<SolicitudOperacionWithDetails[]>([]);
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(true);
+  const [pdfData, setPdfData] = useState<{ solicitudOperacion: SolicitudOperacion; ficha: FichaRuc; top10k: Top10kData | null } | null>(null);
+  const pdfTemplateRef = useRef<HTMLDivElement>(null);
+  const [generatingPdfToastId, setGeneratingPdfToastId] = useState<string | number | null>(null);
 
   useEffect(() => {
     loadSolicitudes();
   }, []);
 
+  useEffect(() => {
+    if (pdfData && pdfTemplateRef.current) {
+      const element = pdfTemplateRef.current;
+      html2canvas(element, { scale: 2 }).then((canvas) => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const ratio = canvasWidth / canvasHeight;
+        const imgWidth = pdfWidth - 20;
+        const imgHeight = imgWidth / ratio;
+        
+        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+        pdf.save(`Solicitud_Operacion_${pdfData.solicitudOperacion.ruc}.pdf`);
+        
+        if (generatingPdfToastId) dismissToast(generatingPdfToastId);
+        showSuccess('PDF generado exitosamente.');
+        setPdfData(null);
+        setGeneratingPdfToastId(null);
+      });
+    }
+  }, [pdfData, generatingPdfToastId]);
+
   const loadSolicitudes = async () => {
-    setLoading(true);
+    setLoadingSolicitudes(true);
     try {
-      const { data, error } = await supabase
+      const { data: solicitudData, error: solicitudError } = await supabase
         .from('solicitudes_operacion')
-        .select('*')
+        .select(`
+          *,
+          profiles (
+            full_name
+          )
+        `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setSolicitudes(data || []);
+      if (solicitudError) throw solicitudError;
+      
+      if (solicitudData && solicitudData.length > 0) {
+        const rucs = [...new Set(solicitudData.map(r => r.ruc))];
+        
+        const { data: fichasData, error: fichasError } = await supabase
+          .from('ficha_ruc')
+          .select('ruc, nombre_empresa')
+          .in('ruc', rucs);
+
+        if (fichasError) throw fichasError;
+
+        const rucToNameMap = new Map(fichasData.map(f => [f.ruc, f.nombre_empresa]));
+
+        const enrichedSolicitudes = solicitudData.map(solicitud => ({
+          ...solicitud,
+          nombre_empresa: rucToNameMap.get(solicitud.ruc) || 'Razón Social no encontrada',
+          creator_name: (solicitud.profiles as any)?.full_name || 'Sistema'
+        }));
+        
+        setSolicitudes(enrichedSolicitudes);
+      } else {
+        setSolicitudes([]);
+      }
+
     } catch (err) {
-      console.error('Error al cargar solicitudes:', err);
-      showError('Error al cargar las solicitudes');
+      showError('No se pudieron cargar las solicitudes de operación.');
     } finally {
-      setLoading(false);
+      setLoadingSolicitudes(false);
     }
   };
 
-  const handleCreateNew = async () => {
-    if (!newRuc || newRuc.length !== 11) {
-      showError('Por favor, ingrese un RUC válido de 11 dígitos');
-      return;
-    }
+  const handleEdit = (solicitud: SolicitudOperacion) => {
+    navigate(`/solicitudes-operacion/edit/${solicitud.id}`);
+  };
 
-    setCreatingNew(true);
+  const handleDelete = async (solicitud: SolicitudOperacion) => {
+    if (window.confirm(`¿Está seguro de eliminar la solicitud para el RUC ${solicitud.ruc}?`)) {
+      const toastId = showLoading('Eliminando solicitud...');
+      try {
+        const { error } = await supabase.from('solicitudes_operacion').delete().eq('id', solicitud.id);
+        if (error) throw error;
+        
+        dismissToast(toastId);
+        showSuccess('Solicitud eliminada.');
+        await loadSolicitudes();
+      } catch (err) {
+        dismissToast(toastId);
+        showError('No se pudo eliminar la solicitud.');
+      }
+    }
+  };
+
+  const handleDownload = async (solicitud: SolicitudOperacion) => {
+    const toastId = showLoading('Generando PDF...');
+    setGeneratingPdfToastId(toastId);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showError('Usuario no autenticado');
+      const [fichaData, top10kDataResult] = await Promise.all([
+        FichaRucService.getByRuc(solicitud.ruc),
+        supabase.from('top_10k').select('descripcion_ciiu_rev3, sector, ranking_2024').eq('ruc', solicitud.ruc).single()
+      ]);
+
+      if (!fichaData) {
+        dismissToast(toastId);
+        showError('No se pudo encontrar la Ficha RUC para generar el PDF.');
         return;
       }
 
-      const { data, error } = await supabase
-        .from('solicitudes_operacion')
-        .insert({
-          ruc: newRuc,
-          status: 'Borrador',
-          user_id: user.id
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      showSuccess('Nueva solicitud creada exitosamente');
-      setNewRuc('');
-      await loadSolicitudes();
-      
-      // Navegar a la vista del dossier para esta nueva solicitud
-      navigate(`/dossier?solicitudId=${data.id}`);
+      setPdfData({
+        solicitudOperacion: solicitud,
+        ficha: fichaData,
+        top10k: top10kDataResult.data
+      });
     } catch (err) {
-      console.error('Error al crear solicitud:', err);
-      showError('Error al crear la solicitud');
-    } finally {
-      setCreatingNew(false);
+      dismissToast(toastId);
+      showError('Error al preparar los datos para el PDF.');
     }
   };
-
-  const handleViewDossier = (solicitudId: string) => {
-    navigate(`/dossier?solicitudId=${solicitudId}`);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completado':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'En revisión':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'Borrador':
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-    }
-  };
-
-  const filteredSolicitudes = solicitudes.filter(s => 
-    s.ruc.includes(searchTerm) || 
-    s.proveedor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.deudor?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <Layout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Solicitudes de Operación</h1>
-            <p className="text-gray-400 mt-1">
-              Gestiona todas las solicitudes y análisis de riesgo
-            </p>
-          </div>
-        </div>
-
-        {/* Card para crear nueva solicitud */}
-        <Card className="bg-[#121212] border border-gray-800">
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Plus className="h-5 w-5 mr-2 text-[#00FF80]" />
-              Nueva Solicitud de Operación
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-4">
-              <Input
-                type="text"
-                placeholder="Ingrese el RUC (11 dígitos)"
-                value={newRuc}
-                onChange={(e) => setNewRuc(e.target.value)}
-                maxLength={11}
-                className="flex-1 bg-gray-900 border-gray-700 text-white"
-                disabled={creatingNew}
-              />
-              <Button
-                onClick={handleCreateNew}
-                disabled={creatingNew || !newRuc || newRuc.length !== 11}
-                className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
-              >
-                {creatingNew ? (
-                  <>
-                    <Plus className="h-4 w-4 mr-2 animate-spin" />
-                    Creando...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear Solicitud
-                  </>
-                )}
+      <div className="min-h-screen bg-black">
+        <div className="space-y-6 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white flex items-center">
+                <FileText className="h-6 w-6 mr-3 text-[#00FF80]" />
+                Solicitudes de Operación
+              </h1>
+              <p className="text-gray-400">Reportes de Inicio Básico de empresa</p>
+            </div>
+            {isAdmin && (
+              <Button onClick={() => navigate('/solicitudes-operacion/new')} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                <FilePlus className="h-4 w-4 mr-2" />
+                Crear Solicitud
               </Button>
-            </div>
-            <p className="text-sm text-gray-400 mt-2">
-              Crea una nueva solicitud de operación para iniciar el análisis de riesgo
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Lista de solicitudes */}
-        <Card className="bg-[#121212] border border-gray-800">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-white flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-[#00FF80]" />
-                Solicitudes Existentes
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Search className="h-4 w-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Buscar por RUC, proveedor o deudor..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64 bg-gray-900 border-gray-700 text-white"
-                />
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-gray-400">Cargando solicitudes...</div>
-            ) : filteredSolicitudes.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                No se encontraron solicitudes
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-gray-800">
-                      <TableHead className="text-gray-400">RUC</TableHead>
-                      <TableHead className="text-gray-400">Proveedor</TableHead>
-                      <TableHead className="text-gray-400">Deudor</TableHead>
-                      <TableHead className="text-gray-400">Estado</TableHead>
-                      <TableHead className="text-gray-400">Fecha Creación</TableHead>
-                      <TableHead className="text-gray-400">Última Actualización</TableHead>
-                      <TableHead className="text-gray-400 text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSolicitudes.map((solicitud) => (
-                      <TableRow key={solicitud.id} className="border-gray-800">
-                        <TableCell className="text-white font-mono">{solicitud.ruc}</TableCell>
-                        <TableCell className="text-gray-300">{solicitud.proveedor || '-'}</TableCell>
-                        <TableCell className="text-gray-300">{solicitud.deudor || '-'}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={getStatusColor(solicitud.status)}>
-                            {solicitud.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-gray-300">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                            {new Date(solicitud.created_at).toLocaleDateString('es-PE')}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-gray-300">
-                          {new Date(solicitud.updated_at).toLocaleDateString('es-PE')}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleViewDossier(solicitud.id)}
-                            className="text-[#00FF80] hover:text-[#00FF80]/80 hover:bg-[#00FF80]/10"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Ver Dossier
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card className="bg-[#121212] border border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Solicitudes Creadas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingSolicitudes ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                </div>
+              ) : (
+                <SolicitudOperacionTable solicitudes={solicitudes} onEdit={handleEdit} onDelete={handleDelete} onDownload={handleDownload} />
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
+      {pdfData && (
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '210mm' }}>
+          <SolicitudOperacionPdfTemplate ref={pdfTemplateRef} data={pdfData} />
+        </div>
+      )}
     </Layout>
   );
 };
