@@ -540,10 +540,11 @@ const ComportamientoCrediticioPage = () => {
                     <div>
                       <Label htmlFor="solicitud_id">Asociar a Solicitud de Operación</Label>
                       <Select
-                        value={selectedReport?.solicitud_id || ''}
+                        value={selectedReport?.solicitud_id || 'null'}
                         onValueChange={(value) => {
                           if (selectedReport) {
-                            setSelectedReport({ ...selectedReport, solicitud_id: value });
+                            const newSolicitudId = value === 'null' ? null : value;
+                            setSelectedReport({ ...selectedReport, solicitud_id: newSolicitudId });
                             setIsDirty(true);
                           }
                         }}
@@ -553,7 +554,7 @@ const ComportamientoCrediticioPage = () => {
                           <SelectValue placeholder="Seleccionar una solicitud..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">No asociar</SelectItem>
+                          <SelectItem value="null">No asociar</SelectItem>
                           {filteredSolicitudes.map(s => (
                             <SelectItem key={s.id} value={s.id}>
                               Solicitud del {new Date(s.created_at).toLocaleDateString()}
