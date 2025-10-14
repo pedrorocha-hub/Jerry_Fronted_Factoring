@@ -30,7 +30,7 @@ const FinancialTableDisplay = ({ title, fields, data, icon }: { title: string, f
                 <TableCell className="text-gray-300 text-sm font-light">{label}</TableCell>
                 {years.map(year => (
                   <TableCell key={year} className="text-right font-mono text-white">
-                    {(data[year]?.[name as keyof RibEeff] as number)?.toLocaleString('es-PE') || '-'}
+                    {(data[year]?.[name as keyof RibEeff] as number)?.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '-'}
                   </TableCell>
                 ))}
               </TableRow>
@@ -55,9 +55,8 @@ const RibEeffSection: React.FC<RibEeffSectionProps> = ({ dossier }) => {
     return acc;
   }, {} as Record<number, Partial<RibEeff>>);
 
-  const activoFields = { /* ... (copiado de RibEeffForm) */ };
-  const pasivoFields = { /* ... (copiado de RibEeffForm) */ };
-  const patrimonioFields = { /* ... (copiado de RibEeffForm) */ };
+  // Corregido: Cargar los campos desde las props estáticas
+  const { activoFields, pasivoFields, patrimonioFields } = (RibEeffSection as any).defaultProps;
 
   return (
     <Card className="bg-[#121212] border border-gray-800">
@@ -89,7 +88,7 @@ const RibEeffSection: React.FC<RibEeffSectionProps> = ({ dossier }) => {
   );
 };
 
-// Copiando los campos para no tener que importarlos desde una página
+// Los campos se definen aquí y se acceden desde el componente
 (RibEeffSection as any).defaultProps = {
   activoFields: {
     activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
