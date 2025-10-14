@@ -393,29 +393,18 @@ const ComportamientoCrediticioPage = () => {
   };
 
   const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
-    if (query.length < 3) return [];
+    if (query.length < 2) return [];
 
-    const { data, error } = await supabase
-      .from('solicitudes_operacion')
-      .select('id, ruc, created_at')
-      .or(`ruc.ilike.%${query}%,id::text.ilike.%${query}%`)
-      .limit(10);
+    const { data, error } = await supabase.rpc('search_solicitudes', {
+      search_term: query,
+    });
 
     if (error) {
       console.error('Error searching solicitudes:', error);
       return [];
     }
 
-    if (!data || data.length === 0) return [];
-
-    const rucs = [...new Set(data.map(d => d.ruc))];
-    const { data: fichas } = await supabase.from('ficha_ruc').select('ruc, nombre_empresa').in('ruc', rucs);
-    const rucToNameMap = new Map(fichas?.map(f => [f.ruc, f.nombre_empresa]));
-
-    return data.map(solicitud => ({
-      value: solicitud.id,
-      label: `${rucToNameMap.get(solicitud.ruc) || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`
-    }));
+    return data || [];
   };
 
   const formFields = [
