@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -53,16 +53,16 @@ const RibEeffPage = () => {
     return ficha?.nombre_empresa || ruc;
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Está seguro de eliminar este registro de RIB EEFF?')) return;
+  const handleDeleteGroup = async (ruc: string, ids: string[]) => {
+    if (!confirm(`¿Está seguro de eliminar todos los registros de RIB EEFF para el RUC ${ruc}?`)) return;
 
     try {
-      await RibEeffService.delete(id);
-      toast.success('Registro de RIB EEFF eliminado correctamente');
+      await Promise.all(ids.map(id => RibEeffService.delete(id)));
+      toast.success(`Registros de RIB EEFF para ${ruc} eliminados correctamente`);
       loadData();
     } catch (error: any) {
       console.error('Error al eliminar:', error);
-      toast.error('Error al eliminar el registro de RIB EEFF');
+      toast.error('Error al eliminar los registros de RIB EEFF');
     }
   };
 
@@ -78,7 +78,36 @@ const RibEeffPage = () => {
     }
   };
 
-  const filteredRibEeffs = ribEeffs.filter(item => {
+  const groupedRibEeffs = useMemo(() => {
+    const grouped = ribEeffs.reduce((acc, item) => {
+      if (!acc[item.ruc]) {
+        acc[item.ruc] = {
+          ruc: item.ruc,
+          tipo_entidad: item.tipo_entidad,
+          status: item.status,
+          created_at: item.created_at,
+          years: new Set<number>(),
+          ids: [],
+        };
+      }
+      if (item.anio_reporte) {
+        acc[item.ruc].years.add(item.anio_reporte);
+      }
+      acc[item.ruc].ids.push(item.id);
+      if (item.created_at && (!acc[item.ruc].created_at || new Date(item.created_at) > new Date(acc[item.ruc].created_at!))) {
+        acc[item.ruc].status = item.status;
+        acc[item.ruc].created_at = item.created_at;
+      }
+      return acc;
+    }, {} as Record<string, { ruc: string; tipo_entidad: any; status: any; created_at?: string; years: Set<number>; ids: string[] }>);
+    
+    return Object.values(grouped).map(item => ({
+        ...item,
+        years: Array.from(item.years).sort((a, b) => b - a),
+    }));
+  }, [ribEeffs]);
+
+  const filteredRibEeffs = groupedRibEeffs.filter(item => {
     const empresaNombre = getEmpresaNombre(item.ruc);
     return empresaNombre.toLowerCase().includes(searchTerm.toLowerCase()) || item.ruc.includes(searchTerm);
   });
@@ -142,9 +171,9 @@ const RibEeffPage = () => {
                 <TableRow className="border-gray-800">
                   <TableHead className="text-gray-400">Empresa (RUC)</TableHead>
                   <TableHead className="text-gray-400">Tipo</TableHead>
-                  <TableHead className="text-gray-400">Año</TableHead>
+                  <TableHead className="text-gray-400">Años</TableHead>
                   <TableHead className="text-gray-400">Estado</TableHead>
-                  <TableHead className="text-gray-400">Fecha Creación</TableHead>
+                  <TableHead className="text-gray-400">Última Actualización</TableHead>
                   <TableHead className="text-gray-400 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -157,12 +186,12 @@ const RibEeffPage = () => {
                   </TableRow>
                 ) : (
                   filteredRibEeffs.map((item) => (
-                    <TableRow key={item.id} className="border-gray-800">
+                    <TableRow key={item.ruc} className="border-gray-800">
                       <TableCell className="text-white font-medium">
                         {getEmpresaNombre(item.ruc)}
                       </TableCell>
                       <TableCell className="text-white capitalize">{item.tipo_entidad}</TableCell>
-                      <TableCell className="text-white">{item.anio_reporte || '-'}</TableCell>
+                      <TableCell className="text-white">{item.years.join(', ') || '-'}</TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
                       <TableCell className="text-gray-400">
                         {item.created_at ? new Date(item.created_at).toLocaleDateString('es-ES') : '-'}
@@ -172,14 +201,14 @@ const RibEeffPage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(`/rib-eeff/edit/${item.id}`)}
+                            onClick={() => navigate(`/rib-eeff/manage/${item.ruc}`)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDeleteGroup(item.ruc, item.ids)}
                             className="text-red-400 hover:text-red-300"
                           >
                             <Trash2 className="h-4 w-4" />

@@ -150,7 +150,7 @@ const FinancialTable = ({ title, fields, years, yearsData, handleChange, icon })
 );
 
 const RibEeffForm = () => {
-    const { id } = useParams<{ id: string }>();
+    const { ruc } = useParams<{ ruc: string }>();
     const navigate = useNavigate();
     const [fichas, setFichas] = useState<FichaRuc[]>([]);
     const [loading, setLoading] = useState(true);
@@ -168,20 +168,17 @@ const RibEeffForm = () => {
                 const fichasData = await FichaRucService.getAll();
                 setFichas(fichasData);
 
-                if (id) {
-                    const record = await RibEeffService.getById(id);
-                    if (record) {
-                        setGeneralData({
-                            ruc: record.ruc,
-                            tipo_entidad: record.tipo_entidad || undefined,
-                            status: record.status || undefined,
-                        });
-                        // Trigger data load for the existing record's RUC
-                        await handleLoadEeffData(record.ruc);
-                    } else {
-                        toast.error('Registro no encontrado.');
-                        navigate('/rib-eeff');
-                    }
+                if (ruc) {
+                    const existingData = await RibEeffService.getByRuc(ruc);
+                    const firstRecord = existingData[0];
+                    
+                    setGeneralData({
+                        ruc: ruc,
+                        tipo_entidad: firstRecord?.tipo_entidad || undefined,
+                        status: firstRecord?.status || undefined,
+                    });
+                    
+                    await handleLoadEeffData(ruc);
                 }
             } catch (error) {
                 console.error('Error fetching initial data:', error);
@@ -191,16 +188,16 @@ const RibEeffForm = () => {
             }
         };
         fetchInitialData();
-    }, [id, navigate]);
+    }, [ruc]);
 
-    const handleLoadEeffData = async (ruc: string) => {
-        if (!ruc) {
+    const handleLoadEeffData = async (rucToLoad: string) => {
+        if (!rucToLoad) {
             toast.info('Por favor, seleccione una empresa.');
             return;
         }
         setLoading(true);
         try {
-            const eeffRecords = await EeffService.getByRuc(ruc);
+            const eeffRecords = await EeffService.getByRuc(rucToLoad);
             if (eeffRecords.length === 0) {
                 toast.info('No se encontraron registros de EEFF para esta empresa.');
                 setYears([]);
@@ -211,7 +208,7 @@ const RibEeffForm = () => {
             const availableYears = eeffRecords.map(r => r.anio_reporte).filter((y): y is number => y !== null);
             setYears(availableYears);
 
-            const existingRibRecords = await RibEeffService.getByRucAndYears(ruc, availableYears);
+            const existingRibRecords = await RibEeffService.getByRucAndYears(rucToLoad, availableYears);
             setExistingRecords(existingRibRecords);
 
             const newYearsData = {};
@@ -238,6 +235,10 @@ const RibEeffForm = () => {
 
     const handleGeneralChange = (name: string, value: string) => {
         setGeneralData(prev => ({ ...prev, [name]: value }));
+        if (name === 'ruc') {
+            setYears([]);
+            setYearsData({});
+        }
     };
 
     const handleYearDataChange = (year: number, name: string, value: string) => {
