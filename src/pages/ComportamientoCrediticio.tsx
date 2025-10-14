@@ -37,7 +37,7 @@ const getStatusColor = (status: CrediticioStatus | null | undefined) => {
 
 const ComportamientoCrediticioPage = () => {
   const { isAdmin } = useSession();
-  const [view, setView] = useState<'list' | 'form'>('list');
+  const [view, setView] = useState<'list' | 'search_results' | 'form'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -52,48 +52,21 @@ const ComportamientoCrediticioPage = () => {
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
 
   const emptyForm = {
-    proveedor: '',
-    deudor: '',
-    equifax_score: '',
-    sentinel_score: '',
-    equifax_calificacion: '',
-    sentinel_calificacion: '',
-    equifax_deuda_directa: '',
-    sentinel_deuda_directa: '',
-    equifax_deuda_indirecta: '',
-    sentinel_deuda_indirecta: '',
-    equifax_impagos: '',
-    sentinel_impagos: '',
-    equifax_deuda_sunat: '',
-    sentinel_deuda_sunat: '',
-    equifax_protestos: '',
-    sentinel_protestos: '',
-    validado_por: '',
-    status: 'Borrador' as CrediticioStatus,
-    apefac_descripcion: '',
-    comentarios: '',
+    proveedor: '', deudor: '', equifax_score: '', sentinel_score: '', equifax_calificacion: '',
+    sentinel_calificacion: '', equifax_deuda_directa: '', sentinel_deuda_directa: '',
+    equifax_deuda_indirecta: '', sentinel_deuda_indirecta: '', equifax_impagos: '',
+    sentinel_impagos: '', equifax_deuda_sunat: '', sentinel_deuda_sunat: '',
+    equifax_protestos: '', sentinel_protestos: '', validado_por: '',
+    status: 'Borrador' as CrediticioStatus, apefac_descripcion: '', comentarios: '',
   };
 
   const emptyDeudorForm = {
-    proveedor: '',
-    deudor: '',
-    equifax_score: '',
-    sentinel_score: '',
-    equifax_calificacion: '',
-    sentinel_calificacion: '',
-    equifax_deuda_directa: '',
-    sentinel_deuda_directa: '',
-    equifax_deuda_indirecta: '',
-    sentinel_deuda_indirecta: '',
-    equifax_impagos: '',
-    sentinel_impagos: '',
-    equifax_deuda_sunat: '',
-    sentinel_deuda_sunat: '',
-    equifax_protestos: '',
-    sentinel_protestos: '',
-    validado_por: '',
-    status: 'Borrador' as CrediticioStatus,
-    apefac_descripcion: '',
+    proveedor: '', deudor: '', equifax_score: '', sentinel_score: '', equifax_calificacion: '',
+    sentinel_calificacion: '', equifax_deuda_directa: '', sentinel_deuda_directa: '',
+    equifax_deuda_indirecta: '', sentinel_deuda_indirecta: '', equifax_impagos: '',
+    sentinel_impagos: '', equifax_deuda_sunat: '', sentinel_deuda_sunat: '',
+    equifax_protestos: '', sentinel_protestos: '', validado_por: '',
+    status: 'Borrador' as CrediticioStatus, apefac_descripcion: '',
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -169,59 +142,58 @@ const ComportamientoCrediticioPage = () => {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        
         const existingReports = await ComportamientoCrediticioService.getByRuc(rucToSearch);
         setExistingReports(existingReports);
-
-        if (existingReports.length > 0) {
-          // EDIT MODE: Load existing report, do NOT fetch from Sentinel
-          const reportToEdit = existingReports[0];
-          await handleSelectReport(reportToEdit, null);
-          toast.info('Cargando reporte de comportamiento crediticio existente.');
-        } else {
-          // CREATE MODE: Fetch from Sentinel to pre-fill a new report
-          const { data: sentinelData } = await supabase.from('sentinel').select('*').eq('ruc', rucToSearch).order('created_at', { ascending: false }).limit(1).maybeSingle();
-          
-          if (sentinelData) {
-            toast.success('Datos de Sentinel encontrados para autocompletar.');
-          } else {
-            toast.info('No se encontraron datos de Sentinel para autocompletar.');
-          }
-
-          // Create a new, blank report object in memory
-          const newReport: ComportamientoCrediticio = {
-            id: '', // No ID yet, this signifies it's a new report
-            ruc: rucToSearch,
-            proveedor: fichaData.nombre_empresa,
-            status: 'Borrador',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            user_id: null,
-            equifax_score: null, sentinel_score: null, equifax_calificacion: null, sentinel_calificacion: null,
-            equifax_deuda_directa: null, sentinel_deuda_directa: null, equifax_deuda_indirecta: null, sentinel_deuda_indirecta: null,
-            equifax_impagos: null, sentinel_impagos: null, equifax_deuda_sunat: null, sentinel_deuda_sunat: null,
-            equifax_protestos: null, sentinel_protestos: null, validado_por: null, apefac_descripcion: null, comentarios: null,
-            deudor: null, deudor_equifax_score: null, deudor_sentinel_score: null, deudor_equifax_calificacion: null,
-            deudor_sentinel_calificacion: null, deudor_equifax_deuda_directa: null, deudor_sentinel_deuda_directa: null,
-            deudor_equifax_deuda_indirecta: null, deudor_sentinel_deuda_indirecta: null, deudor_equifax_impagos: null,
-            deudor_sentinel_impagos: null, deudor_equifax_deuda_sunat: null, deudor_sentinel_deuda_sunat: null,
-            deudor_equifax_protestos: null, deudor_sentinel_protestos: null, deudor_apefac_descripcion: null, deudor_comentarios: null,
-          };
-
-          await handleSelectReport(newReport, sentinelData);
-        }
-        
-        setView('form');
+        setView('search_results');
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un reporte.');
         showError('Ficha RUC no encontrada.');
       }
     } catch (err) {
-      setError('Error al buscar o crear el reporte.');
-      showError('Error al buscar o crear el reporte.');
+      setError('Error al buscar la empresa.');
+      showError('Error al buscar la empresa.');
     } finally {
       setSearching(false);
     }
+  };
+
+  const handleCreateNew = async () => {
+    if (!searchedFicha) return;
+    
+    const { data: sentinelData } = await supabase.from('sentinel').select('*').eq('ruc', searchedFicha.ruc).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    
+    if (sentinelData) {
+      toast.success('Datos de Sentinel encontrados para autocompletar.');
+    } else {
+      toast.info('No se encontraron datos de Sentinel para autocompletar.');
+    }
+
+    const newReport: ComportamientoCrediticio = {
+      id: '', // No ID yet
+      ruc: searchedFicha.ruc,
+      proveedor: searchedFicha.nombre_empresa,
+      status: 'Borrador',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      user_id: null,
+      equifax_score: null, sentinel_score: null, equifax_calificacion: null, sentinel_calificacion: null,
+      equifax_deuda_directa: null, sentinel_deuda_directa: null, equifax_deuda_indirecta: null, sentinel_deuda_indirecta: null,
+      equifax_impagos: null, sentinel_impagos: null, equifax_deuda_sunat: null, sentinel_deuda_sunat: null,
+      equifax_protestos: null, sentinel_protestos: null, validado_por: null, apefac_descripcion: null, comentarios: null,
+      deudor: null, deudor_equifax_score: null, deudor_sentinel_score: null, deudor_equifax_calificacion: null,
+      deudor_sentinel_calificacion: null, deudor_equifax_deuda_directa: null, deudor_sentinel_deuda_directa: null,
+      deudor_equifax_deuda_indirecta: null, deudor_sentinel_deuda_indirecta: null, deudor_equifax_impagos: null,
+      deudor_sentinel_impagos: null, deudor_equifax_deuda_sunat: null, deudor_sentinel_deuda_sunat: null,
+      deudor_equifax_protestos: null, deudor_sentinel_protestos: null, deudor_apefac_descripcion: null, deudor_comentarios: null,
+    };
+
+    await handleSelectReport(newReport, sentinelData);
+    setView('form');
+  };
+
+  const handleEditFromSearchResults = async (report: ComportamientoCrediticio) => {
+    await handleSelectReport(report, null); // Pass null for sentinelData
+    setView('form');
   };
 
   const handleSelectReport = async (report: ComportamientoCrediticio, sentinelData?: Sentinel | null) => {
@@ -419,37 +391,85 @@ const ComportamientoCrediticioPage = () => {
               <TrendingUp className="h-6 w-6 mr-3 text-[#00FF80]" />
               Comportamiento Crediticio
             </h1>
-            {view === 'form' && (
+            {view !== 'list' && (
               <Button variant="outline" onClick={handleBackToList} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver a la lista
+                Volver
               </Button>
             )}
           </div>
 
           {view === 'list' && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-white">Buscar o Crear Reporte</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input placeholder="Ingrese RUC para buscar o crear" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
-                </div>
-                <Button onClick={() => handleSearch(rucInput)} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                  {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                  Buscar
-                </Button>
-              </CardContent>
-            </Card>
+            <>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader><CardTitle className="text-white">Buscar Empresa por RUC</CardTitle></CardHeader>
+                <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
+                  <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input placeholder="Ingrese RUC para buscar o crear" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+                  </div>
+                  <Button onClick={() => handleSearch(rucInput)} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                    {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                    Buscar
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader><CardTitle className="text-white">Reportes Creados</CardTitle></CardHeader>
+                <CardContent>
+                  {loadingReports ? (
+                    <div className="flex justify-center items-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
+                  ) : allReports.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400">No hay reportes creados.</div>
+                  ) : (
+                    <ComportamientoCrediticioTable reports={allReports} onEdit={handleEditFromList} onDelete={handleDelete} />
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
+          {view === 'search_results' && searchedFicha && (
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white">Resultados para: {searchedFicha.nombre_empresa}</CardTitle>
+                <p className="text-gray-400 font-mono">{searchedFicha.ruc}</p>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-end mb-4">
+                  <Button onClick={handleCreateNew} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Nuevo Reporte
+                  </Button>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Reportes Existentes ({existingReports.length})</h3>
+                {existingReports.length > 0 ? (
+                  <Table>
+                    <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha Creación</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {existingReports.map(report => (
+                        <TableRow key={report.id} className="border-gray-800">
+                          <TableCell>{new Date(report.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell><span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(report.status)}`}>{report.status || 'Borrador'}</span></TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditFromSearchResults(report)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4 mr-2" />Editar</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-center text-gray-400 py-4">No hay reportes previos para este RUC.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
-              {/* Proveedor Card */}
+              {/* Formulario y resto de la UI de edición */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">{selectedReport?.id ? 'Editando' : 'Nuevo'} Reporte para: {searchedFicha.nombre_empresa}</CardTitle>
@@ -491,7 +511,6 @@ const ComportamientoCrediticioPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Deudor Card */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardContent className="space-y-4 pt-6">
                   <div>
@@ -536,7 +555,7 @@ const ComportamientoCrediticioPage = () => {
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-white">Historial de Análisis (Crediticio)</CardTitle>
+                    <CardTitle className="text-white">Gestión del Reporte</CardTitle>
                     {isAdmin && (
                       <Button onClick={handleSave} disabled={saving || !isDirty}>
                         {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -545,30 +564,9 @@ const ComportamientoCrediticioPage = () => {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  {existingReports.length > 0 ? (
-                    <Table>
-                      <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {existingReports.map(report => (
-                          <TableRow key={report.id} className={`border-gray-800 ${selectedReport?.id === report.id ? 'bg-gray-800/50' : ''}`}>
-                            <TableCell>{new Date(report.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell><span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(report.status)}`}>{report.status || 'Borrador'}</span></TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={async () => await handleSelectReport(report)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
-                              {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(report.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
-                  )}
-                </CardContent>
                 {selectedReport && (
                   <CardFooter className="flex flex-col items-start space-y-4 text-sm text-gray-300 border-t border-gray-800 pt-4">
-                    <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
+                    <h4 className="font-semibold text-white">Detalles del Análisis</h4>
                     <div className="flex items-start"><User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" /><div><p><strong className="text-gray-400">Ejecutivo:</strong>{creatorDetails ? <span> {creatorDetails.fullName} ({creatorDetails.email})</span> : <span> Cargando...</span>}</p><div className="flex items-center mt-1 text-gray-500"><Calendar className="h-4 w-4 mr-2" /><span className="text-xs">{new Date(selectedReport.created_at).toLocaleString('es-PE')}</span></div></div></div>
                     <div className="flex items-center"><Clock className="h-4 w-4 mr-2 text-gray-400" /><div><strong className="text-gray-400">Última modificación:</strong> {new Date(selectedReport.updated_at).toLocaleString('es-PE')}</div></div>
                     <div className="w-full pt-2"><Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label><Input id="validado_por" value={formData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} /></div>
@@ -577,23 +575,6 @@ const ComportamientoCrediticioPage = () => {
                 )}
               </Card>
             </div>
-          )}
-
-          {view === 'list' && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <CardTitle className="text-white">Reportes Creados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingReports ? (
-                  <div className="flex justify-center items-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
-                ) : allReports.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">No hay reportes creados.</div>
-                ) : (
-                  <ComportamientoCrediticioTable reports={allReports} onEdit={handleEditFromList} onDelete={handleDelete} />
-                )}
-              </CardContent>
-            </Card>
           )}
         </div>
       </div>
