@@ -62,3 +62,6 @@ export interface Eeff {
   created_at?: string;
   updated_at?: string;
 }
+
+export type CreateEeffDto = Omit<Eeff, 'id' | 'created_at' | 'updated_at'>;
+export type UpdateEeffDto = Partial<CreateEeffDto>;

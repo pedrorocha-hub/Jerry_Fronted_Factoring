@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Eeff } from '@/types/eeff';
+import { Eeff, CreateEeffDto, UpdateEeffDto } from '@/types/eeff';
 
 const TABLE_NAME = 'eeff';
 
@@ -40,6 +40,19 @@ export const EeffService = {
     return data || [];
   },
 
+  async getById(id: string): Promise<Eeff | null> {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select(COLUMNS)
+      .eq('id', id)
+      .single();
+    if (error) {
+      console.error(`Error fetching EEFF record ${id}:`, error);
+      throw new Error(error.message);
+    }
+    return data;
+  },
+
   async getByRuc(ruc: string): Promise<Eeff[]> {
     if (!ruc) return [];
     const { data, error } = await supabase
@@ -52,6 +65,33 @@ export const EeffService = {
       throw new Error(error.message);
     }
     return data || [];
+  },
+
+  async create(dto: CreateEeffDto): Promise<Eeff> {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .insert(dto)
+      .select(COLUMNS)
+      .single();
+    if (error) {
+      console.error("Error creating EEFF record:", error);
+      throw new Error(error.message);
+    }
+    return data;
+  },
+
+  async update(id: string, dto: UpdateEeffDto): Promise<Eeff> {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .update(dto)
+      .eq('id', id)
+      .select(COLUMNS)
+      .single();
+    if (error) {
+      console.error(`Error updating EEFF record ${id}:`, error);
+      throw new Error(error.message);
+    }
+    return data;
   },
 
   async delete(id: string): Promise<void> {
