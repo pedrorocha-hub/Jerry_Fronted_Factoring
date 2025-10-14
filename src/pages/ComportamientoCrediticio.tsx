@@ -20,6 +20,7 @@ import { useSession } from '@/contexts/SessionContext';
 import ComportamientoCrediticioTable from '@/components/comportamiento-crediticio/ComportamientoCrediticioTable';
 import { supabase } from '@/integrations/supabase/client';
 import ExperienciaPagoManager from '@/components/comportamiento-crediticio/ExperienciaPagoManager';
+import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 
 interface ReporteWithDetails extends ComportamientoCrediticio {
   nombre_empresa?: string;
@@ -50,6 +51,7 @@ const ComportamientoCrediticioPage = () => {
   const [existingReports, setExistingReports] = useState<ComportamientoCrediticio[]>([]);
   const [selectedReport, setSelectedReport] = useState<ComportamientoCrediticio | null>(null);
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
+  const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
   const emptyForm = {
     proveedor: '', deudor: '', equifax_score: '', sentinel_score: '', equifax_calificacion: '',
@@ -58,6 +60,7 @@ const ComportamientoCrediticioPage = () => {
     sentinel_impagos: '', equifax_deuda_sunat: '', sentinel_deuda_sunat: '',
     equifax_protestos: '', sentinel_protestos: '', validado_por: '',
     status: 'Borrador' as CrediticioStatus, apefac_descripcion: '', comentarios: '',
+    solicitud_id: null as string | null,
   };
 
   const emptyDeudorForm = {
@@ -176,6 +179,7 @@ const ComportamientoCrediticioPage = () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       user_id: null,
+      solicitud_id: null,
       equifax_score: null, sentinel_score: null, equifax_calificacion: null, sentinel_calificacion: null,
       equifax_deuda_directa: null, sentinel_deuda_directa: null, equifax_deuda_indirecta: null, sentinel_deuda_indirecta: null,
       equifax_impagos: null, sentinel_impagos: null, equifax_deuda_sunat: null, sentinel_deuda_sunat: null,
@@ -204,6 +208,19 @@ const ComportamientoCrediticioPage = () => {
       return `${score}/1000`;
     };
 
+    setInitialSolicitudLabel(null);
+    if (report.solicitud_id) {
+        const { data: solicitud } = await supabase
+            .from('solicitudes_operacion')
+            .select('id, ruc, created_at')
+            .eq('id', report.solicitud_id)
+            .single();
+        if (solicitud) {
+            const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
+            setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+        }
+    }
+
     const newFormData = {
       proveedor: report.proveedor || '',
       deudor: '',
@@ -225,6 +242,7 @@ const ComportamientoCrediticioPage = () => {
       status: report.status || 'Borrador',
       apefac_descripcion: report.apefac_descripcion || '',
       comentarios: report.comentarios || '',
+      solicitud_id: report.solicitud_id || null,
     };
     setFormData(newFormData);
     setInitialFormData(newFormData);
@@ -267,7 +285,7 @@ const ComportamientoCrediticioPage = () => {
     }
   };
 
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { id: string, value: any } }) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
@@ -282,9 +300,10 @@ const ComportamientoCrediticioPage = () => {
     if (!searchedFicha) return;
     setSaving(true);
     try {
-      const dataToSave = {
+      const dataToSave: ComportamientoCrediticioUpdate = {
         ruc: searchedFicha.ruc,
         proveedor: formData.proveedor,
+        solicitud_id: formData.solicitud_id || null,
         equifax_score: formData.equifax_score || null,
         sentinel_score: formData.sentinel_score || null,
         equifax_calificacion: formData.equifax_calificacion || null,
@@ -326,7 +345,7 @@ const ComportamientoCrediticioPage = () => {
         await ComportamientoCrediticioService.update(selectedReport.id, dataToSave);
         showSuccess('Reporte actualizado.');
       } else {
-        const newReport = await ComportamientoCrediticioService.create(dataToSave);
+        const newReport = await ComportamientoCrediticioService.create(dataToSave as ComportamientoCrediticioInsert);
         setSelectedReport(newReport);
         showSuccess('Reporte creado.');
       }
@@ -371,6 +390,32 @@ const ComportamientoCrediticioPage = () => {
   const handleEditFromList = (report: ReporteWithDetails) => {
     setRucInput(report.ruc);
     handleSearch(report.ruc);
+  };
+
+  const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
+    if (query.length < 3) return [];
+
+    const { data, error } = await supabase
+      .from('solicitudes_operacion')
+      .select('id, ruc, created_at')
+      .or(`ruc.ilike.%${query}%,id::text.ilike.%${query}%`)
+      .limit(10);
+
+    if (error) {
+      console.error('Error searching solicitudes:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) return [];
+
+    const rucs = [...new Set(data.map(d => d.ruc))];
+    const { data: fichas } = await supabase.from('ficha_ruc').select('ruc, nombre_empresa').in('ruc', rucs);
+    const rucToNameMap = new Map(fichas?.map(f => [f.ruc, f.nombre_empresa]));
+
+    return data.map(solicitud => ({
+      value: solicitud.id,
+      label: `${rucToNameMap.get(solicitud.ruc) || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`
+    }));
   };
 
   const formFields = [
@@ -569,6 +614,19 @@ const ComportamientoCrediticioPage = () => {
                     <h4 className="font-semibold text-white">Detalles del Análisis</h4>
                     <div className="flex items-start"><User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" /><div><p><strong className="text-gray-400">Ejecutivo:</strong>{creatorDetails ? <span> {creatorDetails.fullName} ({creatorDetails.email})</span> : <span> Cargando...</span>}</p><div className="flex items-center mt-1 text-gray-500"><Calendar className="h-4 w-4 mr-2" /><span className="text-xs">{new Date(selectedReport.created_at).toLocaleString('es-PE')}</span></div></div></div>
                     <div className="flex items-center"><Clock className="h-4 w-4 mr-2 text-gray-400" /><div><strong className="text-gray-400">Última modificación:</strong> {new Date(selectedReport.updated_at).toLocaleString('es-PE')}</div></div>
+                    <div className="w-full pt-2">
+                      <Label htmlFor="solicitud_id" className="font-semibold text-white">Asociar a Solicitud de Operación</Label>
+                      <AsyncCombobox
+                          value={formData.solicitud_id}
+                          onChange={(value) => handleFormChange({ target: { id: 'solicitud_id', value } } as any)}
+                          onSearch={searchSolicitudes}
+                          placeholder="Buscar por RUC, empresa o ID de solicitud..."
+                          searchPlaceholder="Escriba para buscar..."
+                          emptyMessage="No se encontraron solicitudes."
+                          disabled={!isAdmin}
+                          initialDisplayValue={initialSolicitudLabel}
+                      />
+                    </div>
                     <div className="w-full pt-2"><Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label><Input id="validado_por" value={formData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} /></div>
                     <div className="w-full pt-2"><Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label><Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as CrediticioStatus }))} disabled={!isAdmin}><SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En revisión">En revisión</SelectItem><SelectItem value="Aprobado">Aprobado</SelectItem><SelectItem value="Rechazado">Rechazado</SelectItem></SelectContent></Select></div>
                   </CardFooter>

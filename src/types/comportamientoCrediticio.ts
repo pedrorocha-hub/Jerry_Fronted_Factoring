@@ -8,6 +8,7 @@ export interface ComportamientoCrediticio {
   created_at: string;
   updated_at: string;
   proveedor: string | null;
+  solicitud_id: string | null;
   
   equifax_score: string | null;
   sentinel_score: string | null;
@@ -51,6 +52,7 @@ export interface ComportamientoCrediticioInsert {
   user_id: string | null;
   status?: CrediticioStatus;
   proveedor?: string | null;
+  solicitud_id?: string | null;
 
   equifax_score?: string | null;
   sentinel_score?: string | null;
@@ -92,6 +94,7 @@ export interface ComportamientoCrediticioInsert {
 export interface ComportamientoCrediticioUpdate {
   status?: CrediticioStatus;
   proveedor?: string | null;
+  solicitud_id?: string | null;
 
   equifax_score?: string | null;
   sentinel_score?: string | null;
