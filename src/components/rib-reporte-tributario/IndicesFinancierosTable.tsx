@@ -14,7 +14,7 @@ const formatIndex = (value: number | null | undefined) => {
   return value.toFixed(2);
 };
 
-const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ reports, years, onDataChange }) => {
+const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ reports, years = [], onDataChange }) => {
   const handleInputChange = (year: number, field: keyof RibReporteTributario, value: string) => {
     const numericValue = value === '' ? null : parseFloat(value);
     const reportForYear = reports.find(r => r.anio === year) || { ruc: reports[0]?.ruc, anio: year, tipo_entidad: 'deudor' };

@@ -264,7 +264,7 @@ const RibReporteTributarioPage = () => {
                   <h2 className="text-xl font-bold text-white mb-2">DATOS DEL PROVEEDOR</h2>
                   <p className="text-gray-400 text-sm">Información financiera del proveedor (opcional)</p>
                 </div>
-                <ProveedorSection data={latestReport} onDataChange={handleDataChange} />
+                <ProveedorSection debtorReportData={latestReport} onDebtorDataChange={handleDataChange} />
               </div>
               
               {latestReport && (

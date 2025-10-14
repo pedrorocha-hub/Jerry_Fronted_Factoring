@@ -14,7 +14,7 @@ const formatCurrency = (value: number | null | undefined) => {
   return value.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
-const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({ reports, years, onDataChange }) => {
+const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({ reports, years = [], onDataChange }) => {
   const handleInputChange = (year: number, field: keyof RibReporteTributario, value: string) => {
     const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
     const reportForYear = reports.find(r => r.anio === year) || { ruc: reports[0]?.ruc, anio: year, tipo_entidad: 'deudor' };
