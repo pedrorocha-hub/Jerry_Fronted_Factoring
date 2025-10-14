@@ -16,6 +16,17 @@ export const RibEeffService = {
     return data;
   },
 
+  async getByRucAndYears(ruc: string, years: number[]): Promise<RibEeff[]> {
+    if (!ruc || years.length === 0) return [];
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('ruc', ruc)
+      .in('anio_reporte', years);
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
   async create(dto: CreateRibEeffDto): Promise<RibEeff> {
     const { data, error } = await supabase.from(TABLE_NAME).insert(dto).select().single();
     if (error) throw new Error(error.message);
