@@ -168,17 +168,32 @@ const RibEeffForm = () => {
                 const fichasData = await FichaRucService.getAll();
                 setFichas(fichasData);
 
-                if (ruc) {
+                if (ruc) { // Edit/manage mode
                     const existingData = await RibEeffService.getByRuc(ruc);
-                    const firstRecord = existingData[0];
-                    
-                    setGeneralData({
-                        ruc: ruc,
-                        tipo_entidad: firstRecord?.tipo_entidad || undefined,
-                        status: firstRecord?.status || undefined,
-                    });
-                    
-                    await handleLoadEeffData(ruc);
+                    setExistingRecords(existingData);
+
+                    if (existingData.length > 0) {
+                        const firstRecord = existingData[0];
+                        setGeneralData({
+                            ruc: ruc,
+                            tipo_entidad: firstRecord.tipo_entidad || undefined,
+                            status: firstRecord.status || undefined,
+                        });
+
+                        const loadedYears = [...new Set(existingData.map(d => d.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
+                        setYears(loadedYears);
+
+                        const loadedYearsData = existingData.reduce((acc, record) => {
+                            if (record.anio_reporte) {
+                                acc[record.anio_reporte] = record;
+                            }
+                            return acc;
+                        }, {} as { [key: number]: Partial<UpdateRibEeffDto> });
+                        setYearsData(loadedYearsData);
+                    } else {
+                        setGeneralData({ ruc });
+                        toast.info("No existen registros de RIB EEFF para esta empresa. Puede crear uno nuevo o cargar desde EEFF.");
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching initial data:', error);
