@@ -22,8 +22,6 @@ import VentasMensualesPage from './pages/VentasMensuales';
 import Rib from './pages/Rib';
 import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import AuthCallbackPage from './pages/AuthCallbackPage';
-import RibEeffPage from './pages/RibEeffPage';
-import RibEeffForm from './pages/RibEeffForm';
 
 function App() {
   return (
