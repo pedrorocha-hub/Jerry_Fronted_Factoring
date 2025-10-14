@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, BarChart3 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import IndicesFinancierosTable from '@/components/rib-reporte-tributario/Indices
 import ProveedorSection from '@/components/rib-reporte-tributario/ProveedorSection';
 import RibReporteTributarioList from '@/components/rib-reporte-tributario/RibReporteTributarioList';
 import ReporteStatusManager from '@/components/rib-reporte-tributario/ReporteStatusManager';
+import EstadoSituacionTable from '@/components/estado-situacion/EstadoSituacionTable';
 import { showSuccess, showError } from '@/utils/toast';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
@@ -25,9 +26,8 @@ const RibReporteTributarioPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   
-  const [savedReports, setSavedReports] = useState<RibReporteTributario[]>([]);
-  const [draftReports, setDraftReports] = useState<Partial<RibReporteTributario>[]>([]);
-  const [reportYears, setReportYears] = useState<number[]>([]);
+  const [savedReportData, setSavedReportData] = useState<RibReporteTributario | null>(null);
+  const [draftReportData, setDraftReportData] = useState<Partial<RibReporteTributario> | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [creatorName, setCreatorName] = useState<string | null>(null);
@@ -39,6 +39,7 @@ const RibReporteTributarioPage = () => {
     try {
       setLoadingSummaries(true);
       const summaries = await RibReporteTributarioService.getAllSummaries();
+      console.log('Summaries cargados:', summaries);
       setReportSummaries(summaries);
     } catch (err) {
       console.error('Error fetching summaries:', err);
@@ -60,16 +61,17 @@ const RibReporteTributarioPage = () => {
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, [hasUnsavedChanges]);
 
   const clearSearch = () => {
     setRucInput('');
     setError(null);
     setSearchedFicha(null);
-    setSavedReports([]);
-    setDraftReports([]);
-    setReportYears([]);
+    setSavedReportData(null);
+    setDraftReportData(null);
     setCreatorName(null);
     setHasUnsavedChanges(false);
   };
@@ -85,88 +87,86 @@ const RibReporteTributarioPage = () => {
     setRucInput(ruc);
 
     try {
+      console.log('Buscando ficha RUC para:', ruc);
       const fichaData = await FichaRucService.getByRuc(ruc);
-      if (!fichaData) {
-        setError('Ficha RUC no encontrada. No se puede crear un reporte.');
-        showError('Ficha RUC no encontrada.');
-        setSearching(false);
-        return;
-      }
+      console.log('Ficha RUC encontrada:', fichaData);
       
-      setSearchedFicha(fichaData);
-      const existingReports = await RibReporteTributarioService.getReportsByRuc(ruc);
-      
-      if (existingReports.length > 0) {
-        setSavedReports(existingReports);
-        setDraftReports(existingReports);
-        setReportYears(existingReports.map(r => r.anio).sort());
+      if (fichaData) {
+        setSearchedFicha(fichaData);
+        
+        console.log('Buscando reporte RIB existente para:', ruc);
+        const existingReport = await RibReporteTributarioService.getByRuc(ruc);
+        console.log('Reporte RIB existente:', existingReport);
+        
+        const reportToEdit = existingReport || { 
+          ruc, 
+          status: 'Borrador' as Status, 
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString() 
+        };
+        
+        console.log('Reporte a editar:', reportToEdit);
+        setSavedReportData(reportToEdit as RibReporteTributario);
+        setDraftReportData(reportToEdit);
 
-        const latestReport = existingReports.reduce((latest, current) => current.anio > latest.anio ? current : latest);
-        if (latestReport.user_id) {
-          const profile = await ProfileService.getProfileById(latestReport.user_id);
-          setCreatorName(profile?.full_name || 'Desconocido');
-        } else {
+        if (existingReport?.user_id) {
+          try {
+            const profile = await ProfileService.getProfileById(existingReport.user_id);
+            setCreatorName(profile?.full_name || 'Desconocido');
+          } catch (profileError) {
+            console.error('Error cargando perfil:', profileError);
+            setCreatorName('Desconocido');
+          }
+        } else if (existingReport) {
           setCreatorName('Sistema');
         }
       } else {
-        const currentYear = new Date().getFullYear();
-        const years = [currentYear - 2, currentYear - 1, currentYear];
-        setReportYears(years);
-        const newDrafts = years.map(year => ({
-            ruc,
-            anio: year,
-            tipo_entidad: 'deudor' as const,
-            status: 'Borrador' as Status,
-        }));
-        setDraftReports(newDrafts);
-        setSavedReports([]);
+        setError('Ficha RUC no encontrada. No se puede crear un reporte.');
+        showError('Ficha RUC no encontrada.');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      setError(`Ocurrió un error al buscar: ${errorMessage}`);
-      showError(`Error al buscar: ${errorMessage}`);
+      console.error('Error completo en handleSearch:', err);
+      setError(`Ocurrió un error al buscar la empresa: ${err.message || 'Error desconocido'}`);
+      showError(`Error al buscar la empresa: ${err.message || 'Error desconocido'}`);
     } finally {
       setSearching(false);
     }
   };
 
-  const handleDataChange = (updatedReport: Partial<RibReporteTributario>) => {
-    setDraftReports(prevReports => {
-        const reportIndex = prevReports.findIndex(r => r.anio === updatedReport.anio);
-        if (reportIndex > -1) {
-            const newReports = [...prevReports];
-            newReports[reportIndex] = { ...newReports[reportIndex], ...updatedReport };
-            return newReports;
-        }
-        return [...prevReports, updatedReport];
-    });
+  const handleDataChange = (updatedData: Partial<RibReporteTributario>) => {
+    console.log('Datos cambiados en página principal:', updatedData);
+    setDraftReportData(updatedData);
     setHasUnsavedChanges(true);
   };
 
   const handleStatusChange = (newStatus: Status) => {
-    if (draftReports.length > 0) {
-      setDraftReports(prev => prev.map(report => ({ ...report, status: newStatus })));
+    if (draftReportData) {
+      const updatedData = { ...draftReportData, status: newStatus };
+      setDraftReportData(updatedData);
       setHasUnsavedChanges(true);
     }
   };
 
   const handleSave = async () => {
-    if (!draftReports || draftReports.length === 0) {
+    if (!draftReportData || !draftReportData.ruc) {
       showError('No hay datos para guardar');
       return;
     }
     
+    console.log('Guardando datos:', draftReportData);
     setIsSaving(true);
+    
     try {
-      const savedData = await RibReporteTributarioService.upsertMultiple(draftReports);
-      setSavedReports(savedData);
-      setDraftReports(savedData);
+      const savedData = await RibReporteTributarioService.upsert(draftReportData as any);
+      console.log('Datos guardados:', savedData);
+      setSavedReportData(savedData);
+      setDraftReportData(savedData);
       setHasUnsavedChanges(false);
       showSuccess('Reporte RIB actualizado exitosamente.');
       await fetchSummaries();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      showError(`Error al guardar el reporte RIB: ${errorMessage}`);
+      console.error('Error guardando:', err);
+      showError(`Error al guardar el reporte RIB: ${err.message || 'Error desconocido'}`);
     } finally {
       setIsSaving(false);
     }
@@ -179,21 +179,24 @@ const RibReporteTributarioPage = () => {
   };
 
   const handleDeleteReport = async (ruc: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este reporte? Esta acción no se puede deshacer.')) return;
+    if (!confirm('¿Estás seguro de que quieres eliminar este reporte? Esta acción no se puede deshacer.')) {
+      return;
+    }
 
     try {
       await RibReporteTributarioService.delete(ruc);
       showSuccess('Reporte eliminado exitosamente.');
       await fetchSummaries();
-      if (searchedFicha?.ruc === ruc) clearSearch();
+      
+      // Si estamos editando el reporte que se eliminó, limpiar la vista
+      if (searchedFicha?.ruc === ruc) {
+        clearSearch();
+      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
-      showError(`Error al eliminar el reporte: ${errorMessage}`);
+      console.error('Error eliminando reporte:', err);
+      showError(`Error al eliminar el reporte: ${err.message || 'Error desconocido'}`);
     }
   };
-
-  const latestReport = draftReports.reduce((latest, current) => (!latest || (current.anio && latest.anio && current.anio > latest.anio)) ? current : latest, null);
-  const yearRange = reportYears.length > 0 ? `(${Math.min(...reportYears)}-${Math.max(...reportYears)})` : '';
 
   return (
     <Layout>
@@ -205,84 +208,149 @@ const RibReporteTributarioPage = () => {
           </h1>
 
           <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader><CardTitle className="text-white">Buscar o Editar Empresa por RUC</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-white">Buscar o Editar Empresa por RUC</CardTitle>
+            </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+                <Input
+                  placeholder="Ingrese RUC de 11 dígitos"
+                  value={rucInput}
+                  onChange={(e) => setRucInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  maxLength={11}
+                  className="pl-10 bg-gray-900/50 border-gray-700"
+                />
               </div>
               <Button onClick={() => handleSearch()} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
                 {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
                 Buscar
               </Button>
-              {searchedFicha && <Button onClick={clearSearch} variant="outline" className="w-full sm:w-auto"><X className="h-4 w-4 mr-2" />Limpiar</Button>}
+              {searchedFicha && (
+                <Button onClick={clearSearch} variant="outline" className="w-full sm:w-auto">
+                  <X className="h-4 w-4 mr-2" />
+                  Limpiar
+                </Button>
+              )}
             </CardContent>
           </Card>
 
-          {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
+          {error && (
+            <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           {searchedFicha ? (
             <div className="space-y-8">
+              {/* Sección del Deudor con Estado de Situación */}
               <div className="space-y-6">
                 <div className="border-l-4 border-[#00FF80] pl-4">
                   <h2 className="text-xl font-bold text-white mb-2">ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL DEUDOR</h2>
-                  <p className="text-gray-400 text-sm">Información financiera consolidada de {searchedFicha.nombre_empresa} {yearRange}</p>
+                  <p className="text-gray-400 text-sm">Información financiera consolidada de {searchedFicha.nombre_empresa} (2022-2024)</p>
                 </div>
 
+                <EstadoSituacionTable ruc={searchedFicha.ruc} />
+
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />{searchedFicha.nombre_empresa}: Estado de situación</CardTitle>
+                    <CardTitle className="text-white flex items-center">
+                      <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      {searchedFicha.nombre_empresa}: Estado de situación
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <RibReporteTributarioTable reports={draftReports} years={reportYears} onDataChange={handleDataChange} />
+                    <RibReporteTributarioTable
+                      ruc={searchedFicha.ruc}
+                      data={draftReportData}
+                      onDataChange={handleDataChange}
+                    />
                   </CardContent>
                 </Card>
 
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center"><TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />Estados de resultados</CardTitle>
+                    <CardTitle className="text-white flex items-center">
+                      <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Estados de resultados
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <EstadosResultadosTable reports={draftReports} years={reportYears} onDataChange={handleDataChange} />
+                    <EstadosResultadosTable
+                      data={draftReportData}
+                      onDataChange={handleDataChange}
+                    />
                   </CardContent>
                 </Card>
 
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center"><Calculator className="h-5 w-5 mr-2 text-[#00FF80]" />Índices financieros</CardTitle>
+                    <CardTitle className="text-white flex items-center">
+                      <Calculator className="h-5 w-5 mr-2 text-[#00FF80]" />
+                      Índices financieros
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <IndicesFinancierosTable reports={draftReports} years={reportYears} onDataChange={handleDataChange} />
+                    <IndicesFinancierosTable
+                      data={draftReportData}
+                      onDataChange={handleDataChange}
+                    />
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Separador */}
               <div className="border-t border-gray-800"></div>
 
+              {/* Sección del Proveedor */}
               <div className="space-y-6">
                 <div className="border-l-4 border-blue-500 pl-4">
                   <h2 className="text-xl font-bold text-white mb-2">DATOS DEL PROVEEDOR</h2>
                   <p className="text-gray-400 text-sm">Información financiera del proveedor (opcional)</p>
                 </div>
-                <ProveedorSection debtorReportData={latestReport} onDebtorDataChange={handleDataChange} />
+
+                <ProveedorSection
+                  data={draftReportData}
+                  onDataChange={handleDataChange}
+                />
               </div>
               
-              {latestReport && (
-                <ReporteStatusManager report={latestReport as RibReporteTributario} creatorName={creatorName} onStatusChange={handleStatusChange} onSave={handleSave} isSaving={isSaving} hasUnsavedChanges={hasUnsavedChanges} />
+              {savedReportData && (
+                <ReporteStatusManager
+                  report={draftReportData as RibReporteTributario}
+                  creatorName={creatorName}
+                  onStatusChange={handleStatusChange}
+                  onSave={handleSave}
+                  isSaving={isSaving}
+                  hasUnsavedChanges={hasUnsavedChanges}
+                />
               )}
             </div>
           ) : (
             <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="text-white">Reportes RIB Guardados</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-white">Reportes RIB Guardados</CardTitle>
+              </CardHeader>
               <CardContent>
-                {loadingSummaries ? <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
-                : reportSummaries.length === 0 ? (
+                {loadingSummaries ? (
+                  <div className="flex justify-center items-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                  </div>
+                ) : reportSummaries.length === 0 ? (
                   <div className="text-center py-8 text-gray-400">
                     <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No hay reportes RIB guardados</p>
                     <p className="text-sm mt-2">Busca una empresa para crear su reporte tributario</p>
                   </div>
-                ) : <RibReporteTributarioList reports={reportSummaries} onSelectReport={handleSelectReport} onDeleteReport={handleDeleteReport} />}
+                ) : (
+                  <RibReporteTributarioList 
+                    reports={reportSummaries} 
+                    onSelectReport={handleSelectReport}
+                    onDeleteReport={handleDeleteReport}
+                  />
+                )}
               </CardContent>
             </Card>
           )}

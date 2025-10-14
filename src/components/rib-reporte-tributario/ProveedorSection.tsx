@@ -1,35 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, User, TrendingUp, Calculator } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, TrendingUp, Calculator, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { RibReporteTributario, RibReporteTributarioService } from '@/services/ribReporteTributarioService';
+import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 import RibReporteTributarioTable from './RibReporteTributarioTable';
 import EstadosResultadosTable from './EstadosResultadosTable';
 import IndicesFinancierosTable from './IndicesFinancierosTable';
 
 interface ProveedorSectionProps {
-  debtorReportData: Partial<RibReporteTributario> | null;
-  onDebtorDataChange: (updatedData: Partial<RibReporteTributario>) => void;
+  data: Partial<RibReporteTributario> | null;
+  onDataChange: (updatedData: Partial<RibReporteTributario>) => void;
 }
 
-const ProveedorSection: React.FC<ProveedorSectionProps> = ({ debtorReportData, onDebtorDataChange }) => {
-  const [proveedorRuc, setProveedorRuc] = useState(debtorReportData?.proveedor_ruc || '');
+const ProveedorSection: React.FC<ProveedorSectionProps> = ({ data, onDataChange }) => {
+  const [proveedorRuc, setProveedorRuc] = useState(data?.proveedor_ruc || '');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [proveedorFicha, setProveedorFicha] = useState<FichaRuc | null>(null);
-  const [proveedorReports, setProveedorReports] = useState<Partial<RibReporteTributario>[]>([]);
-  const [proveedorYears, setProveedorYears] = useState<number[]>([]);
 
   useEffect(() => {
-    if (debtorReportData?.proveedor_ruc && debtorReportData.proveedor_ruc !== proveedorRuc) {
-      setProveedorRuc(debtorReportData.proveedor_ruc);
-      handleSearch(debtorReportData.proveedor_ruc);
+    if (data?.proveedor_ruc && data.proveedor_ruc !== proveedorRuc) {
+      setProveedorRuc(data.proveedor_ruc);
+      handleSearch(data.proveedor_ruc);
     }
-  }, [debtorReportData?.proveedor_ruc]);
+  }, [data?.proveedor_ruc]);
 
   const handleSearch = async (rucToSearch?: string) => {
     const ruc = rucToSearch || proveedorRuc;
@@ -40,32 +38,15 @@ const ProveedorSection: React.FC<ProveedorSectionProps> = ({ debtorReportData, o
 
     setSearching(true);
     setError(null);
-    setProveedorFicha(null);
-    setProveedorReports([]);
-    setProveedorYears([]);
 
     try {
-      const [fichaData, reportsData] = await Promise.all([
-        FichaRucService.getByRuc(ruc),
-        RibReporteTributarioService.getReportsByRuc(ruc)
-      ]);
-
+      const fichaData = await FichaRucService.getByRuc(ruc);
       if (fichaData) {
         setProveedorFicha(fichaData);
-        onDebtorDataChange({
-          ...debtorReportData,
+        onDataChange({
+          ...data,
           proveedor_ruc: ruc,
         });
-
-        if (reportsData && reportsData.length > 0) {
-          setProveedorReports(reportsData);
-          setProveedorYears(reportsData.map(r => r.anio).sort());
-        } else {
-          const currentYear = new Date().getFullYear();
-          const years = [currentYear - 2, currentYear - 1, currentYear];
-          setProveedorYears(years);
-          setProveedorReports(years.map(year => ({ ruc, anio: year, tipo_entidad: 'proveedor' })));
-        }
       } else {
         setError('Ficha RUC del proveedor no encontrada.');
         setProveedorFicha(null);
@@ -82,24 +63,14 @@ const ProveedorSection: React.FC<ProveedorSectionProps> = ({ debtorReportData, o
     setProveedorRuc('');
     setProveedorFicha(null);
     setError(null);
-    setProveedorReports([]);
-    setProveedorYears([]);
-    onDebtorDataChange({
-      ...debtorReportData,
+    onDataChange({
+      ...data,
       proveedor_ruc: null,
     });
   };
 
-  const handleProveedorDataChange = (updatedReport: Partial<RibReporteTributario>) => {
-    setProveedorReports(prevReports => {
-      const reportIndex = prevReports.findIndex(r => r.anio === updatedReport.anio);
-      if (reportIndex > -1) {
-        const newReports = [...prevReports];
-        newReports[reportIndex] = { ...newReports[reportIndex], ...updatedReport };
-        return newReports;
-      }
-      return [...prevReports, updatedReport];
-    });
+  const handleProveedorDataChange = (updatedData: Partial<RibReporteTributario>) => {
+    onDataChange(updatedData);
   };
 
   return (
@@ -157,9 +128,10 @@ const ProveedorSection: React.FC<ProveedorSectionProps> = ({ debtorReportData, o
             </CardHeader>
             <CardContent>
               <RibReporteTributarioTable
-                reports={proveedorReports}
-                years={proveedorYears}
+                ruc={proveedorFicha.ruc}
+                data={data}
                 onDataChange={handleProveedorDataChange}
+                isProveedor={true}
               />
             </CardContent>
           </Card>
@@ -173,9 +145,9 @@ const ProveedorSection: React.FC<ProveedorSectionProps> = ({ debtorReportData, o
             </CardHeader>
             <CardContent>
               <EstadosResultadosTable
-                reports={proveedorReports}
-                years={proveedorYears}
+                data={data}
                 onDataChange={handleProveedorDataChange}
+                isProveedor={true}
               />
             </CardContent>
           </Card>
@@ -189,9 +161,9 @@ const ProveedorSection: React.FC<ProveedorSectionProps> = ({ debtorReportData, o
             </CardHeader>
             <CardContent>
               <IndicesFinancierosTable
-                reports={proveedorReports}
-                years={proveedorYears}
+                data={data}
                 onDataChange={handleProveedorDataChange}
+                isProveedor={true}
               />
             </CardContent>
           </Card>

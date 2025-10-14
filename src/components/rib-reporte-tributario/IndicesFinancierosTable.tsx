@@ -1,68 +1,105 @@
 import React from 'react';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Calculator } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 
 interface IndicesFinancierosTableProps {
-  reports: Partial<RibReporteTributario>[];
-  years: number[];
+  data: Partial<RibReporteTributario> | null;
   onDataChange: (updatedData: Partial<RibReporteTributario>) => void;
+  isProveedor?: boolean;
 }
 
-const formatIndex = (value: number | null | undefined) => {
-  if (value === null || typeof value === 'undefined' || isNaN(value)) return '';
-  return value.toFixed(2);
-};
+const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ 
+  data, 
+  onDataChange, 
+  isProveedor = false 
+}) => {
+  const getSuffix = () => isProveedor ? '_proveedor' : '';
 
-const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ reports, years = [], onDataChange }) => {
-  const handleInputChange = (year: number, field: keyof RibReporteTributario, value: string) => {
-    const numericValue = value === '' ? null : parseFloat(value);
-    const reportForYear = reports.find(r => r.anio === year) || { ruc: reports[0]?.ruc, anio: year, tipo_entidad: 'deudor' };
+  const handleInputChange = (field: string, value: string) => {
+    const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
+    const fieldName = `${field}${getSuffix()}`;
     onDataChange({
-      ...reportForYear,
-      [field]: numericValue,
+      ...data,
+      [fieldName]: numericValue,
     });
   };
 
-  const fields: { key: keyof RibReporteTributario; label: string }[] = [
-    { key: 'solvencia', label: 'Solvencia' },
-    { key: 'gestion', label: 'Gestión' },
+  const InputCell = ({ field, year }: { field: string; year: string }) => {
+    const fieldName = `${field}_${year}${getSuffix()}`;
+    const value = data?.[fieldName as keyof RibReporteTributario] as number | null;
+    
+    return (
+      <TableCell className="p-2">
+        <input
+          type="text"
+          value={value?.toString() || ''}
+          onChange={(e) => handleInputChange(`${field}_${year}`, e.target.value)}
+          className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
+          placeholder="0.00"
+          step="0.01"
+        />
+      </TableCell>
+    );
+  };
+
+  const rows = [
+    {
+      label: 'Solvencia',
+      field: 'solvencia',
+      description: 'Capacidad de la empresa para cumplir con sus obligaciones'
+    },
+    {
+      label: 'Gestión',
+      field: 'gestion',
+      description: 'Eficiencia en el manejo de recursos y operaciones'
+    }
   ];
 
   return (
-    <Table className="text-white">
-      <TableHeader>
-        <TableRow className="border-gray-800 hover:bg-transparent">
-          <TableHead className="text-white font-bold">Índice</TableHead>
-          {years.map(year => (
-            <TableHead key={year} className="text-white font-bold text-right">Dic. {year}</TableHead>
-          ))}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {fields.map(({ key, label }) => (
-          <TableRow key={key} className="border-gray-800 hover:bg-gray-900/50">
-            <TableCell className="py-3">{label}</TableCell>
-            {years.map(year => {
-              const report = reports.find(r => r.anio === year);
-              const value = report?.[key] as number | undefined;
-              return (
-                <TableCell key={year} className="text-right py-1">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formatIndex(value)}
-                    onChange={(e) => handleInputChange(year, key, e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-right h-9"
-                    placeholder="0.00"
-                  />
-                </TableCell>
-              );
-            })}
+    <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-gray-800 hover:bg-gray-900/50">
+            <TableHead className="text-gray-300 font-semibold">Índice</TableHead>
+            <TableHead className="text-center text-gray-300 font-semibold">Dic 2022</TableHead>
+            <TableHead className="text-center text-gray-300 font-semibold">Dic 2023</TableHead>
+            <TableHead className="text-center text-gray-300 font-semibold">Dic 2024</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.field} className="border-gray-800 hover:bg-gray-900/30">
+              <TableCell className="font-medium text-white">
+                <div className="flex items-center space-x-2">
+                  <Calculator className="h-4 w-4 text-[#00FF80]" />
+                  <div>
+                    <div>{row.label}</div>
+                    <div className="text-xs text-gray-400">{row.description}</div>
+                  </div>
+                </div>
+              </TableCell>
+              <InputCell field={row.field} year="2022" />
+              <InputCell field={row.field} year="2023" />
+              <InputCell field={row.field} year="2024" />
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      
+      <div className="p-4 bg-gray-900/30 border-t border-gray-800">
+        <p className="text-xs text-gray-400">
+          <strong>Nota:</strong> Los índices financieros se expresan como ratios decimales (ej: 1.25 para 125%). Los campos vacíos se considerarán como 0.
+        </p>
+      </div>
+    </div>
   );
 };
 
