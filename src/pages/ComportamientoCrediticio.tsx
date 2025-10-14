@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { Search, Building2, Loader2, AlertCircle, Save, TrendingUp, Plus, Edit, Trash2, ArrowLeft, User, Calendar, Clock } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -12,10 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { ComportamientoCrediticio, ComportamientoCrediticioInsert, ComportamientoCrediticioUpdate, CrediticioStatus } from '@/types/comportamientoCrediticio';
-import { SolicitudOperacion } from '@/types/solicitud-operacion';
 import { FichaRucService } from '@/services/fichaRucService';
 import { ComportamientoCrediticioService } from '@/services/comportamientoCrediticioService';
-import { SolicitudOperacionService } from '@/services/solicitudOperacionService';
 import { Sentinel } from '@/services/sentinelService';
 import { showSuccess, showError } from '@/utils/toast';
 import { toast } from 'sonner';
@@ -40,10 +37,7 @@ const getStatusColor = (status: CrediticioStatus | null | undefined) => {
 
 const ComportamientoCrediticioPage = () => {
   const { isAdmin } = useSession();
-  const { solicitudId } = useParams<{ solicitudId: string }>();
-  const navigate = useNavigate();
-
-  const [view, setView] = useState<'list' | 'form'>(solicitudId ? 'form' : 'list');
+  const [view, setView] = useState<'list' | 'form'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,8 +50,6 @@ const ComportamientoCrediticioPage = () => {
   const [existingReports, setExistingReports] = useState<ComportamientoCrediticio[]>([]);
   const [selectedReport, setSelectedReport] = useState<ComportamientoCrediticio | null>(null);
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
-  
-  const [allSolicitudes, setAllSolicitudes] = useState<SolicitudOperacion[]>([]);
 
   const emptyForm = {
     proveedor: '',
@@ -111,18 +103,8 @@ const ComportamientoCrediticioPage = () => {
   const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
-    if (solicitudId) {
-      loadDataForSolicitud(solicitudId);
-    } else {
-      loadAllReports();
-    }
-    loadAllSolicitudes();
-  }, [solicitudId]);
-
-  const filteredSolicitudes = useMemo(() => {
-    if (!searchedFicha) return [];
-    return allSolicitudes.filter(s => s.ruc === searchedFicha.ruc);
-  }, [allSolicitudes, searchedFicha]);
+    loadAllReports();
+  }, []);
 
   useEffect(() => {
     setIsDirty(
@@ -141,39 +123,6 @@ const ComportamientoCrediticioPage = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
-
-  const loadAllSolicitudes = async () => {
-    try {
-      const data = await SolicitudOperacionService.getAll();
-      setAllSolicitudes(data);
-    } catch (err) {
-      console.error("Error loading solicitudes:", err);
-    }
-  };
-
-  const loadDataForSolicitud = async (id: string) => {
-    setSearching(true);
-    try {
-      const { data: solicitud, error: solicitudError } = await supabase
-        .from('solicitudes_operacion')
-        .select('ruc, proveedor')
-        .eq('id', id)
-        .single();
-
-      if (solicitudError || !solicitud) {
-        throw new Error('No se encontró la solicitud de operación.');
-      }
-
-      await handleSearch(solicitud.ruc, id, solicitud.proveedor || undefined);
-
-    } catch (err) {
-      setError((err as Error).message);
-      showError((err as Error).message);
-      navigate('/comportamiento-crediticio');
-    } finally {
-      setSearching(false);
-    }
-  };
 
   const loadAllReports = async () => {
     setLoadingReports(true);
@@ -209,7 +158,7 @@ const ComportamientoCrediticioPage = () => {
     }
   };
 
-  const handleSearch = async (rucToSearch: string, specificSolicitudId?: string, proveedorName?: string) => {
+  const handleSearch = async (rucToSearch: string) => {
     if (!rucToSearch || rucToSearch.length !== 11) {
       setError('Por favor, ingrese un RUC válido de 11 dígitos.');
       return;
@@ -221,20 +170,14 @@ const ComportamientoCrediticioPage = () => {
       if (fichaData) {
         setSearchedFicha(fichaData);
         
-        let report;
-        if (specificSolicitudId) {
-          report = await ComportamientoCrediticioService.findOrCreateBySolicitudId(specificSolicitudId, rucToSearch, proveedorName || fichaData.nombre_empresa);
-        } else {
-          const reports = await ComportamientoCrediticioService.getByRuc(rucToSearch);
-          if (reports.length > 0) {
-            report = reports[0];
-          } else {
-            report = await ComportamientoCrediticioService.create({ ruc: rucToSearch, proveedor: fichaData.nombre_empresa });
-          }
+        const [report, { data: sentinelData }] = await Promise.all([
+          ComportamientoCrediticioService.findOrCreateByRuc(rucToSearch, fichaData.nombre_empresa),
+          supabase.from('sentinel').select('*').eq('ruc', rucToSearch).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        ]);
+        
+        if (sentinelData) {
+          toast.success('Datos de Sentinel encontrados y cargados.');
         }
-
-        const { data: sentinelData } = await supabase.from('sentinel').select('*').eq('ruc', rucToSearch).order('created_at', { ascending: false }).limit(1).maybeSingle();
-        if (sentinelData) toast.success('Datos de Sentinel encontrados y cargados.');
 
         const allReportsForRuc = await ComportamientoCrediticioService.getByRuc(rucToSearch);
         setExistingReports(allReportsForRuc);
@@ -257,6 +200,7 @@ const ComportamientoCrediticioPage = () => {
   const handleSelectReport = async (report: ComportamientoCrediticio, sentinelData?: Sentinel | null) => {
     setSelectedReport(report);
     
+    // Función para formatear el score de Sentinel
     const formatSentinelScore = (score: string | null | undefined) => {
       if (!score) return '';
       return `${score}/1000`;
@@ -337,12 +281,11 @@ const ComportamientoCrediticioPage = () => {
   };
 
   const handleSave = async () => {
-    if (!searchedFicha || !selectedReport) return;
+    if (!searchedFicha) return;
     setSaving(true);
     try {
-      const dataToSave: ComportamientoCrediticioUpdate = {
+      const dataToSave = {
         ruc: searchedFicha.ruc,
-        solicitud_id: selectedReport.solicitud_id,
         proveedor: formData.proveedor,
         equifax_score: formData.equifax_score || null,
         sentinel_score: formData.sentinel_score || null,
@@ -381,14 +324,15 @@ const ComportamientoCrediticioPage = () => {
         deudor_apefac_descripcion: formDataDeudor.apefac_descripcion || null,
       };
 
-      await ComportamientoCrediticioService.update(selectedReport.id, dataToSave);
-      showSuccess('Reporte actualizado.');
-      
-      if (solicitudId) {
-        await loadDataForSolicitud(solicitudId);
+      if (selectedReport) {
+        await ComportamientoCrediticioService.update(selectedReport.id, dataToSave);
+        showSuccess('Reporte actualizado.');
       } else {
-        await handleSearch(searchedFicha.ruc);
+        const newReport = await ComportamientoCrediticioService.create(dataToSave);
+        setSelectedReport(newReport);
+        showSuccess('Reporte creado.');
       }
+      await handleSearch(searchedFicha.ruc);
       await loadAllReports();
     } catch (err) {
       showError('Error al guardar el reporte.');
@@ -414,26 +358,21 @@ const ComportamientoCrediticioPage = () => {
 
   const handleBackToList = () => {
     if (isDirty && !window.confirm('Hay cambios sin guardar. ¿Desea descartarlos?')) return;
-    
-    if (solicitudId) {
-      navigate(`/solicitudes-operacion/editar/${solicitudId}`);
-    } else {
-      setView('list');
-      setSearchedFicha(null);
-      setRucInput('');
-      setError(null);
-      setExistingReports([]);
-      setSelectedReport(null);
-      setFormData(emptyForm);
-      setInitialFormData(emptyForm);
-      setFormDataDeudor(emptyDeudorForm);
-      setInitialFormDataDeudor(emptyDeudorForm);
-    }
+    setView('list');
+    setSearchedFicha(null);
+    setRucInput('');
+    setError(null);
+    setExistingReports([]);
+    setSelectedReport(null);
+    setFormData(emptyForm);
+    setInitialFormData(emptyForm);
+    setFormDataDeudor(emptyDeudorForm);
+    setInitialFormDataDeudor(emptyDeudorForm);
   };
 
   const handleEditFromList = (report: ReporteWithDetails) => {
     setRucInput(report.ruc);
-    handleSearch(report.ruc, report.solicitud_id || undefined);
+    handleSearch(report.ruc);
   };
 
   const formFields = [
@@ -457,7 +396,7 @@ const ComportamientoCrediticioPage = () => {
             {view === 'form' && (
               <Button variant="outline" onClick={handleBackToList} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                {solicitudId ? 'Volver a la Solicitud' : 'Volver a la lista'}
+                Volver a la lista
               </Button>
             )}
           </div>
@@ -484,92 +423,132 @@ const ComportamientoCrediticioPage = () => {
 
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
+              {/* Proveedor Card */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                    {searchedFicha.nombre_empresa}
-                  </CardTitle>
+                  <CardTitle className="text-white">{selectedReport ? 'Editando' : 'Nuevo'} Reporte para: {searchedFicha.nombre_empresa}</CardTitle>
                 </CardHeader>
-              </Card>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="text-white">Proveedor</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><Label htmlFor="equifax_score">Score Equifax</Label><Input id="equifax_score" value={formData.equifax_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="sentinel_score">Score Sentinel</Label><Input id="sentinel_score" value={formData.sentinel_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    </div>
-                    {formFields.map(field => (
-                      <div key={field.id} className="grid grid-cols-2 gap-4">
-                        <div><Label htmlFor={`equifax_${field.id}`}>Equifax {field.label}</Label><Input id={`equifax_${field.id}`} type={field.type} value={(formData as any)[`equifax_${field.id}`]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                        <div><Label htmlFor={`sentinel_${field.id}`}>Sentinel {field.label}</Label><Input id={`sentinel_${field.id}`} type={field.type} value={(formData as any)[`sentinel_${field.id}`]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      </div>
-                    ))}
-                    <div><Label htmlFor="apefac_descripcion">Descripción APEFAC</Label><Textarea id="apefac_descripcion" value={formData.apefac_descripcion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    <div><Label htmlFor="comentarios">Comentarios</Label><Textarea id="comentarios" value={formData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="text-white">Deudor</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <div><Label htmlFor="deudor">Nombre del Deudor</Label><Input id="deudor" value={formDataDeudor.deudor} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><Label htmlFor="deudor_equifax_score">Score Equifax</Label><Input id="deudor_equifax_score" value={formDataDeudor.equifax_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="deudor_sentinel_score">Score Sentinel</Label><Input id="deudor_sentinel_score" value={formDataDeudor.sentinel_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    </div>
-                    {formFields.map(field => (
-                      <div key={`deudor_${field.id}`} className="grid grid-cols-2 gap-4">
-                        <div><Label htmlFor={`deudor_equifax_${field.id}`}>Equifax {field.label}</Label><Input id={`deudor_equifax_${field.id}`} type={field.type} value={(formDataDeudor as any)[`equifax_${field.id}`]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                        <div><Label htmlFor={`deudor_sentinel_${field.id}`}>Sentinel {field.label}</Label><Input id={`deudor_sentinel_${field.id}`} type={field.type} value={(formDataDeudor as any)[`sentinel_${field.id}`]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      </div>
-                    ))}
-                    <div><Label htmlFor="deudor_apefac_descripcion">Descripción APEFAC</Label><Textarea id="deudor_apefac_descripcion" value={formDataDeudor.apefac_descripcion} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <ExperienciaPagoManager comportamientoCrediticioId={selectedReport?.id} disabled={!selectedReport?.id} />
-
-              <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader><CardTitle className="text-white">Gestión del Reporte</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="solicitud_id">ID de Solicitud de Operación</Label>
-                      <Input
-                        id="solicitud_id"
-                        placeholder="Ingrese el ID de la solicitud a asociar"
-                        value={selectedReport?.solicitud_id || ''}
-                        onChange={(e) => {
-                          if (selectedReport) {
-                            setSelectedReport({ ...selectedReport, solicitud_id: e.target.value || null });
-                            setIsDirty(true);
-                          }
-                        }}
-                        className="bg-gray-900/50 border-gray-700"
-                        disabled={!isAdmin || !!solicitudId}
-                      />
-                      {solicitudId && <p className="text-xs text-gray-400 mt-1">Asociado a la solicitud actual.</p>}
+                  <div>
+                    <Label htmlFor="proveedor">Proveedor</Label>
+                    <Input id="proveedor" value={formData.proveedor} disabled className="bg-gray-800 border-gray-700 text-gray-400" />
+                  </div>
+                  <div className="pt-4 mt-4 border-t border-gray-800">
+                    <div className="grid grid-cols-4 gap-x-4">
+                      <div className="font-medium text-gray-300 mb-2">Concepto</div>
+                      <div className="text-white text-center font-medium mb-2">Equifax</div>
+                      <div className="text-white text-center font-medium mb-2">Sentinel</div>
+                      <div className="text-white text-center font-medium mb-2">Apefac</div>
+                      <div className="col-span-3 space-y-2">
+                        <div className="grid grid-cols-3 gap-x-4 items-center">
+                          <Label htmlFor="equifax_score" className="text-gray-400">Score</Label>
+                          <Input id="equifax_score" type="text" value={formData.equifax_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                          <Input id="sentinel_score" type="text" value={formData.sentinel_score} className="bg-gray-800 border-gray-700 text-gray-400" disabled />
+                        </div>
+                        {formFields.map(field => (
+                          <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
+                            <Label htmlFor={`equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
+                            <Input id={`equifax_${field.id}`} type={field.type} value={formData[`equifax_${field.id}` as keyof typeof formData]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                            <Input id={`sentinel_${field.id}`} type={field.type} value={formData[`sentinel_${field.id}` as keyof typeof formData]} className="bg-gray-800 border-gray-700 text-gray-400" disabled />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="col-span-1">
+                        <Textarea id="apefac_descripcion" value={formData.apefac_descripcion} onChange={handleFormChange} placeholder="Resumen de Apefac..." className="bg-gray-900/50 border-gray-700 text-white h-full min-h-[200px]" disabled={!isAdmin} />
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="status">Estado</Label>
-                      <Select value={formData.status} onValueChange={(value: CrediticioStatus) => setFormData(prev => ({ ...prev, status: value }))} disabled={!isAdmin}>
-                        <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue /></SelectTrigger>
-                        <SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En revisión">En revisión</SelectItem><SelectItem value="Aprobado">Aprobado</SelectItem><SelectItem value="Rechazado">Rechazado</SelectItem></SelectContent>
-                      </Select>
-                    </div>
-                    <div><Label htmlFor="validado_por">Validado por</Label><Input id="validado_por" value={formData.validado_por} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                  </div>
+                  <div className="pt-4 mt-4 border-t border-gray-800">
+                    <Label htmlFor="comentarios">Comentarios</Label>
+                    <Textarea id="comentarios" value={formData.comentarios} onChange={handleFormChange} placeholder="(aquí pueden comentar acerca de las morosidades y/o sustentos)" className="bg-gray-900/50 border-gray-700 text-white min-h-[100px]" disabled={!isAdmin} />
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button onClick={handleSave} disabled={saving || !isDirty} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                    {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    Guardar Cambios
-                  </Button>
-                </CardFooter>
+              </Card>
+
+              {/* Deudor Card */}
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardContent className="space-y-4 pt-6">
+                  <div>
+                    <Label htmlFor="deudor">Deudor</Label>
+                    <Input id="deudor" value={formDataDeudor.deudor} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} placeholder="Ingrese nombre del Deudor" />
+                  </div>
+                  <div className="pt-4 mt-4 border-t border-gray-800">
+                    <div className="grid grid-cols-4 gap-x-4">
+                      <div className="font-medium text-gray-300 mb-2">Concepto</div>
+                      <div className="text-white text-center font-medium mb-2">Equifax</div>
+                      <div className="text-white text-center font-medium mb-2">Sentinel</div>
+                      <div className="text-white text-center font-medium mb-2">Apefac</div>
+                      <div className="col-span-3 space-y-2">
+                        <div className="grid grid-cols-3 gap-x-4 items-center">
+                          <Label htmlFor="deudor_equifax_score" className="text-gray-400">Score</Label>
+                          <Input id="deudor_equifax_score" type="text" value={formDataDeudor.equifax_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                          <Input id="deudor_sentinel_score" type="text" value={formDataDeudor.sentinel_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                        </div>
+                        {formFields.map(field => (
+                          <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
+                            <Label htmlFor={`deudor_equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
+                            <Input id={`deudor_equifax_${field.id}`} type={field.type} value={formDataDeudor[`equifax_${field.id}` as keyof typeof formDataDeudor]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                            <Input id={`deudor_sentinel_${field.id}`} type={field.type} value={formDataDeudor[`sentinel_${field.id}` as keyof typeof formDataDeudor]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="col-span-1">
+                        <Textarea id="deudor_apefac_descripcion" value={formDataDeudor.apefac_descripcion} onChange={handleDeudorFormChange} placeholder="Resumen de Apefac..." className="bg-gray-900/50 border-gray-700 text-white h-full min-h-[200px]" disabled={!isAdmin} />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {searchedFicha && (
+                <ExperienciaPagoManager 
+                  comportamientoCrediticioId={selectedReport?.id}
+                  disabled={!selectedReport}
+                />
+              )}
+
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-white">Historial de Análisis (Crediticio)</CardTitle>
+                    {isAdmin && (
+                      <Button onClick={handleSave} disabled={saving || !isDirty}>
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                        {selectedReport ? 'Actualizar' : 'Guardar'}
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {existingReports.length > 0 ? (
+                    <Table>
+                      <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {existingReports.map(report => (
+                          <TableRow key={report.id} className={`border-gray-800 ${selectedReport?.id === report.id ? 'bg-gray-800/50' : ''}`}>
+                            <TableCell>{new Date(report.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell><span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(report.status)}`}>{report.status || 'Borrador'}</span></TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={async () => await handleSelectReport(report)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
+                              {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(report.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
+                  )}
+                </CardContent>
+                {selectedReport && (
+                  <CardFooter className="flex flex-col items-start space-y-4 text-sm text-gray-300 border-t border-gray-800 pt-4">
+                    <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
+                    <div className="flex items-start"><User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" /><div><p><strong className="text-gray-400">Ejecutivo:</strong>{creatorDetails ? <span> {creatorDetails.fullName} ({creatorDetails.email})</span> : <span> Cargando...</span>}</p><div className="flex items-center mt-1 text-gray-500"><Calendar className="h-4 w-4 mr-2" /><span className="text-xs">{new Date(selectedReport.created_at).toLocaleString('es-PE')}</span></div></div></div>
+                    <div className="flex items-center"><Clock className="h-4 w-4 mr-2 text-gray-400" /><div><strong className="text-gray-400">Última modificación:</strong> {new Date(selectedReport.updated_at).toLocaleString('es-PE')}</div></div>
+                    <div className="w-full pt-2"><Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label><Input id="validado_por" value={formData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} /></div>
+                    <div className="w-full pt-2"><Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label><Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as CrediticioStatus }))} disabled={!isAdmin}><SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En revisión">En revisión</SelectItem><SelectItem value="Aprobado">Aprobado</SelectItem><SelectItem value="Rechazado">Rechazado</SelectItem></SelectContent></Select></div>
+                  </CardFooter>
+                )}
               </Card>
             </div>
           )}

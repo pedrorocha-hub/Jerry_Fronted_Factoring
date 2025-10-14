@@ -3,7 +3,6 @@ export type CrediticioStatus = 'Borrador' | 'En revisión' | 'Aprobado' | 'Recha
 export interface ComportamientoCrediticio {
   id: string;
   ruc: string;
-  solicitud_id: string | null;
   user_id: string | null;
   status: CrediticioStatus | null;
   created_at: string;
@@ -49,7 +48,6 @@ export interface ComportamientoCrediticio {
 
 export interface ComportamientoCrediticioInsert {
   ruc: string;
-  solicitud_id?: string | null;
   user_id: string | null;
   status?: CrediticioStatus;
   proveedor?: string | null;
@@ -92,7 +90,6 @@ export interface ComportamientoCrediticioInsert {
 }
 
 export interface ComportamientoCrediticioUpdate {
-  solicitud_id?: string | null;
   status?: CrediticioStatus;
   proveedor?: string | null;
 
