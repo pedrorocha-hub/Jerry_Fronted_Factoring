@@ -61,5 +61,4 @@ export interface Eeff {
   patrimonio_total_pasivo_y_patrimonio?: number | null;
   created_at?: string;
   updated_at?: string;
-  [key: string]: any;
 }
