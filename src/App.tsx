@@ -64,7 +64,7 @@ function App() {
 
           <Route path="/rib-eeff" element={<ProtectedRoute><RibEeffPage /></ProtectedRoute>} />
           <Route path="/rib-eeff/nuevo" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
-          <Route path="/rib-eeff/edit/:id" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
+          <Route path="/rib-eeff/edit/:ruc" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
 
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
 
