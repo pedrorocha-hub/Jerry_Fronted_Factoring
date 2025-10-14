@@ -17,15 +17,19 @@ import { CreateRibEeffDto, UpdateRibEeffDto, RibEeff } from '@/types/rib-eeff';
 import { toast } from 'sonner';
 import { Combobox } from '@/components/ui/combobox';
 
-// ... (Field definitions remain the same)
-
 const transformEeffToRibEeff = (eeff: Eeff): Partial<RibEeff> => {
-    // ... (Transformation logic remains the same)
+    const transformed: Partial<RibEeff> = {};
+    for (const key in eeff) {
+        if (key.startsWith('activo_') || key.startsWith('pasivo_') || key.startsWith('patrimonio_')) {
+            transformed[key as keyof RibEeff] = eeff[key as keyof Eeff] as number | null;
+        }
+    }
+    return transformed;
 };
 
 const FinancialTable = ({ title, fields, years, yearsData, handleChange, icon, entityType }) => (
     <Card className="bg-[#121212] border border-gray-800">
-        <CardHeader><CardTitle className="flex items-center">{icon}{title}</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center text-white">{icon}{title}</CardTitle></CardHeader>
         <CardContent>
             <div className="overflow-x-auto">
                 <Table>
@@ -73,6 +77,53 @@ const RibEeffForm = () => {
   const [yearsData, setYearsData] = useState<{ proveedor: { [key: number]: Partial<RibEeff> }, deudor: { [key: number]: Partial<RibEeff> } }>({ proveedor: {}, deudor: {} });
   const [years, setYears] = useState<number[]>([]);
   const [status, setStatus] = useState<'Borrador' | 'En revision' | 'Completado'>('Borrador');
+
+  const activoFields = {
+    activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
+    activo_cuentas_por_cobrar_del_giro: "Cuentas por Cobrar del Giro",
+    activo_cuentas_por_cobrar_relacionadas_no_comerciales: "Cuentas por Cobrar Relacionadas (No Comerciales)",
+    activo_cuentas_por_cobrar_personal_accionistas_directores: "Cuentas por Cobrar (Personal, Accionistas, Directores)",
+    activo_otras_cuentas_por_cobrar_diversas: "Otras Cuentas por Cobrar Diversas",
+    activo_existencias: "Existencias",
+    activo_gastos_pagados_por_anticipado: "Gastos Pagados por Anticipado",
+    activo_otros_activos_corrientes: "Otros Activos Corrientes",
+    activo_total_activo_circulante: "Total Activo Circulante",
+    activo_cuentas_por_cobrar_comerciales_lp: "Cuentas por Cobrar Comerciales (Largo Plazo)",
+    activo_otras_cuentas_por_cobrar_diversas_lp: "Otras Cuentas por Cobrar Diversas (Largo Plazo)",
+    activo_activo_fijo_neto: "Activo Fijo Neto",
+    activo_inversiones_en_valores: "Inversiones en Valores",
+    activo_intangibles: "Intangibles",
+    activo_activo_diferido_y_otros: "Activo Diferido y Otros",
+    activo_total_activos_no_circulantes: "Total Activos no Circulantes",
+    activo_total_activos: "Total Activos",
+  };
+
+  const pasivoFields = {
+    pasivo_sobregiro_bancos_y_obligaciones_corto_plazo: "Sobregiro Bancos y Obligaciones (Corto Plazo)",
+    pasivo_parte_corriente_obligaciones_bancos_y_leasing: "Parte Corriente Obligaciones Bancos y Leasing",
+    pasivo_cuentas_por_pagar_del_giro: "Cuentas por Pagar del Giro",
+    pasivo_cuentas_por_pagar_relacionadas_no_comerciales: "Cuentas por Pagar Relacionadas (No Comerciales)",
+    pasivo_otras_cuentas_por_pagar_diversas: "Otras Cuentas por Pagar Diversas",
+    pasivo_dividendos_por_pagar: "Dividendos por Pagar",
+    pasivo_total_pasivos_circulantes: "Total Pasivos Circulantes",
+    pasivo_parte_no_corriente_obligaciones_bancos_y_leasing: "Parte no Corriente Obligaciones Bancos y Leasing",
+    pasivo_cuentas_por_pagar_comerciales_lp: "Cuentas por Pagar Comerciales (Largo Plazo)",
+    pasivo_otras_cuentas_por_pagar_diversas_lp: "Otras Cuentas por Pagar Diversas (Largo Plazo)",
+    pasivo_otros_pasivos: "Otros Pasivos",
+    pasivo_total_pasivos_no_circulantes: "Total Pasivos no Circulantes",
+    pasivo_total_pasivos: "Total Pasivos",
+  };
+
+  const patrimonioFields = {
+    patrimonio_neto_capital_pagado: "Capital Pagado",
+    patrimonio_neto_capital_adicional: "Capital Adicional",
+    patrimonio_neto_excedente_de_revaluacion: "Excedente de Revaluación",
+    patrimonio_neto_reserva_legal: "Reserva Legal",
+    patrimonio_neto_utilidad_perdida_acumulada: "Utilidad/Pérdida Acumulada",
+    patrimonio_neto_utilidad_perdida_del_ejercicio: "Utilidad/Pérdida del Ejercicio",
+    patrimonio_neto_total_patrimonio: "Total Patrimonio",
+    patrimonio_neto_total_pasivos_y_patrimonio: "Total Pasivos y Patrimonio",
+  };
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -249,10 +300,21 @@ const RibEeffForm = () => {
             </Card>
 
             {proveedorRuc && (
-              <FinancialTable title={`Proveedor: ${fichas.find(f => f.ruc === proveedorRuc)?.nombre_empresa}`} fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} entityType="proveedor" />
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold text-white">Proveedor: {fichas.find(f => f.ruc === proveedorRuc)?.nombre_empresa}</h2>
+                <FinancialTable title="Activos" fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} entityType="proveedor" />
+                <FinancialTable title="Pasivos" fields={pasivoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} entityType="proveedor" />
+                <FinancialTable title="Patrimonio" fields={patrimonioFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} entityType="proveedor" />
+              </div>
             )}
+            
             {deudorRuc && (
-              <FinancialTable title={`Deudor: ${fichas.find(f => f.ruc === deudorRuc)?.nombre_empresa}`} fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} entityType="deudor" />
+              <div className="space-y-6 mt-8">
+                <h2 className="text-2xl font-bold text-white">Deudor: {fichas.find(f => f.ruc === deudorRuc)?.nombre_empresa}</h2>
+                <FinancialTable title="Activos" fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} entityType="deudor" />
+                <FinancialTable title="Pasivos" fields={pasivoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} entityType="deudor" />
+                <FinancialTable title="Patrimonio" fields={patrimonioFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} entityType="deudor" />
+              </div>
             )}
 
             <div className="flex justify-end pt-4">
