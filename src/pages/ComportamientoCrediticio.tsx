@@ -443,13 +443,13 @@ const ComportamientoCrediticioPage = () => {
                         <div className="grid grid-cols-3 gap-x-4 items-center">
                           <Label htmlFor="equifax_score" className="text-gray-400">Score</Label>
                           <Input id="equifax_score" type="text" value={formData.equifax_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
-                          <Input id="sentinel_score" type="text" value={formData.sentinel_score} className="bg-gray-800 border-gray-700 text-gray-400" disabled />
+                          <Input id="sentinel_score" type="text" value={formData.sentinel_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
                         </div>
                         {formFields.map(field => (
                           <div key={field.id} className="grid grid-cols-3 gap-x-4 items-center">
                             <Label htmlFor={`equifax_${field.id}`} className="text-gray-400">{field.label}</Label>
                             <Input id={`equifax_${field.id}`} type={field.type} value={formData[`equifax_${field.id}` as keyof typeof formData]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
-                            <Input id={`sentinel_${field.id}`} type={field.type} value={formData[`sentinel_${field.id}` as keyof typeof formData]} className="bg-gray-800 border-gray-700 text-gray-400" disabled />
+                            <Input id={`sentinel_${field.id}`} type={field.type} value={formData[`sentinel_${field.id}` as keyof typeof formData]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 text-white" disabled={!isAdmin} />
                           </div>
                         ))}
                       </div>
