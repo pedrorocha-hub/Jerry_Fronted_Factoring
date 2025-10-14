@@ -22,6 +22,8 @@ import VentasMensualesPage from './pages/VentasMensuales';
 import Rib from './pages/Rib';
 import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import RibEeffPage from './pages/RibEeff';
+import RibEeffForm from './pages/RibEeffForm';
 
 function App() {
   return (
@@ -62,6 +64,7 @@ function App() {
 
           <Route path="/rib-eeff" element={<ProtectedRoute><RibEeffPage /></ProtectedRoute>} />
           <Route path="/rib-eeff/nuevo" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
+          <Route path="/rib-eeff/edit/:id" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
 
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
 
