@@ -14,4 +14,5 @@ export interface DossierSummary {
   creadorNombre: string;
   ranking?: number | null;
   sector?: string | null;
+  solicitudId?: string;
 }
