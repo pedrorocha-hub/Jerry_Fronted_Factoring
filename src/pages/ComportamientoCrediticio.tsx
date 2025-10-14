@@ -471,7 +471,76 @@ const ComportamientoCrediticioPage = () => {
 
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
-              {/* ... (resto del JSX del formulario se mantiene igual) ... */}
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-white">
+                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    {searchedFicha.nombre_empresa}
+                  </CardTitle>
+                </CardHeader>
+              </Card>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader><CardTitle className="text-white">Proveedor</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><Label htmlFor="equifax_score">Score Equifax</Label><Input id="equifax_score" value={formData.equifax_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      <div><Label htmlFor="sentinel_score">Score Sentinel</Label><Input id="sentinel_score" value={formData.sentinel_score} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                    </div>
+                    {formFields.map(field => (
+                      <div key={field.id} className="grid grid-cols-2 gap-4">
+                        <div><Label htmlFor={`equifax_${field.id}`}>Equifax {field.label}</Label><Input id={`equifax_${field.id}`} type={field.type} value={(formData as any)[`equifax_${field.id}`]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor={`sentinel_${field.id}`}>Sentinel {field.label}</Label><Input id={`sentinel_${field.id}`} type={field.type} value={(formData as any)[`sentinel_${field.id}`]} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      </div>
+                    ))}
+                    <div><Label htmlFor="apefac_descripcion">Descripción APEFAC</Label><Textarea id="apefac_descripcion" value={formData.apefac_descripcion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                    <div><Label htmlFor="comentarios">Comentarios</Label><Textarea id="comentarios" value={formData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardHeader><CardTitle className="text-white">Deudor</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
+                    <div><Label htmlFor="deudor">Nombre del Deudor</Label><Input id="deudor" value={formDataDeudor.deudor} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><Label htmlFor="deudor_equifax_score">Score Equifax</Label><Input id="deudor_equifax_score" value={formDataDeudor.equifax_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      <div><Label htmlFor="deudor_sentinel_score">Score Sentinel</Label><Input id="deudor_sentinel_score" value={formDataDeudor.sentinel_score} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                    </div>
+                    {formFields.map(field => (
+                      <div key={`deudor_${field.id}`} className="grid grid-cols-2 gap-4">
+                        <div><Label htmlFor={`deudor_equifax_${field.id}`}>Equifax {field.label}</Label><Input id={`deudor_equifax_${field.id}`} type={field.type} value={(formDataDeudor as any)[`equifax_${field.id}`]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor={`deudor_sentinel_${field.id}`}>Sentinel {field.label}</Label><Input id={`deudor_sentinel_${field.id}`} type={field.type} value={(formDataDeudor as any)[`sentinel_${field.id}`]} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      </div>
+                    ))}
+                    <div><Label htmlFor="deudor_apefac_descripcion">Descripción APEFAC</Label><Textarea id="deudor_apefac_descripcion" value={formDataDeudor.apefac_descripcion} onChange={handleDeudorFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <ExperienciaPagoManager comportamientoCrediticioId={selectedReport?.id} disabled={!selectedReport?.id} />
+
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader><CardTitle className="text-white">Gestión del Reporte</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="status">Estado</Label>
+                      <Select value={formData.status} onValueChange={(value: CrediticioStatus) => setFormData(prev => ({ ...prev, status: value }))} disabled={!isAdmin}>
+                        <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En revisión">En revisión</SelectItem><SelectItem value="Aprobado">Aprobado</SelectItem><SelectItem value="Rechazado">Rechazado</SelectItem></SelectContent>
+                      </Select>
+                    </div>
+                    <div><Label htmlFor="validado_por">Validado por</Label><Input id="validado_por" value={formData.validado_por} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button onClick={handleSave} disabled={saving || !isDirty} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                    {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    Guardar Cambios
+                  </Button>
+                </CardFooter>
+              </Card>
             </div>
           )}
 
