@@ -1,5 +1,8 @@
+import { RibEeff } from './rib-eeff';
+
 export interface DossierRib {
   [key: string]: any;
+  ribEeff?: RibEeff[];
 }
 
 export interface DossierSummary {

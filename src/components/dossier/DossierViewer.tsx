@@ -9,6 +9,7 @@ import AnalisisRibSection from './sections/AnalisisRibSection';
 import ComportamientoCrediticioSection from './sections/ComportamientoCrediticioSection';
 import RibReporteTributarioSection from './sections/RibReporteTributarioSection';
 import VentasMensualesSection from './sections/VentasMensualesSection';
+import RibEeffSection from './sections/RibEeffSection';
 
 interface DossierViewerProps {
   dossier: DossierRib;
@@ -110,8 +111,11 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving =
         <RibReporteTributarioSection dossier={dossier} />
       )}
       
-      {/* Nueva sección de Ventas Mensuales */}
       <VentasMensualesSection dossier={dossier} />
+
+      {dossier.ribEeff && dossier.ribEeff.length > 0 && (
+        <RibEeffSection dossier={dossier} />
+      )}
     </div>
   );
 };

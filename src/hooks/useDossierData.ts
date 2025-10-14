@@ -74,7 +74,8 @@ export const useDossierData = () => {
         ventasMensualesResult,
         top10kResult,
         accionistasResult,
-        gerenciaResult
+        gerenciaResult,
+        ribEeffResult, // <-- NUEVA CONSULTA
       ] = await Promise.allSettled([
         // Ficha RUC
         supabase.from('ficha_ruc').select('*').eq('ruc', rucInput).single(),
@@ -98,7 +99,10 @@ export const useDossierData = () => {
         supabase.from('ficha_ruc_accionistas').select('*').eq('ruc', rucInput),
         
         // Gerencia
-        supabase.from('ficha_ruc_gerencia').select('*').eq('ruc', rucInput)
+        supabase.from('ficha_ruc_gerencia').select('*').eq('ruc', rucInput),
+
+        // RIB EEFF
+        supabase.from('rib_eeff').select('*').eq('ruc', rucInput),
       ]);
 
       console.log('Resultados paralelos:', {
@@ -109,7 +113,8 @@ export const useDossierData = () => {
         ventasMensualesResult,
         top10kResult,
         accionistasResult,
-        gerenciaResult
+        gerenciaResult,
+        ribEeffResult,
       });
 
       // Procesar resultados
@@ -161,6 +166,9 @@ export const useDossierData = () => {
         // 5. Ventas Mensuales
         ventasMensuales: ventasMensualesData,
         
+        // 6. RIB EEFF
+        ribEeff: getData(ribEeffResult) || [],
+
         // Datos adicionales
         top10kData: getData(top10kResult)
       };
