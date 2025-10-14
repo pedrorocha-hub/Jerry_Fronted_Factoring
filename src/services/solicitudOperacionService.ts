@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { SolicitudOperacion, SolicitudOperacionWithRiesgos } from '@/types/solicitudOperacion';
+import { SolicitudOperacion, SolicitudOperacionWithRiesgos } from '@/types/solicitud-operacion';
 
 export class SolicitudOperacionService {
   static async getAll(): Promise<SolicitudOperacionWithRiesgos[]> {
@@ -62,9 +62,15 @@ export class SolicitudOperacionService {
   }
 
   static async create(solicitud: Partial<SolicitudOperacion>): Promise<SolicitudOperacion> {
+    const { data: { user } } = await supabase.auth.getUser();
+    const dataToInsert = {
+      ...solicitud,
+      user_id: user?.id,
+    };
+
     const { data, error } = await supabase
       .from('solicitudes_operacion')
-      .insert(solicitud)
+      .insert(dataToInsert)
       .select()
       .single();
 

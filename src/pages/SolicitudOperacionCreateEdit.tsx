@@ -49,7 +49,7 @@ const SolicitudOperacionCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin } = useSession();
-  const isEditMode = !!id;
+  const isCreateMode = !id;
 
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -254,6 +254,23 @@ const SolicitudOperacionCreateEditPage = () => {
     }
   };
 
+  const handleCreateAndRedirect = async () => {
+    if (!rucInput || rucInput.length !== 11) {
+      showError('Por favor, ingrese un RUC válido de 11 dígitos.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const newSolicitud = await SolicitudOperacionService.create({ ruc: rucInput, status: 'Borrador' });
+      showSuccess('Expediente creado. Redirigiendo a la página de edición...');
+      navigate(`/solicitudes-operacion/editar/${newSolicitud.id}`);
+    } catch (err) {
+      showError('No se pudo crear el nuevo expediente.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (saving) return;
     if (!isAdmin) {
@@ -295,19 +312,8 @@ const SolicitudOperacionCreateEditPage = () => {
         await supabase.from('solicitud_operacion_riesgos').insert(riesgosToInsert);
         showSuccess('Solicitud actualizada exitosamente.');
       } else {
-        const createdData = await SolicitudOperacionService.create(dataToSave);
-        const newSolicitudId = createdData.id;
-        const riesgosToInsert = riesgoRows.map(row => ({
-          solicitud_id: newSolicitudId,
-          lp: row.lp,
-          producto: row.producto,
-          deudor: row.deudor,
-          lp_vigente_gve: row.lp_vigente_gve,
-          riesgo_aprobado: parseFloat(row.riesgo_aprobado || '0') || null,
-          propuesta_comercial: parseFloat(row.propuesta_comercial || '0') || null,
-        }));
-        await supabase.from('solicitud_operacion_riesgos').insert(riesgosToInsert);
-        showSuccess('Solicitud creada exitosamente.');
+        // This flow is now handled by handleCreateAndRedirect
+        showError("Error: El modo de creación directa no debería ser accesible.");
       }
       navigate('/solicitudes-operacion');
     } catch (err) {
@@ -353,6 +359,48 @@ const SolicitudOperacionCreateEditPage = () => {
     return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
   };
 
+  if (isCreateMode) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black p-6 flex items-center justify-center">
+          <Card className="bg-[#121212] border border-gray-800 w-full max-w-lg">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <FilePlus className="h-6 w-6 mr-3 text-[#00FF80]" />
+                Crear Nuevo Expediente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-400">
+                Ingrese el RUC de la empresa para iniciar una nueva solicitud de operación.
+                Esto creará un expediente único.
+              </p>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Ingrese RUC de 11 dígitos"
+                  value={rucInput}
+                  onChange={(e) => setRucInput(e.target.value)}
+                  maxLength={11}
+                  className="pl-10 bg-gray-900/50 border-gray-700"
+                  autoFocus
+                />
+              </div>
+              {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => navigate('/solicitudes-operacion')}>Cancelar</Button>
+                <Button onClick={handleCreateAndRedirect} disabled={saving} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                  {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
+                  Crear y Continuar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="min-h-screen bg-black">
@@ -364,7 +412,7 @@ const SolicitudOperacionCreateEditPage = () => {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-white flex items-center">
-                  {id ? (isAdmin ? 'Editar Solicitud de Operación' : 'Ver Solicitud de Operación') : 'Crear Solicitud de Operación'}
+                  {isAdmin ? 'Editar Solicitud de Operación' : 'Ver Solicitud de Operación'}
                 </h1>
                 <p className="text-gray-400">Reporte de Inicio Básico de empresa</p>
               </div>
@@ -372,22 +420,6 @@ const SolicitudOperacionCreateEditPage = () => {
           </div>
 
           <div className="space-y-6">
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="text-white">1. Buscar Empresa por RUC</CardTitle></CardHeader>
-              <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" disabled={!!id} />
-                </div>
-                <Button onClick={() => handleSearch(rucInput)} disabled={searching || !!id} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                  {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                  Buscar Empresa
-                </Button>
-              </CardContent>
-            </Card>
-
-            {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
-
             {searchedFicha && (
               <div className="space-y-6">
                 <Card className="bg-[#121212] border border-gray-800">
