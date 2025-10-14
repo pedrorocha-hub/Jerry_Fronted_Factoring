@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, PlusCircle, Trash2, Plus } from 'lucide-react';
+import { Search, Building2, FilePlus, Loader2, AlertCircle, CheckCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, PlusCircle, Trash2, Plus, ClipboardCopy } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -352,6 +352,13 @@ const SolicitudOperacionCreateEditPage = () => {
     navigate('/solicitudes-operacion');
   };
 
+  const handleCopyId = () => {
+    if (editingSolicitud?.id) {
+      navigator.clipboard.writeText(editingSolicitud.id);
+      showSuccess('ID de expediente copiado al portapapeles.');
+    }
+  };
+
   const formatCurrency = (amount: number | string | null | undefined) => {
     if (amount === null || amount === undefined) return 'N/A';
     const num = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount;
@@ -540,13 +547,24 @@ const SolicitudOperacionCreateEditPage = () => {
                       </Select>
                     </div>
                     {editingSolicitud && (
-                      <div className="mt-6 border-t border-gray-800 pt-4 text-sm text-gray-400 space-y-3">
+                      <CardFooter className="flex flex-col items-start space-y-4 text-sm text-gray-300 border-t border-gray-800 pt-4 mt-4">
+                        <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
+                        <div className="flex items-center gap-2">
+                          <ClipboardCopy className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                          <span className="text-gray-400">ID de Expediente:</span>
+                          <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">{editingSolicitud.id}</code>
+                          <Button variant="ghost" size="icon" onClick={handleCopyId} className="h-6 w-6 text-gray-400 hover:text-white">
+                            <ClipboardCopy className="h-4 w-4" />
+                          </Button>
+                        </div>
                         {creatorInfo && (
                           <div className="flex items-center gap-2"><User className="h-4 w-4 flex-shrink-0" /><span>Creado por: <strong className="text-gray-200">{creatorInfo.fullName || 'N/A'}</strong> ({creatorInfo.email || 'N/A'})</span></div>
                         )}
                         <div className="flex items-center gap-2"><Calendar className="h-4 w-4 flex-shrink-0" /><span>Fecha de creación: <strong className="text-gray-200">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</strong></span></div>
                         <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 flex-shrink-0" /><span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span></div>
-                      </div>
+                        <div className="w-full pt-2"><Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label><Input id="validado_por" value={solicitudFormData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} /></div>
+                        <div className="w-full pt-2"><Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label><Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}><SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En Revisión">En Revisión</SelectItem><SelectItem value="Completado">Completado</SelectItem></SelectContent></Select></div>
+                      </CardFooter>
                     )}
                   </CardContent>
                 </Card>
