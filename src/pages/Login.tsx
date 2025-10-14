@@ -76,25 +76,14 @@ const Login = () => {
           }}
           providers={[]}
           theme="dark"
+          showLinks={false}
           localization={{
             variables: {
               sign_in: {
                 email_label: 'Correo electrónico',
                 password_label: 'Contraseña',
                 button_label: 'Iniciar sesión',
-                link_text: '¿Ya tienes una cuenta? Inicia sesión',
               },
-              sign_up: {
-                email_label: 'Correo electrónico',
-                password_label: 'Contraseña',
-                button_label: 'Registrarse',
-                link_text: '¿No tienes una cuenta? Regístrate',
-              },
-              forgotten_password: {
-                link_text: '¿Olvidaste tu contraseña?',
-                email_label: 'Correo electrónico',
-                button_label: 'Enviar instrucciones',
-              }
             },
           }}
         />
