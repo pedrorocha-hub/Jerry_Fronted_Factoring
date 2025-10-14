@@ -538,30 +538,20 @@ const ComportamientoCrediticioPage = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="solicitud_id">Asociar a Solicitud de Operación</Label>
-                      <Select
-                        value={selectedReport?.solicitud_id || 'null'}
-                        onValueChange={(value) => {
+                      <Label htmlFor="solicitud_id">ID de Solicitud de Operación</Label>
+                      <Input
+                        id="solicitud_id"
+                        placeholder="Ingrese el ID de la solicitud a asociar"
+                        value={selectedReport?.solicitud_id || ''}
+                        onChange={(e) => {
                           if (selectedReport) {
-                            const newSolicitudId = value === 'null' ? null : value;
-                            setSelectedReport({ ...selectedReport, solicitud_id: newSolicitudId });
+                            setSelectedReport({ ...selectedReport, solicitud_id: e.target.value || null });
                             setIsDirty(true);
                           }
                         }}
+                        className="bg-gray-900/50 border-gray-700"
                         disabled={!isAdmin || !!solicitudId}
-                      >
-                        <SelectTrigger className="bg-gray-900/50 border-gray-700">
-                          <SelectValue placeholder="Seleccionar una solicitud..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="null">No asociar</SelectItem>
-                          {filteredSolicitudes.map(s => (
-                            <SelectItem key={s.id} value={s.id}>
-                              Solicitud del {new Date(s.created_at).toLocaleDateString()}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                       {solicitudId && <p className="text-xs text-gray-400 mt-1">Asociado a la solicitud actual.</p>}
                     </div>
                     <div>
