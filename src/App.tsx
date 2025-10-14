@@ -60,7 +60,9 @@ function App() {
 
           <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensualesPage /></ProtectedRoute>} />
           <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
+          
           <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
+          <Route path="/comportamiento-crediticio/manage/:solicitudId" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
 
           <Route path="/rib-eeff" element={<ProtectedRoute><RibEeffPage /></ProtectedRoute>} />
           <Route path="/rib-eeff/nuevo" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />

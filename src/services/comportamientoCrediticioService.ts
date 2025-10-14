@@ -58,21 +58,29 @@ export class ComportamientoCrediticioService {
     if (error) throw error;
   }
 
-  static async findOrCreateByRuc(ruc: string, proveedor: string): Promise<ComportamientoCrediticio> {
-    const existingReports = await this.getByRuc(ruc);
+  static async findOrCreateBySolicitudId(solicitudId: string, ruc: string, proveedor: string): Promise<ComportamientoCrediticio> {
+    const { data: existing, error: findError } = await supabase
+      .from('comportamiento_crediticio')
+      .select('*')
+      .eq('solicitud_id', solicitudId)
+      .maybeSingle();
 
-    if (existingReports.length > 0) {
-      // Return the most recent one
-      return existingReports[0];
+    if (findError) throw findError;
+
+    if (existing) {
+      return existing;
     } else {
-      // Create a new one
-      const insertData: Omit<ComportamientoCrediticioInsert, 'user_id'> = {
-        ruc,
-        proveedor,
-        status: 'Borrador',
-      };
-      const newReport = await this.create(insertData);
-      return newReport;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: newData, error: createError } = await supabase
+        .from('comportamiento_crediticio')
+        .insert({ solicitud_id: solicitudId, ruc, proveedor, user_id: user.id, status: 'Borrador' })
+        .select()
+        .single();
+      
+      if (createError) throw createError;
+      return newData;
     }
   }
 }
