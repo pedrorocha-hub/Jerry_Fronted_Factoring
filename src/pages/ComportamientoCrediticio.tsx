@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Search, Building2, Loader2, AlertCircle, Save, TrendingUp, Plus, Edit, Trash2, ArrowLeft, User, Calendar, Clock } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -12,8 +12,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { ComportamientoCrediticio, ComportamientoCrediticioInsert, ComportamientoCrediticioUpdate, CrediticioStatus } from '@/types/comportamientoCrediticio';
+import { SolicitudOperacion } from '@/types/solicitud-operacion';
 import { FichaRucService } from '@/services/fichaRucService';
 import { ComportamientoCrediticioService } from '@/services/comportamientoCrediticioService';
+import { SolicitudOperacionService } from '@/services/solicitudOperacionService';
 import { Sentinel } from '@/services/sentinelService';
 import { showSuccess, showError } from '@/utils/toast';
 import { toast } from 'sonner';
@@ -54,6 +56,8 @@ const ComportamientoCrediticioPage = () => {
   const [existingReports, setExistingReports] = useState<ComportamientoCrediticio[]>([]);
   const [selectedReport, setSelectedReport] = useState<ComportamientoCrediticio | null>(null);
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
+  
+  const [allSolicitudes, setAllSolicitudes] = useState<SolicitudOperacion[]>([]);
 
   const emptyForm = {
     proveedor: '',
@@ -112,7 +116,13 @@ const ComportamientoCrediticioPage = () => {
     } else {
       loadAllReports();
     }
+    loadAllSolicitudes();
   }, [solicitudId]);
+
+  const filteredSolicitudes = useMemo(() => {
+    if (!searchedFicha) return [];
+    return allSolicitudes.filter(s => s.ruc === searchedFicha.ruc);
+  }, [allSolicitudes, searchedFicha]);
 
   useEffect(() => {
     setIsDirty(
@@ -131,6 +141,15 @@ const ComportamientoCrediticioPage = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
+
+  const loadAllSolicitudes = async () => {
+    try {
+      const data = await SolicitudOperacionService.getAll();
+      setAllSolicitudes(data);
+    } catch (err) {
+      console.error("Error loading solicitudes:", err);
+    }
+  };
 
   const loadDataForSolicitud = async (id: string) => {
     setSearching(true);
@@ -318,12 +337,12 @@ const ComportamientoCrediticioPage = () => {
   };
 
   const handleSave = async () => {
-    if (!searchedFicha) return;
+    if (!searchedFicha || !selectedReport) return;
     setSaving(true);
     try {
       const dataToSave: ComportamientoCrediticioUpdate = {
         ruc: searchedFicha.ruc,
-        solicitud_id: solicitudId || selectedReport?.solicitud_id,
+        solicitud_id: selectedReport.solicitud_id,
         proveedor: formData.proveedor,
         equifax_score: formData.equifax_score || null,
         sentinel_score: formData.sentinel_score || null,
@@ -362,14 +381,8 @@ const ComportamientoCrediticioPage = () => {
         deudor_apefac_descripcion: formDataDeudor.apefac_descripcion || null,
       };
 
-      if (selectedReport) {
-        await ComportamientoCrediticioService.update(selectedReport.id, dataToSave);
-        showSuccess('Reporte actualizado.');
-      } else {
-        const newReport = await ComportamientoCrediticioService.create(dataToSave as ComportamientoCrediticioInsert);
-        setSelectedReport(newReport);
-        showSuccess('Reporte creado.');
-      }
+      await ComportamientoCrediticioService.update(selectedReport.id, dataToSave);
+      showSuccess('Reporte actualizado.');
       
       if (solicitudId) {
         await loadDataForSolicitud(solicitudId);
@@ -524,6 +537,32 @@ const ComportamientoCrediticioPage = () => {
                 <CardHeader><CardTitle className="text-white">Gestión del Reporte</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="solicitud_id">Asociar a Solicitud de Operación</Label>
+                      <Select
+                        value={selectedReport?.solicitud_id || ''}
+                        onValueChange={(value) => {
+                          if (selectedReport) {
+                            setSelectedReport({ ...selectedReport, solicitud_id: value });
+                            setIsDirty(true);
+                          }
+                        }}
+                        disabled={!isAdmin || !!solicitudId}
+                      >
+                        <SelectTrigger className="bg-gray-900/50 border-gray-700">
+                          <SelectValue placeholder="Seleccionar una solicitud..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">No asociar</SelectItem>
+                          {filteredSolicitudes.map(s => (
+                            <SelectItem key={s.id} value={s.id}>
+                              Solicitud del {new Date(s.created_at).toLocaleDateString()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {solicitudId && <p className="text-xs text-gray-400 mt-1">Asociado a la solicitud actual.</p>}
+                    </div>
                     <div>
                       <Label htmlFor="status">Estado</Label>
                       <Select value={formData.status} onValueChange={(value: CrediticioStatus) => setFormData(prev => ({ ...prev, status: value }))} disabled={!isAdmin}>
