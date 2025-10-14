@@ -9,6 +9,7 @@ export interface RibEeff {
   
   tipo_entidad?: TipoEntidad | null;
   ruc: string;
+  proveedor_ruc?: string | null; // Columna para vincular deudor con proveedor
   anio_reporte?: number | null;
   status?: RibEeffStatus | null;
 
