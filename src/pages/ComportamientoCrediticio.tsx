@@ -170,19 +170,46 @@ const ComportamientoCrediticioPage = () => {
       if (fichaData) {
         setSearchedFicha(fichaData);
         
-        const [report, { data: sentinelData }] = await Promise.all([
-          ComportamientoCrediticioService.findOrCreateByRuc(rucToSearch, fichaData.nombre_empresa),
-          supabase.from('sentinel').select('*').eq('ruc', rucToSearch).order('created_at', { ascending: false }).limit(1).maybeSingle()
-        ]);
-        
-        if (sentinelData) {
-          toast.success('Datos de Sentinel encontrados y cargados.');
+        const existingReports = await ComportamientoCrediticioService.getByRuc(rucToSearch);
+        setExistingReports(existingReports);
+
+        if (existingReports.length > 0) {
+          // EDIT MODE: Load existing report, do NOT fetch from Sentinel
+          const reportToEdit = existingReports[0];
+          await handleSelectReport(reportToEdit, null);
+          toast.info('Cargando reporte de comportamiento crediticio existente.');
+        } else {
+          // CREATE MODE: Fetch from Sentinel to pre-fill a new report
+          const { data: sentinelData } = await supabase.from('sentinel').select('*').eq('ruc', rucToSearch).order('created_at', { ascending: false }).limit(1).maybeSingle();
+          
+          if (sentinelData) {
+            toast.success('Datos de Sentinel encontrados para autocompletar.');
+          } else {
+            toast.info('No se encontraron datos de Sentinel para autocompletar.');
+          }
+
+          // Create a new, blank report object in memory
+          const newReport: ComportamientoCrediticio = {
+            id: '', // No ID yet, this signifies it's a new report
+            ruc: rucToSearch,
+            proveedor: fichaData.nombre_empresa,
+            status: 'Borrador',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user_id: null,
+            equifax_score: null, sentinel_score: null, equifax_calificacion: null, sentinel_calificacion: null,
+            equifax_deuda_directa: null, sentinel_deuda_directa: null, equifax_deuda_indirecta: null, sentinel_deuda_indirecta: null,
+            equifax_impagos: null, sentinel_impagos: null, equifax_deuda_sunat: null, sentinel_deuda_sunat: null,
+            equifax_protestos: null, sentinel_protestos: null, validado_por: null, apefac_descripcion: null, comentarios: null,
+            deudor: null, deudor_equifax_score: null, deudor_sentinel_score: null, deudor_equifax_calificacion: null,
+            deudor_sentinel_calificacion: null, deudor_equifax_deuda_directa: null, deudor_sentinel_deuda_directa: null,
+            deudor_equifax_deuda_indirecta: null, deudor_sentinel_deuda_indirecta: null, deudor_equifax_impagos: null,
+            deudor_sentinel_impagos: null, deudor_equifax_deuda_sunat: null, deudor_sentinel_deuda_sunat: null,
+            deudor_equifax_protestos: null, deudor_sentinel_protestos: null, deudor_apefac_descripcion: null, deudor_comentarios: null,
+          };
+
+          await handleSelectReport(newReport, sentinelData);
         }
-
-        const allReportsForRuc = await ComportamientoCrediticioService.getByRuc(rucToSearch);
-        setExistingReports(allReportsForRuc);
-
-        await handleSelectReport(report, sentinelData);
         
         setView('form');
       } else {
@@ -200,7 +227,6 @@ const ComportamientoCrediticioPage = () => {
   const handleSelectReport = async (report: ComportamientoCrediticio, sentinelData?: Sentinel | null) => {
     setSelectedReport(report);
     
-    // Función para formatear el score de Sentinel
     const formatSentinelScore = (score: string | null | undefined) => {
       if (!score) return '';
       return `${score}/1000`;
@@ -324,7 +350,7 @@ const ComportamientoCrediticioPage = () => {
         deudor_apefac_descripcion: formDataDeudor.apefac_descripcion || null,
       };
 
-      if (selectedReport) {
+      if (selectedReport && selectedReport.id) {
         await ComportamientoCrediticioService.update(selectedReport.id, dataToSave);
         showSuccess('Reporte actualizado.');
       } else {
@@ -426,7 +452,7 @@ const ComportamientoCrediticioPage = () => {
               {/* Proveedor Card */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
-                  <CardTitle className="text-white">{selectedReport ? 'Editando' : 'Nuevo'} Reporte para: {searchedFicha.nombre_empresa}</CardTitle>
+                  <CardTitle className="text-white">{selectedReport?.id ? 'Editando' : 'Nuevo'} Reporte para: {searchedFicha.nombre_empresa}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
@@ -503,7 +529,7 @@ const ComportamientoCrediticioPage = () => {
               {searchedFicha && (
                 <ExperienciaPagoManager 
                   comportamientoCrediticioId={selectedReport?.id}
-                  disabled={!selectedReport}
+                  disabled={!selectedReport?.id}
                 />
               )}
 
@@ -514,7 +540,7 @@ const ComportamientoCrediticioPage = () => {
                     {isAdmin && (
                       <Button onClick={handleSave} disabled={saving || !isDirty}>
                         {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        {selectedReport ? 'Actualizar' : 'Guardar'}
+                        {selectedReport?.id ? 'Actualizar' : 'Guardar'}
                       </Button>
                     )}
                   </div>
