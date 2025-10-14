@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, ArrowLeft, Building, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Save, ArrowLeft, Building, DollarSign, TrendingUp, TrendingDown, Download } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RibEeffService } from '@/services/ribEeffService';
 import { FichaRucService } from '@/services/fichaRucService';
+import { EeffService } from '@/services/eeffService';
 import { FichaRuc } from '@/types/ficha-ruc';
+import { Eeff } from '@/types/eeff';
 import { CreateRibEeffDto, UpdateRibEeffDto, RibEeff } from '@/types/rib-eeff';
 import { toast } from 'sonner';
 import { Combobox } from '@/components/ui/combobox';
@@ -62,6 +64,54 @@ const patrimonioFields = {
     patrimonio_neto_total_pasivos_y_patrimonio: "Total Pasivos y Patrimonio",
 };
 
+const transformEeffToRibEeff = (eeff: Eeff): Partial<RibEeff> => {
+    const v = (field: keyof Eeff) => (eeff[field] as number) || 0;
+    const transformed: Partial<RibEeff> = {};
+
+    transformed.activo_caja_inversiones_disponible = v('activo_efectivo_y_equivalentes_de_efectivo') + v('activo_inversiones_financieras');
+    transformed.activo_cuentas_por_cobrar_del_giro = v('activo_ctas_por_cobrar_comerciales_terceros');
+    transformed.activo_cuentas_por_cobrar_relacionadas_no_comerciales = v('activo_ctas_por_cobrar_comerciales_relacionadas') + v('activo_ctas_por_cobrar_diversas_relacionadas');
+    transformed.activo_cuentas_por_cobrar_personal_accionistas_directores = v('activo_cuentas_por_cobrar_al_personal_socios_y_directores');
+    transformed.activo_otras_cuentas_por_cobrar_diversas = v('activo_ctas_por_cobrar_diversas_terceros');
+    transformed.activo_existencias = v('activo_mercaderias') + v('activo_productos_terminados') + v('activo_subproductos_desechos_y_desperdicios') + v('activo_productos_en_proceso') + v('activo_materias_primas') + v('activo_materiales_aux_suministros_y_repuestos') + v('activo_envases_y_embalajes') + v('activo_inventarios_por_recibir') - v('activo_desvalorizacion_de_inventarios');
+    transformed.activo_gastos_pagados_por_anticipado = v('activo_serv_y_otros_contratados_por_anticipado');
+    transformed.activo_otros_activos_corrientes = v('activo_activos_no_ctes_mantenidos_para_la_venta') + v('activo_otro_activos_corrientes');
+    transformed.activo_total_activo_circulante = [transformed.activo_caja_inversiones_disponible, transformed.activo_cuentas_por_cobrar_del_giro, transformed.activo_cuentas_por_cobrar_relacionadas_no_comerciales, transformed.activo_cuentas_por_cobrar_personal_accionistas_directores, transformed.activo_otras_cuentas_por_cobrar_diversas, transformed.activo_existencias, transformed.activo_gastos_pagados_por_anticipado, transformed.activo_otros_activos_corrientes].reduce((s, i) => s + (i || 0), 0);
+    transformed.activo_cuentas_por_cobrar_comerciales_lp = v('activo_ctas_por_cobrar_comerciales_terceros');
+    transformed.activo_otras_cuentas_por_cobrar_diversas_lp = v('activo_ctas_por_cobrar_diversas_terceros');
+    transformed.activo_activo_fijo_neto = v('activo_propiedades_planta_y_equipo') - v('activo_depreciacion_de_1_2_y_ppe_acumulados');
+    transformed.activo_inversiones_en_valores = v('activo_inversiones_mobiliarias') + v('activo_propiedades_de_inversion') + v('activo_activos_por_derecho_de_uso');
+    transformed.activo_intangibles = v('activo_intangibles');
+    transformed.activo_activo_diferido_y_otros = v('activo_activo_diferido') + v('activo_otros_activos_no_corrientes');
+    transformed.activo_total_activos_no_circulantes = [transformed.activo_cuentas_por_cobrar_comerciales_lp, transformed.activo_otras_cuentas_por_cobrar_diversas_lp, transformed.activo_activo_fijo_neto, transformed.activo_inversiones_en_valores, transformed.activo_intangibles, transformed.activo_activo_diferido_y_otros].reduce((s, i) => s + (i || 0), 0);
+    transformed.activo_total_activos = v('activo_total_activo_neto');
+
+    transformed.pasivo_sobregiro_bancos_y_obligaciones_corto_plazo = v('pasivo_sobregiros_bancarios');
+    transformed.pasivo_parte_corriente_obligaciones_bancos_y_leasing = v('pasivo_obligaciones_financieras');
+    transformed.pasivo_cuentas_por_pagar_del_giro = v('pasivo_ctas_por_pagar_comerciales_terceros');
+    transformed.pasivo_cuentas_por_pagar_relacionadas_no_comerciales = v('pasivo_ctas_por_pagar_comerciales_relacionadas') + v('pasivo_ctas_por_pagar_diversas_relacionadas');
+    transformed.pasivo_otras_cuentas_por_pagar_diversas = v('pasivo_ctas_por_pagar_diversas_terceros');
+    transformed.pasivo_dividendos_por_pagar = v('pasivo_ctas_por_pagar_accionistas_socios_participantes_y_direct');
+    transformed.pasivo_total_pasivos_circulantes = [transformed.pasivo_sobregiro_bancos_y_obligaciones_corto_plazo, transformed.pasivo_parte_corriente_obligaciones_bancos_y_leasing, transformed.pasivo_cuentas_por_pagar_del_giro, transformed.pasivo_cuentas_por_pagar_relacionadas_no_comerciales, transformed.pasivo_otras_cuentas_por_pagar_diversas, transformed.pasivo_dividendos_por_pagar].reduce((s, i) => s + (i || 0), 0);
+    transformed.pasivo_parte_no_corriente_obligaciones_bancos_y_leasing = v('pasivo_obligaciones_financieras');
+    transformed.pasivo_cuentas_por_pagar_comerciales_lp = v('pasivo_ctas_por_pagar_comerciales_terceros');
+    transformed.pasivo_otras_cuentas_por_pagar_diversas_lp = v('pasivo_ctas_por_pagar_diversas_terceros');
+    transformed.pasivo_otros_pasivos = v('pasivo_provisiones') + v('pasivo_pasivo_diferido');
+    transformed.pasivo_total_pasivos_no_circulantes = [transformed.pasivo_parte_no_corriente_obligaciones_bancos_y_leasing, transformed.pasivo_cuentas_por_pagar_comerciales_lp, transformed.pasivo_otras_cuentas_por_pagar_diversas_lp, transformed.pasivo_otros_pasivos].reduce((s, i) => s + (i || 0), 0);
+    transformed.pasivo_total_pasivos = v('pasivo_total_pasivo');
+
+    transformed.patrimonio_neto_capital_pagado = v('patrimonio_capital');
+    transformed.patrimonio_neto_capital_adicional = v('patrimonio_capital_adicional_positivo') + v('patrimonio_capital_adicional_negativo');
+    transformed.patrimonio_neto_excedente_de_revaluacion = v('patrimonio_excedente_de_revaluacion');
+    transformed.patrimonio_neto_reserva_legal = v('patrimonio_reservas');
+    transformed.patrimonio_neto_utilidad_perdida_acumulada = v('patrimonio_resultados_acumulados_positivos') + v('patrimonio_resultados_acumulados_negativos');
+    transformed.patrimonio_neto_utilidad_perdida_del_ejercicio = v('patrimonio_utilidad_de_ejercicio') + v('patrimonio_perdida_de_ejercicio');
+    transformed.patrimonio_neto_total_patrimonio = v('patrimonio_total_patrimonio');
+    transformed.patrimonio_neto_total_pasivos_y_patrimonio = v('patrimonio_total_pasivo_y_patrimonio');
+
+    return transformed;
+};
+
 const FinancialTable = ({ title, fields, years, yearsData, handleChange, icon }) => (
     <Card className="bg-[#121212] border border-gray-800">
         <CardHeader><CardTitle className="flex items-center">{icon}{title}</CardTitle></CardHeader>
@@ -107,7 +157,6 @@ const RibEeffForm = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [generalData, setGeneralData] = useState<{ ruc: string; tipo_entidad?: string; status?: string }>({ ruc: '' });
-    const [startYear, setStartYear] = useState<number>(new Date().getFullYear());
     const [years, setYears] = useState<number[]>([]);
     const [yearsData, setYearsData] = useState<{ [key: number]: Partial<UpdateRibEeffDto> }>({});
     const [existingRecords, setExistingRecords] = useState<RibEeff[]>([]);
@@ -121,13 +170,14 @@ const RibEeffForm = () => {
 
                 if (id) {
                     const record = await RibEeffService.getById(id);
-                    if (record && record.anio_reporte) {
-                        setStartYear(record.anio_reporte - 1);
+                    if (record) {
                         setGeneralData({
                             ruc: record.ruc,
                             tipo_entidad: record.tipo_entidad || undefined,
                             status: record.status || undefined,
                         });
+                        // Trigger data load for the existing record's RUC
+                        await handleLoadEeffData(record.ruc);
                     } else {
                         toast.error('Registro no encontrado.');
                         navigate('/rib-eeff');
@@ -143,33 +193,48 @@ const RibEeffForm = () => {
         fetchInitialData();
     }, [id, navigate]);
 
-    useEffect(() => {
-        setYears([startYear, startYear + 1, startYear + 2]);
-    }, [startYear]);
-
-    useEffect(() => {
-        const loadRucData = async () => {
-            if (!generalData.ruc || years.length === 0) {
+    const handleLoadEeffData = async (ruc: string) => {
+        if (!ruc) {
+            toast.info('Por favor, seleccione una empresa.');
+            return;
+        }
+        setLoading(true);
+        try {
+            const eeffRecords = await EeffService.getByRuc(ruc);
+            if (eeffRecords.length === 0) {
+                toast.info('No se encontraron registros de EEFF para esta empresa.');
+                setYears([]);
                 setYearsData({});
-                setExistingRecords([]);
                 return;
             }
-            try {
-                const records = await RibEeffService.getByRucAndYears(generalData.ruc, years);
-                setExistingRecords(records);
-                const newYearsData = years.reduce((acc, year) => {
-                    const recordForYear = records.find(r => r.anio_reporte === year);
-                    acc[year] = recordForYear || {};
-                    return acc;
-                }, {});
-                setYearsData(newYearsData);
-            } catch (error) {
-                console.error('Error fetching RUC data:', error);
-                toast.error('No se pudieron cargar los datos para el RUC seleccionado.');
+
+            const availableYears = eeffRecords.map(r => r.anio_reporte).filter((y): y is number => y !== null);
+            setYears(availableYears);
+
+            const existingRibRecords = await RibEeffService.getByRucAndYears(ruc, availableYears);
+            setExistingRecords(existingRibRecords);
+
+            const newYearsData = {};
+            for (const eeffRecord of eeffRecords) {
+                if (eeffRecord.anio_reporte) {
+                    const year = eeffRecord.anio_reporte;
+                    const existingRib = existingRibRecords.find(r => r.anio_reporte === year);
+                    if (existingRib) {
+                        newYearsData[year] = existingRib;
+                    } else {
+                        newYearsData[year] = transformEeffToRibEeff(eeffRecord);
+                    }
+                }
             }
-        };
-        loadRucData();
-    }, [generalData.ruc, years]);
+            setYearsData(newYearsData);
+            toast.success(`Datos de ${availableYears.length} año(s) cargados desde EEFF.`);
+        } catch (error) {
+            console.error('Error loading EEFF data:', error);
+            toast.error('No se pudieron cargar los datos de EEFF.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleGeneralChange = (name: string, value: string) => {
         setGeneralData(prev => ({ ...prev, [name]: value }));
@@ -180,10 +245,7 @@ const RibEeffForm = () => {
         const parsedValue = value ? (isNumericField ? parseFloat(value) : value) : null;
         setYearsData(prev => ({
             ...prev,
-            [year]: {
-                ...prev[year],
-                [name]: parsedValue,
-            },
+            [year]: { ...prev[year], [name]: parsedValue },
         }));
     };
 
@@ -197,7 +259,7 @@ const RibEeffForm = () => {
         try {
             const promises = years.map(async (year) => {
                 const yearData = yearsData[year];
-                if (!yearData || Object.keys(yearData).length <= 1) return; // Skip if only id is present
+                if (!yearData || Object.keys(yearData).length === 0) return;
 
                 const existingRecord = existingRecords.find(r => r.anio_reporte === year);
                 const payload: Partial<CreateRibEeffDto & UpdateRibEeffDto> = {
@@ -232,16 +294,6 @@ const RibEeffForm = () => {
         label: `${ficha.nombre_empresa} (${ficha.ruc})`,
     }));
 
-    if (loading) {
-        return (
-            <Layout>
-                <div className="flex items-center justify-center min-h-[400px]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00FF80]"></div>
-                </div>
-            </Layout>
-        );
-    }
-
     return (
         <Layout>
             <div className="p-6">
@@ -256,14 +308,10 @@ const RibEeffForm = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <Card className="bg-[#121212] border border-gray-800">
                             <CardHeader><CardTitle className="flex items-center"><Building className="h-5 w-5 mr-2 text-[#00FF80]" />Datos Generales</CardTitle></CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div>
+                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                                <div className="lg:col-span-2">
                                     <Label htmlFor="ruc">Empresa (RUC)</Label>
                                     <Combobox options={rucOptions} value={generalData.ruc || ''} onChange={(value) => handleGeneralChange('ruc', value)} placeholder="Seleccione una empresa..." searchPlaceholder="Buscar empresa..." />
-                                </div>
-                                <div>
-                                    <Label htmlFor="startYear">Año de Inicio</Label>
-                                    <Input id="startYear" name="startYear" type="number" placeholder="Ej: 2023" value={startYear} onChange={(e) => setStartYear(parseInt(e.target.value) || new Date().getFullYear())} className="bg-gray-900 border-gray-700 mt-1" />
                                 </div>
                                 <div>
                                     <Label htmlFor="tipo_entidad">Tipo de Entidad</Label>
@@ -279,15 +327,25 @@ const RibEeffForm = () => {
                                         <SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En revision">En revisión</SelectItem><SelectItem value="Completado">Completado</SelectItem></SelectContent>
                                     </Select>
                                 </div>
+                                <div className="col-span-full flex justify-end">
+                                    <Button type="button" variant="outline" onClick={() => handleLoadEeffData(generalData.ruc)} disabled={!generalData.ruc || loading}>
+                                        <Download className="h-4 w-4 mr-2" />
+                                        {loading ? 'Cargando...' : 'Cargar datos de EEFF'}
+                                    </Button>
+                                </div>
                             </CardContent>
                         </Card>
 
-                        <FinancialTable title="Activos" fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} />
-                        <FinancialTable title="Pasivos" fields={pasivoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} />
-                        <FinancialTable title="Patrimonio" fields={patrimonioFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} />
+                        {years.length > 0 && (
+                            <>
+                                <FinancialTable title="Activos" fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} />
+                                <FinancialTable title="Pasivos" fields={pasivoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} />
+                                <FinancialTable title="Patrimonio" fields={patrimonioFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} />
+                            </>
+                        )}
 
                         <div className="flex justify-end pt-4">
-                            <Button type="submit" disabled={isSubmitting} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                            <Button type="submit" disabled={isSubmitting || years.length === 0} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
                                 <Save className="h-4 w-4 mr-2" />
                                 {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
                             </Button>

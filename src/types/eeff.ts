@@ -1,9 +1,7 @@
 export interface Eeff {
   id: string;
-  ruc: string;
+  ruc?: string | null;
   anio_reporte?: number | null;
-  
-  // Activos
   activo_efectivo_y_equivalentes_de_efectivo?: number | null;
   activo_inversiones_financieras?: number | null;
   activo_ctas_por_cobrar_comerciales_terceros?: number | null;
@@ -36,22 +34,18 @@ export interface Eeff {
   activo_activo_diferido?: number | null;
   activo_otros_activos_no_corrientes?: number | null;
   activo_total_activo_neto?: number | null;
-  
-  // Pasivos
   pasivo_sobregiros_bancarios?: number | null;
   pasivo_trib_y_aport_sist_pens_y_salud_por_pagar?: number | null;
   pasivo_remuneraciones_y_participaciones_por_pagar?: number | null;
   pasivo_ctas_por_pagar_comerciales_terceros?: number | null;
   pasivo_ctas_por_pagar_comerciales_relacionadas?: number | null;
-  pasivo_ctas_por_pagar_accionistas_socios_participantes_y_directores?: number | null;
+  pasivo_ctas_por_pagar_accionistas_socios_participantes_y_direct?: number | null;
   pasivo_ctas_por_pagar_diversas_terceros?: number | null;
   pasivo_ctas_por_pagar_diversas_relacionadas?: number | null;
   pasivo_obligaciones_financieras?: number | null;
   pasivo_provisiones?: number | null;
   pasivo_pasivo_diferido?: number | null;
   pasivo_total_pasivo?: number | null;
-  
-  // Patrimonio
   patrimonio_capital?: number | null;
   patrimonio_acciones_de_inversion?: number | null;
   patrimonio_capital_adicional_positivo?: number | null;
@@ -65,21 +59,7 @@ export interface Eeff {
   patrimonio_perdida_de_ejercicio?: number | null;
   patrimonio_total_patrimonio?: number | null;
   patrimonio_total_pasivo_y_patrimonio?: number | null;
-  
   created_at?: string;
   updated_at?: string;
-
   [key: string]: any;
-}
-
-export interface CreateEeffDto {
-  ruc: string;
-  anio_reporte?: number | null;
-  [key: string]: number | string | null | undefined;
-}
-
-export interface UpdateEeffDto {
-  ruc?: string;
-  anio_reporte?: number | null;
-  [key: string]: number | string | null | undefined;
 }
