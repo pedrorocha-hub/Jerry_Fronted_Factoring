@@ -176,22 +176,29 @@ const RibEeffForm = () => {
       
       if (eeffRecords.length === 0) {
         toast.info('No se encontraron registros de EEFF para las empresas seleccionadas.');
+        setLoading(false);
         return;
       }
 
       const allYears = [...new Set(eeffRecords.map(r => r.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
       setYears(allYears);
 
-      const newYearsData = { proveedor: {}, deudor: {} };
-      
-      for (const record of eeffRecords) {
-        const entityType = record.ruc === proveedorRuc ? 'proveedor' : 'deudor';
-        if (record.anio_reporte) {
-          newYearsData[entityType][record.anio_reporte] = transformEeffToRibEeff(record);
+      setYearsData(prevYearsData => {
+        const updatedYearsData = JSON.parse(JSON.stringify(prevYearsData));
+
+        for (const record of eeffRecords) {
+          const entityType = record.ruc === proveedorRuc ? 'proveedor' : 'deudor';
+          if (record.anio_reporte) {
+            const transformedData = transformEeffToRibEeff(record);
+            updatedYearsData[entityType][record.anio_reporte] = {
+              ...(updatedYearsData[entityType][record.anio_reporte] || {}),
+              ...transformedData,
+            };
+          }
         }
-      }
+        return updatedYearsData;
+      });
       
-      setYearsData(newYearsData);
       toast.success(`Datos de ${allYears.length} año(s) cargados desde EEFF.`);
     } catch (error) {
       toast.error('No se pudieron cargar los datos de EEFF.');
