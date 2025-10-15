@@ -23,7 +23,7 @@ const Sidebar: React.FC = () => {
   return (
     <aside className="w-64 bg-[#121212] border-r border-gray-800 flex flex-col">
       <div className="flex items-center justify-center h-16 border-b border-gray-800">
-        <h1 className="text-2xl font-bold text-white">LCP</h1>
+        <h1 className="text-2xl font-bold text-white">Upgrade AI</h1>
       </div>
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map(item => (
