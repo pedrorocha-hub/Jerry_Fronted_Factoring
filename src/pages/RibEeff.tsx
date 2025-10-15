@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileText, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { FileText, Plus, Edit, Trash2, Loader2, ClipboardList } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,6 +102,7 @@ const RibEeffPage = () => {
                 <TableRow className="border-gray-800">
                   <TableHead className="text-gray-400">Empresa (RUC)</TableHead>
                   <TableHead className="text-gray-400">Creador</TableHead>
+                  <TableHead className="text-gray-400">Solicitud Asociada</TableHead>
                   <TableHead className="text-gray-400">Estado</TableHead>
                   <TableHead className="text-gray-400">Última Actualización</TableHead>
                   <TableHead className="text-gray-400 text-right">Acciones</TableHead>
@@ -110,7 +111,7 @@ const RibEeffPage = () => {
               <TableBody>
                 {summaries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-gray-400">
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-400">
                       No se encontraron reportes
                     </TableCell>
                   </TableRow>
@@ -121,6 +122,16 @@ const RibEeffPage = () => {
                         {item.nombre_empresa} ({item.ruc})
                       </TableCell>
                       <TableCell className="text-white">{item.creator_name || 'N/A'}</TableCell>
+                      <TableCell>
+                        {item.solicitud_id ? (
+                          <Link to={`/solicitudes-operacion/editar/${item.solicitud_id}`} className="text-blue-400 hover:text-blue-300 hover:underline font-mono text-xs flex items-center">
+                            <ClipboardList className="h-3 w-3 mr-1.5" />
+                            {item.solicitud_id.substring(0, 8)}...
+                          </Link>
+                        ) : (
+                          <span className="text-gray-500 text-xs">N/A</span>
+                        )}
+                      </TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
                       <TableCell className="text-gray-400">
                         {item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-ES') : '-'}
