@@ -32,6 +32,16 @@ export interface RibReporteTributario {
   user_id?: string | null;
   status?: string;
   solicitud_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface RibReporteTributarioDocument {
+  deudor: RibReporteTributario;
+  proveedor?: RibReporteTributario | null;
+  solicitud_id: string | null;
+  status: string;
+  user_id: string | null;
 }
 
 export class RibReporteTributarioService {
@@ -46,66 +56,122 @@ export class RibReporteTributarioService {
     return data || [];
   }
 
-  static async getById(id: string): Promise<RibReporteTributario> {
+  static async getById(id: string): Promise<RibReporteTributarioDocument> {
+    // Obtener todos los registros relacionados (deudor y proveedor)
     const { data, error } = await supabase
       .from('rib_reporte_tributario')
       .select('*')
-      .eq('id', id)
-      .single();
+      .eq('id', id);
     
     if (error) {
       console.error('Error fetching RIB reporte tributario by ID:', error);
       throw new Error(`Error al obtener el reporte: ${error.message}`);
     }
     
-    if (!data) {
+    if (!data || data.length === 0) {
       throw new Error('Reporte no encontrado');
     }
-    
-    return data;
+
+    // Separar deudor y proveedor
+    const deudorRecord = data.find(r => r.tipo_entidad === 'deudor');
+    const proveedorRecord = data.find(r => r.tipo_entidad === 'proveedor');
+
+    if (!deudorRecord) {
+      throw new Error('No se encontró el registro del deudor');
+    }
+
+    return {
+      deudor: deudorRecord,
+      proveedor: proveedorRecord || null,
+      solicitud_id: deudorRecord.solicitud_id,
+      status: deudorRecord.status || 'Borrador',
+      user_id: deudorRecord.user_id
+    };
   }
 
-  static async create(report: RibReporteTributario): Promise<RibReporteTributario> {
+  static async save(document: RibReporteTributarioDocument): Promise<RibReporteTributarioDocument> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    const { data, error } = await supabase
-      .from('rib_reporte_tributario')
-      .insert({
-        ...report,
-        user_id: user?.id,
-        status: report.status || 'Borrador'
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error creating RIB reporte tributario:', error);
-      throw new Error(`Error al crear el reporte: ${error.message}`);
-    }
-    
-    return data;
-  }
+    // Preparar el registro del deudor
+    const deudorData = {
+      ...document.deudor,
+      user_id: user?.id,
+      status: document.status || 'Borrador',
+      solicitud_id: document.solicitud_id,
+      tipo_entidad: 'deudor' as const
+    };
 
-  static async update(id: string, report: Partial<RibReporteTributario>): Promise<RibReporteTributario> {
-    const { data, error } = await supabase
-      .from('rib_reporte_tributario')
-      .update({
-        ...report,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error updating RIB reporte tributario:', error);
-      throw new Error(`Error al actualizar el reporte: ${error.message}`);
+    // Si existe ID, actualizar; si no, crear
+    if (document.deudor.id) {
+      const { data: updatedDeudor, error: deudorError } = await supabase
+        .from('rib_reporte_tributario')
+        .update(deudorData)
+        .eq('id', document.deudor.id)
+        .select()
+        .single();
+
+      if (deudorError) {
+        console.error('Error updating deudor:', deudorError);
+        throw new Error(`Error al actualizar el deudor: ${deudorError.message}`);
+      }
+
+      // Actualizar o crear proveedor si existe
+      if (document.proveedor) {
+        const proveedorData = {
+          ...document.proveedor,
+          user_id: user?.id,
+          status: document.status || 'Borrador',
+          solicitud_id: document.solicitud_id,
+          tipo_entidad: 'proveedor' as const
+        };
+
+        if (document.proveedor.id) {
+          await supabase
+            .from('rib_reporte_tributario')
+            .update(proveedorData)
+            .eq('id', document.proveedor.id);
+        } else {
+          await supabase
+            .from('rib_reporte_tributario')
+            .insert(proveedorData);
+        }
+      }
+
+      return await this.getById(document.deudor.id);
+    } else {
+      // Crear nuevo registro de deudor
+      const { data: newDeudor, error: deudorError } = await supabase
+        .from('rib_reporte_tributario')
+        .insert(deudorData)
+        .select()
+        .single();
+
+      if (deudorError) {
+        console.error('Error creating deudor:', deudorError);
+        throw new Error(`Error al crear el deudor: ${deudorError.message}`);
+      }
+
+      // Crear proveedor si existe
+      if (document.proveedor) {
+        const proveedorData = {
+          ...document.proveedor,
+          user_id: user?.id,
+          status: document.status || 'Borrador',
+          solicitud_id: document.solicitud_id,
+          tipo_entidad: 'proveedor' as const
+        };
+
+        await supabase
+          .from('rib_reporte_tributario')
+          .insert(proveedorData);
+      }
+
+      return await this.getById(newDeudor.id);
     }
-    
-    return data;
   }
 
   static async delete(id: string): Promise<void> {
+    // Eliminar todos los registros relacionados (deudor y proveedor)
     const { error } = await supabase
       .from('rib_reporte_tributario')
       .delete()
