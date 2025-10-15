@@ -103,6 +103,7 @@ export class RibReporteTributarioService {
       const key = record.solicitud_id || `unlinked-${record.created_at?.substring(0, 19)}`;
       if (!acc[key]) acc[key] = [];
       acc[key].push(record);
+      return acc;
     }, {} as Record<string, RibReporteTributarioData[]>);
 
     return Object.values(groupedBySolicitud).map(group => this.normalizedToLegacy(group));
