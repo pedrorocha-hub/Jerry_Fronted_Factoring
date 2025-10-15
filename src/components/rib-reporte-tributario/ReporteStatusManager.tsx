@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RibReporteTributario } from '@/services/ribReporteTributarioService';
+import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 
 interface ReporteStatusManagerProps {
   report: RibReporteTributario;
@@ -13,6 +14,9 @@ interface ReporteStatusManagerProps {
   onSave: () => void;
   isSaving: boolean;
   hasUnsavedChanges: boolean;
+  onSolicitudIdChange: (solicitudId: string | null) => void;
+  searchSolicitudes: (query: string) => Promise<ComboboxOption[]>;
+  initialSolicitudLabel: string | null;
 }
 
 const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
@@ -21,7 +25,10 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
   onStatusChange,
   onSave,
   isSaving,
-  hasUnsavedChanges
+  hasUnsavedChanges,
+  onSolicitudIdChange,
+  searchSolicitudes,
+  initialSolicitudLabel,
 }) => {
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -69,12 +76,24 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-300">Asociar a Solicitud de Operación</label>
+            <AsyncCombobox
+              value={report.solicitud_id || null}
+              onChange={onSolicitudIdChange}
+              onSearch={searchSolicitudes}
+              placeholder="Buscar por RUC, empresa o ID..."
+              searchPlaceholder="Escriba para buscar..."
+              emptyMessage="No se encontraron solicitudes."
+              initialDisplayValue={initialSolicitudLabel}
+            />
+          </div>
+          <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300">Cambiar Estado</label>
             <Select
               value={report.status || 'Borrador'}
               onValueChange={(value: 'Borrador' | 'En revisión' | 'Completado') => onStatusChange(value)}
             >
-              <SelectTrigger className="bg-gray-900/50 border-gray-700">
+              <SelectTrigger className="w-full bg-gray-900/50 border-gray-700">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -99,24 +118,18 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
               </SelectContent>
             </Select>
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Información</label>
-            <div className="space-y-1 text-sm text-gray-400">
-              {creatorName && (
-                <div className="flex items-center">
-                  <User className="h-4 w-4 mr-2" />
-                  <span>Creado por: {creatorName}</span>
-                </div>
-              )}
-              {report.created_at && (
-                <div>Creado: {formatDate(report.created_at)}</div>
-              )}
-              {report.updated_at && (
-                <div>Actualizado: {formatDate(report.updated_at)}</div>
-              )}
-            </div>
+        </div>
+        <div className="space-y-2 text-sm text-gray-400 pt-4 border-t border-gray-800">
+          <div className="flex items-center">
+            <User className="h-4 w-4 mr-2" />
+            <span>Creado por: {creatorName || 'Sistema'}</span>
           </div>
+          {report.created_at && (
+            <div>Creado: {formatDate(report.created_at)}</div>
+          )}
+          {report.updated_at && (
+            <div>Actualizado: {formatDate(report.updated_at)}</div>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-800">

@@ -1,13 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react"
+import { Check, ChevronsUpDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
+  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
@@ -17,6 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Loader2 } from "lucide-react"
 
 export interface ComboboxOption {
   value: string;
@@ -45,48 +47,33 @@ export function AsyncCombobox({
   initialDisplayValue,
 }: AsyncComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const [searchQuery, setSearchQuery] = React.useState("")
   const [options, setOptions] = React.useState<ComboboxOption[]>([])
-  const [isLoading, setIsLoading] = React.useState(false)
-  const [selectedValueLabel, setSelectedValueLabel] = React.useState<string | null>(initialDisplayValue || null);
+  const [loading, setLoading] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [selectedLabel, setSelectedLabel] = React.useState<string | null>(initialDisplayValue || null)
 
   React.useEffect(() => {
     if (initialDisplayValue) {
-      setSelectedValueLabel(initialDisplayValue);
-    } else if (!value) {
-      setSelectedValueLabel(null);
+      setSelectedLabel(initialDisplayValue);
     }
-  }, [initialDisplayValue, value]);
+  }, [initialDisplayValue]);
 
   React.useEffect(() => {
-    if (!open) {
-      setSearchQuery("");
-      setOptions([]);
+    if (open) {
+      setLoading(true)
+      onSearch(searchQuery).then((newOptions) => {
+        setOptions(newOptions)
+        setLoading(false)
+      })
     }
-  }, [open]);
-
-  React.useEffect(() => {
-    if (searchQuery.length > 2) {
-      const delayDebounceFn = setTimeout(() => {
-        setIsLoading(true);
-        onSearch(searchQuery).then((newOptions) => {
-          setOptions(newOptions);
-          setIsLoading(false);
-        });
-      }, 300);
-
-      return () => clearTimeout(delayDebounceFn);
-    } else {
-      setOptions([]);
-    }
-  }, [searchQuery, onSearch]);
+  }, [open, searchQuery, onSearch])
 
   const handleSelect = (currentValue: string) => {
     const selectedOption = options.find(option => option.value === currentValue);
-    onChange(currentValue === value ? null : currentValue);
-    setSelectedValueLabel(selectedOption ? selectedOption.label : null);
-    setOpen(false);
-  };
+    onChange(currentValue === value ? null : currentValue)
+    setSelectedLabel(selectedOption ? selectedOption.label : null);
+    setOpen(false)
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -99,37 +86,46 @@ export function AsyncCombobox({
           disabled={disabled}
         >
           <span className="truncate">
-            {value && selectedValueLabel ? selectedValueLabel : placeholder}
+            {value
+              ? selectedLabel || options.find((option) => option.value === value)?.label || value
+              : placeholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-[#121212] border-gray-800">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
-          <CommandInput
-            placeholder={searchPlaceholder}
-            value={searchQuery}
+          <CommandInput 
+            placeholder={searchPlaceholder} 
             onValueChange={setSearchQuery}
           />
           <CommandList>
-            {isLoading && <div className="p-2 flex justify-center items-center"><Loader2 className="h-4 w-4 animate-spin" /></div>}
-            {!isLoading && options.length === 0 && searchQuery.length > 2 && <CommandEmpty>{emptyMessage}</CommandEmpty>}
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                value={option.value}
-                onSelect={handleSelect}
-                className="text-white hover:bg-gray-800"
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === option.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {option.label}
-              </CommandItem>
-            ))}
+            {loading ? (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            ) : (
+              <>
+                <CommandEmpty>{emptyMessage}</CommandEmpty>
+                <CommandGroup>
+                  {options.map((option) => (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      onSelect={handleSelect}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === option.value ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {option.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
