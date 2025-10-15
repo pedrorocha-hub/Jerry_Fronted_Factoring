@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, Loader2, CheckCircle, XCircle, Clock, User } from 'lucide-react';
-import AsyncCombobox, { ComboboxOption } from '@/components/ui/async-combobox';
+import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 
 interface VentasStatusManagerProps {
   status: string;
