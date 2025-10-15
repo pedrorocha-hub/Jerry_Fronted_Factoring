@@ -25,9 +25,9 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       marginBottom: '0',
     },
     headerContent: {
-      maxWidth: '180mm',
+      maxWidth: '190mm',
       margin: '0 auto',
-      padding: '0 15mm',
+      padding: '0 10mm',
     },
     headerTitle: {
       fontSize: '28px',
@@ -54,9 +54,9 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       marginBottom: '20px',
     },
     content: {
-      maxWidth: '180mm',
+      maxWidth: '190mm',
       margin: '0 auto',
-      padding: '0 15mm 30px 15mm',
+      padding: '0 10mm 30px 10mm',
     },
     sectionCard: {
       backgroundColor: '#ffffff',
