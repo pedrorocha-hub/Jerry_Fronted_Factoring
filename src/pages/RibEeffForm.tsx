@@ -241,8 +241,12 @@ const RibEeffForm = () => {
         years.forEach(year => {
           const yearData = yearsData[entityType as 'proveedor' | 'deudor'][year];
           if (yearData && Object.keys(yearData).length > 0) {
-            recordsToUpsert.push({
-              ...yearData,
+            
+            // Destructure to remove problematic fields before spreading
+            const { created_at, ...restOfYearData } = yearData;
+
+            const record: Partial<RibEeff> = {
+              ...restOfYearData,
               id: reportId,
               ruc: ruc,
               tipo_entidad: entityType as 'proveedor' | 'deudor',
@@ -250,16 +254,25 @@ const RibEeffForm = () => {
               anio_reporte: year,
               user_id: user?.id,
               updated_at: new Date().toISOString(),
-            });
+            };
+
+            recordsToUpsert.push(record);
           }
         });
       });
+
+      if (recordsToUpsert.length === 0) {
+        toast.info("No hay datos para guardar.");
+        setIsSubmitting(false);
+        return;
+      }
 
       await RibEeffService.upsertMultiple(recordsToUpsert);
       toast.success('Datos de RIB EEFF guardados correctamente.');
       navigate('/rib-eeff');
     } catch (error) {
-      toast.error('Error al guardar los registros de RIB EEFF.');
+      console.error("Error saving RIB EEFF:", error);
+      toast.error(`Error al guardar los registros de RIB EEFF: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setIsSubmitting(false);
     }
