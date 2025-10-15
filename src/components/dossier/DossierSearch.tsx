@@ -6,33 +6,32 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DossierSearchProps {
-  onSearch: (ruc: string) => void;
+  onSearch: (solicitudId: string) => void;
   searching: boolean;
   error: string | null;
 }
 
 const DossierSearch: React.FC<DossierSearchProps> = ({ onSearch, searching, error }) => {
-  const [rucInput, setRucInput] = useState('');
+  const [solicitudIdInput, setSolicitudIdInput] = useState('');
 
   const handleSearch = () => {
-    onSearch(rucInput);
+    onSearch(solicitudIdInput);
   };
 
   return (
     <>
       <Card className="bg-[#121212] border border-gray-800">
         <CardHeader>
-          <CardTitle className="text-white">Buscar Dossier por RUC</CardTitle>
+          <CardTitle className="text-white">Buscar Dossier por ID de Solicitud</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Ingrese RUC de 11 dígitos"
-              value={rucInput}
-              onChange={(e) => setRucInput(e.target.value)}
+              placeholder="Ingrese el ID de la Solicitud de Operación"
+              value={solicitudIdInput}
+              onChange={(e) => setSolicitudIdInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              maxLength={11}
               className="pl-10 bg-gray-900/50 border-gray-700"
             />
           </div>

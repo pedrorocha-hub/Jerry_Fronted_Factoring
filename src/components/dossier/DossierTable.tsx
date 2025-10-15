@@ -8,7 +8,7 @@ import { DossierSummary } from '@/types/dossier';
 interface DossierTableProps {
   dossiers: DossierSummary[];
   loading: boolean;
-  onViewDossier: (ruc: string) => void;
+  onViewDossier: (solicitudId: string) => void;
 }
 
 const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDossier }) => {
@@ -56,7 +56,7 @@ const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDo
             <Building2 className="h-12 w-12 text-gray-600 mx-auto mb-4" />
             <p className="text-gray-400">No hay dossiers guardados disponibles</p>
             <p className="text-gray-500 text-sm mt-2">
-              Busca un RUC y guarda el dossier para verlo aquí
+              Busca un ID de Solicitud y guarda el dossier para verlo aquí
             </p>
           </div>
         </CardContent>
@@ -88,9 +88,9 @@ const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDo
               </tr>
             </thead>
             <tbody>
-              {dossiers.map((dossier, index) => (
+              {dossiers.map((dossier) => (
                 <tr 
-                  key={index} 
+                  key={dossier.id} 
                   className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors"
                 >
                   <td className="py-3 px-4">
@@ -140,7 +140,7 @@ const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDo
                   <td className="py-3 px-4">
                     <Button
                       size="sm"
-                      onClick={() => onViewDossier(dossier.ruc)}
+                      onClick={() => onViewDossier(dossier.solicitud_id)}
                       className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
                     >
                       <Eye className="h-4 w-4 mr-1" />

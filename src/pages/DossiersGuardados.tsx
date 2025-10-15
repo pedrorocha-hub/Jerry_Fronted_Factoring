@@ -15,21 +15,19 @@ const DossiersGuardadosPage = () => {
     error,
     dossier,
     dossierList,
-    searchDossierByRuc,
+    searchDossierById,
     saveDossier,
     loadSavedDossiers,
     loadDossierFromSaved,
     setError
   } = useDossierData();
 
-  // Cargar dossiers guardados al montar el componente
   useEffect(() => {
     loadSavedDossiers();
   }, []);
 
-  const handleViewDossier = (ruc: string) => {
-    // Cargar desde dossiers guardados
-    loadDossierFromSaved(ruc);
+  const handleViewDossier = (solicitudId: string) => {
+    loadDossierFromSaved(solicitudId);
   };
 
   const handleRefreshList = () => {
@@ -62,21 +60,18 @@ const DossiersGuardadosPage = () => {
             </Button>
           </div>
 
-          {/* Búsqueda */}
           <DossierSearch 
-            onSearch={searchDossierByRuc}
+            onSearch={searchDossierById}
             searching={searching}
             error={error}
           />
 
-          {/* Tabla de Dossiers Guardados */}
           <DossierTable 
             dossiers={dossierList}
             loading={loading}
             onViewDossier={handleViewDossier}
           />
 
-          {/* Visualizador del Dossier */}
           {dossier && (
             <DossierViewer 
               dossier={dossier} 

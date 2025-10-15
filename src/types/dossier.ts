@@ -6,6 +6,8 @@ export interface DossierRib {
 }
 
 export interface DossierSummary {
+  id: string; // id from dossiers_guardados table
+  solicitud_id: string;
   ruc: string;
   nombreEmpresa: string;
   status: string;

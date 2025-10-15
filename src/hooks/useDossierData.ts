@@ -11,9 +11,9 @@ export const useDossierData = () => {
   const [dossier, setDossier] = useState<DossierRib | null>(null);
   const [dossierList, setDossierList] = useState<DossierSummary[]>([]);
 
-  const searchDossierByRuc = async (rucInput: string) => {
-    if (!rucInput || rucInput.length !== 11) {
-      setError('Por favor, ingrese un RUC válido de 11 dígitos.');
+  const searchDossierById = async (solicitudId: string) => {
+    if (!solicitudId) {
+      setError('Por favor, ingrese un ID de Solicitud válido.');
       return;
     }
 
@@ -22,36 +22,26 @@ export const useDossierData = () => {
     setDossier(null);
 
     try {
-      console.log('Buscando RUC:', rucInput);
+      console.log('Buscando Solicitud ID:', solicitudId);
 
-      // Buscar solicitud de operación (punto de partida)
-      const { data: solicitudes, error: solicitudError } = await supabase
+      const { data: solicitud, error: solicitudError } = await supabase
         .from('solicitudes_operacion')
         .select(`
           *,
           solicitud_operacion_riesgos(*)
         `)
-        .eq('ruc', rucInput)
-        .order('created_at', { ascending: false })
-        .limit(1);
+        .eq('id', solicitudId)
+        .single();
 
-      console.log('Resultado solicitudes:', { solicitudes, solicitudError });
-
-      if (solicitudError) {
+      if (solicitudError || !solicitud) {
         console.error('Error en consulta solicitud:', solicitudError);
-        setError(`Error al buscar la solicitud: ${solicitudError.message}`);
+        setError(`No se encontró ninguna solicitud con el ID: ${solicitudId}`);
         return;
       }
 
-      if (!solicitudes || solicitudes.length === 0) {
-        setError('No se encontró ninguna solicitud de operación para este RUC.');
-        return;
-      }
-
-      const solicitud = solicitudes[0];
       console.log('Solicitud encontrada:', solicitud);
+      const rucInput = solicitud.ruc;
 
-      // Obtener información del creador por separado
       let creatorInfo = null;
       if (solicitud.user_id) {
         const { data: profile } = await supabase
@@ -65,7 +55,6 @@ export const useDossierData = () => {
         }
       }
 
-      // Cargar todos los datos del dossier en paralelo
       const [
         fichaRucResult,
         analisisRibResult,
@@ -75,49 +64,19 @@ export const useDossierData = () => {
         top10kResult,
         accionistasResult,
         gerenciaResult,
-        ribEeffResult, // <-- NUEVA CONSULTA
+        ribEeffResult,
       ] = await Promise.allSettled([
-        // Ficha RUC
         supabase.from('ficha_ruc').select('*').eq('ruc', rucInput).single(),
-        
-        // Análisis RIB
-        supabase.from('rib').select('*').eq('ruc', rucInput).single(),
-        
-        // Comportamiento Crediticio
-        supabase.from('comportamiento_crediticio').select('*').eq('ruc', rucInput).single(),
-        
-        // RIB - Reporte Tributario
-        supabase.from('rib_reporte_tributario').select('*').eq('ruc', rucInput),
-        
-        // Ventas Mensuales - Buscar tanto por proveedor_ruc como por deudor_ruc
-        supabase.from('ventas_mensuales').select('*').or(`proveedor_ruc.eq.${rucInput},deudor_ruc.eq.${rucInput}`).single(),
-        
-        // TOP 10K
+        supabase.from('rib').select('*').eq('solicitud_id', solicitudId).single(),
+        supabase.from('comportamiento_crediticio').select('*').eq('solicitud_id', solicitudId).single(),
+        supabase.from('rib_reporte_tributario').select('*').eq('solicitud_id', solicitudId),
+        supabase.from('ventas_mensuales').select('*').eq('solicitud_id', solicitudId).single(),
         supabase.from('top_10k').select('*').eq('ruc', parseInt(rucInput)).single(),
-        
-        // Accionistas
         supabase.from('ficha_ruc_accionistas').select('*').eq('ruc', rucInput),
-        
-        // Gerencia
         supabase.from('ficha_ruc_gerencia').select('*').eq('ruc', rucInput),
-
-        // RIB EEFF
-        supabase.from('rib_eeff').select('*').eq('ruc', rucInput),
+        supabase.from('rib_eeff').select('*').eq('solicitud_id', solicitudId),
       ]);
 
-      console.log('Resultados paralelos:', {
-        fichaRucResult,
-        analisisRibResult,
-        comportamientoCrediticioResult,
-        ribReporteTributarioResult,
-        ventasMensualesResult,
-        top10kResult,
-        accionistasResult,
-        gerenciaResult,
-        ribEeffResult,
-      });
-
-      // Procesar resultados
       const getData = (result: PromiseSettledResult<any>) => {
         if (result.status === 'fulfilled' && !result.value.error) {
           return result.value.data;
@@ -125,51 +84,18 @@ export const useDossierData = () => {
         return null;
       };
 
-      // Manejo especial para ventas mensuales
-      let ventasMensualesData = null;
-      if (ventasMensualesResult.status === 'fulfilled' && !ventasMensualesResult.value.error) {
-        ventasMensualesData = ventasMensualesResult.value.data;
-      } else {
-        // Si no encontramos con .single(), intentar con array y tomar el primero
-        console.log('Intentando búsqueda alternativa de ventas mensuales...');
-        const { data: ventasArray, error: ventasArrayError } = await supabase
-          .from('ventas_mensuales')
-          .select('*')
-          .or(`proveedor_ruc.eq.${rucInput},deudor_ruc.eq.${rucInput}`)
-          .limit(1);
-        
-        if (!ventasArrayError && ventasArray && ventasArray.length > 0) {
-          ventasMensualesData = ventasArray[0];
-        }
-      }
-
-      console.log('Datos de ventas mensuales encontrados:', ventasMensualesData);
-
       const dossierData: DossierRib = {
-        // 1. Solicitud de operación
         solicitudOperacion: solicitud,
         riesgos: solicitud.solicitud_operacion_riesgos || [],
         fichaRuc: getData(fichaRucResult),
         creatorInfo,
-        
-        // 2. Análisis RIB
         analisisRib: getData(analisisRibResult),
         accionistas: getData(accionistasResult) || [],
         gerencia: getData(gerenciaResult) || [],
-        
-        // 3. Comportamiento Crediticio
         comportamientoCrediticio: getData(comportamientoCrediticioResult),
-        
-        // 4. RIB - Reporte Tributario
         ribReporteTributario: getData(ribReporteTributarioResult) || [],
-        
-        // 5. Ventas Mensuales
-        ventasMensuales: ventasMensualesData,
-        
-        // 6. RIB EEFF
+        ventasMensuales: getData(ventasMensualesResult),
         ribEeff: getData(ribEeffResult) || [],
-
-        // Datos adicionales
         top10kData: getData(top10kResult)
       };
 
@@ -204,17 +130,17 @@ export const useDossierData = () => {
                            dossier.top10kData?.razon_social || 
                            'Empresa sin nombre';
 
-      // Guardar o actualizar el dossier
       const { error: saveError } = await supabase
         .from('dossiers_guardados')
         .upsert({
+          solicitud_id: dossier.solicitudOperacion.id,
           ruc: dossier.solicitudOperacion.ruc,
           nombre_empresa: nombreEmpresa,
           datos_dossier: dossier,
           user_id: user.id,
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'ruc'
+          onConflict: 'solicitud_id'
         });
 
       if (saveError) {
@@ -224,7 +150,6 @@ export const useDossierData = () => {
       }
 
       showSuccess('Dossier guardado exitosamente.');
-      // Recargar la lista de dossiers
       await loadSavedDossiers();
       
     } catch (err) {
@@ -240,7 +165,6 @@ export const useDossierData = () => {
     setError(null);
 
     try {
-      // Cargar dossiers guardados sin JOIN con profiles
       const { data: dossiers, error: dossiersError } = await supabase
         .from('dossiers_guardados')
         .select('*')
@@ -257,7 +181,6 @@ export const useDossierData = () => {
         return;
       }
 
-      // Obtener información de los creadores por separado
       const userIds = [...new Set(dossiers.map(d => d.user_id).filter(Boolean))];
       const { data: profiles } = await supabase
         .from('profiles')
@@ -266,8 +189,9 @@ export const useDossierData = () => {
 
       const profilesMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
 
-      // Mapear los datos guardados
       const dossierSummaries: DossierSummary[] = dossiers.map((dossier) => ({
+        id: dossier.id,
+        solicitud_id: dossier.solicitud_id,
         ruc: dossier.ruc,
         nombreEmpresa: dossier.nombre_empresa || 'N/A',
         status: dossier.status,
@@ -289,7 +213,7 @@ export const useDossierData = () => {
     }
   };
 
-  const loadDossierFromSaved = async (ruc: string) => {
+  const loadDossierFromSaved = async (solicitudId: string) => {
     setSearching(true);
     setError(null);
 
@@ -297,7 +221,7 @@ export const useDossierData = () => {
       const { data: savedDossier, error: loadError } = await supabase
         .from('dossiers_guardados')
         .select('datos_dossier')
-        .eq('ruc', ruc)
+        .eq('solicitud_id', solicitudId)
         .single();
 
       if (loadError) {
@@ -329,7 +253,7 @@ export const useDossierData = () => {
     error,
     dossier,
     dossierList,
-    searchDossierByRuc,
+    searchDossierById,
     saveDossier,
     loadSavedDossiers,
     loadDossierFromSaved,
