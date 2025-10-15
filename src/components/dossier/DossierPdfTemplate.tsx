@@ -324,3 +324,199 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     return salesByYear;
   };
   const ventasMensualesByYear = getVentasMensualesDataByYear();
+  const ribEeffFields = {
+    activoFields: {
+      activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
+      activo_cuentas_por_cobrar_del_giro: "Cuentas por Cobrar del Giro",
+      activo_total_activo_circulante: "Total Activo Circulante",
+      activo_activo_fijo_neto: "Activo Fijo Neto",
+      activo_total_activos_no_circulantes: "Total Activos no Circulantes",
+      activo_total_activos: "Total Activos",
+    },
+    pasivoFields: {
+      pasivo_sobregiro_bancos_y_obligaciones_corto_plazo: "Sobregiro Bancos y Obligaciones (CP)",
+      pasivo_cuentas_por_pagar_del_giro: "Cuentas por Pagar del Giro",
+      pasivo_total_pasivos_circulantes: "Total Pasivos Circulantes",
+      pasivo_total_pasivos_no_circulantes: "Total Pasivos no Circulantes",
+      pasivo_total_pasivos: "Total Pasivos",
+    },
+    patrimonioFields: {
+      patrimonio_neto_capital_pagado: "Capital Pagado",
+      patrimonio_neto_utilidad_perdida_acumulada: "Utilidad/Pérdida Acumulada",
+      patrimonio_neto_utilidad_perdida_del_ejercicio: "Utilidad/Pérdida del Ejercicio",
+      patrimonio_neto_total_patrimonio: "Total Patrimonio",
+      patrimonio_neto_total_pasivos_y_patrimonio: "Total Pasivos y Patrimonio",
+    }
+  };
+
+  const getRibEeffData = (tipo: 'deudor' | 'proveedor') => {
+    if (!dossier.ribEeff || dossier.ribEeff.length === 0) return { data: {}, years: [] };
+    const data = dossier.ribEeff
+      .filter((r: RibEeff) => r.tipo_entidad === tipo)
+      .reduce((acc, record) => {
+        if (record.anio_reporte) acc[record.anio_reporte] = record;
+        return acc;
+      }, {} as Record<number, Partial<RibEeff>>);
+    const years = Object.keys(data).map(Number).sort((a, b) => b - a);
+    return { data, years };
+  };
+
+  const deudorEeff = getRibEeffData('deudor');
+  const proveedorEeff = getRibEeffData('proveedor');
+
+  const FinancialTable: React.FC<{ title: string, fields: Record<string, string>, years: number[], data: Record<number, Partial<RibEeff>> }> = ({ title, fields, years, data }) => (
+    <div style={styles.tableWrapper}>
+      <div style={styles.subsectionTitle}>{title}</div>
+      <table style={styles.table}>
+        <thead style={styles.tableHeader}>
+          <tr style={styles.tr}>
+            <th style={styles.th}>Concepto</th>
+            {years.map((year, index) => (
+              <th key={year} style={index === years.length - 1 ? styles.thLast : styles.th}>{year}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(fields).map(([name, label], index) => (
+            <tr key={name} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+              <td style={styles.td}>{label}</td>
+              {years.map((year, yearIndex) => (
+                <td key={year} style={yearIndex === years.length - 1 ? styles.tdLast : styles.td}>
+                  {formatCurrency(data[year]?.[name as keyof RibEeff] as number)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div ref={ref} data-pdf-template style={styles.page}>
+      <style>
+        {`
+          @media print {
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            @page {
+              margin: 0;
+              size: A4 portrait;
+            }
+            tr {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+          }
+        `}
+      </style>
+      
+      <div style={styles.headerBanner}>
+        <div style={styles.headerContent}>
+          <h1 style={styles.headerTitle}>Dossier RIB</h1>
+          <p style={styles.headerSubtitle}>{nombreEmpresa}</p>
+          <p style={styles.headerRuc}>RUC: {dossier.solicitudOperacion.ruc}</p>
+        </div>
+      </div>
+      <div style={styles.accentBar}></div>
+
+      <div style={styles.content}>
+        {/* SECCIÓN 1: SOLICITUD DE OPERACIÓN */}
+        <div style={styles.sectionCard}>
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionNumber}>1</div>
+            <h2 style={styles.sectionTitle}>Solicitud de Operación</h2>
+          </div>
+
+          {dossier.top10kData && (
+            <div style={styles.highlightBox}>
+              <div style={{ ...styles.infoLabel, marginBottom: '6px' }}>⭐ INFORMACIÓN TOP 10K PERÚ</div>
+              <div style={styles.infoGrid}>
+                <InfoItem label="Sector" value={dossier.top10kData.sector} />
+                <InfoItem label="Ranking 2024" value={dossier.top10kData.ranking_2024 ? `#${dossier.top10kData.ranking_2024}` : 'N/A'} />
+                <InfoItem label="Facturado 2024 (Máx)" value={formatCurrency(dossier.top10kData.facturado_2024_soles_maximo)} />
+                <InfoItem label="Tamaño Empresa" value={dossier.top10kData.tamano} />
+              </div>
+            </div>
+          )}
+
+          <div style={styles.subsectionTitle}>Información Básica</div>
+          <div style={styles.infoGrid}>
+            <InfoItem label="Empresa" value={dossier.fichaRuc?.nombre_empresa} />
+            <InfoItem label="RUC" value={dossier.solicitudOperacion.ruc} />
+            <InfoItem label="Producto" value={dossier.solicitudOperacion.producto} />
+            <InfoItem label="Proveedor" value={dossier.solicitudOperacion.proveedor} />
+            <InfoItem label="Deudor" value={dossier.solicitudOperacion.deudor} />
+            <InfoItem label="Moneda" value={dossier.solicitudOperacion.moneda_operacion} />
+            <InfoItem label="Exposición Total" value={dossier.solicitudOperacion.exposicion_total} />
+            <InfoItem label="Propuesta Comercial" value={dossier.solicitudOperacion.propuesta_comercial} />
+            <InfoItem label="Riesgo Aprobado" value={dossier.solicitudOperacion.riesgo_aprobado} />
+            <InfoItem label="Fecha Ficha" value={formatDate(dossier.solicitudOperacion.fecha_ficha)} />
+            <InfoItem label="L/P" value={dossier.solicitudOperacion.lp} />
+            <InfoItem label="L/P Vigente GVE" value={dossier.solicitudOperacion.lp_vigente_gve} />
+            <InfoItem label="Fianza" value={dossier.solicitudOperacion.fianza} />
+            <InfoItem label="Tipo de Cambio" value={dossier.solicitudOperacion.tipo_cambio} />
+            <InfoItem label="Orden de Servicio" value={dossier.solicitudOperacion.orden_servicio} />
+            <InfoItem label="Factura" value={dossier.solicitudOperacion.factura} />
+          </div>
+
+          {dossier.solicitudOperacion.direccion && (
+            <>
+              <div style={styles.subsectionTitle}>Información del Deudor</div>
+              <div style={styles.infoGrid}>
+                <InfoItem label="Dirección" value={dossier.solicitudOperacion.direccion} />
+                <InfoItem label="Visita" value={dossier.solicitudOperacion.visita} />
+                <InfoItem label="Contacto" value={dossier.solicitudOperacion.contacto} />
+              </div>
+            </>
+          )}
+
+          {dossier.solicitudOperacion.resumen_solicitud && (
+            <TextBlock label="Resumen Solicitud" value={dossier.solicitudOperacion.resumen_solicitud} />
+          )}
+
+          {dossier.solicitudOperacion.garantias && (
+            <TextBlock label="Garantías" value={dossier.solicitudOperacion.garantias} />
+          )}
+
+          {dossier.solicitudOperacion.condiciones_desembolso && (
+            <TextBlock label="Condiciones de Desembolso" value={dossier.solicitudOperacion.condiciones_desembolso} />
+          )}
+
+          {dossier.solicitudOperacion.comentarios && (
+            <TextBlock label="Comentarios" value={dossier.solicitudOperacion.comentarios} />
+          )}
+
+          {dossier.riesgos && dossier.riesgos.length > 0 && (
+            <>
+              <div style={styles.subsectionTitle}>Riesgos del Proveedor</div>
+              <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr style={styles.tr}>
+                      <th style={styles.th}>L/P</th>
+                      <th style={styles.th}>Producto</th>
+                      <th style={styles.th}>Deudor</th>
+                      <th style={styles.th}>Riesgo Aprobado</th>
+                      <th style={styles.thLast}>Propuesta Comercial</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dossier.riesgos.map((riesgo: any, index: number) => (
+                      <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+                        <td style={styles.td}>{riesgo.lp || 'N/A'}</td>
+                        <td style={styles.td}>{riesgo.producto || 'N/A'}</td>
+                        <td style={styles.td}>{riesgo.deudor || 'N/A'}</td>
+                        <td style={styles.td}>{formatCurrency(riesgo.riesgo_aprobado)}</td>
+                        <td style={styles.tdLast}>{formatCurrency(riesgo.propuesta_comercial)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
