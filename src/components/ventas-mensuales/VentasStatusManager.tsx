@@ -113,9 +113,9 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
           <Label htmlFor="solicitud" className="text-gray-300">Solicitud de Operación</Label>
           <AsyncCombobox
             placeholder="Buscar solicitud..."
-            searchFunction={searchSolicitudes}
-            onSelect={(option) => onSolicitudIdChange(option?.value || null)}
-            initialLabel={initialSolicitudLabel}
+            onSearch={searchSolicitudes}
+            onChange={onSolicitudIdChange}
+            initialDisplayValue={initialSolicitudLabel}
           />
         </div>
 
