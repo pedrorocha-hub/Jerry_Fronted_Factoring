@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { FileSpreadsheet, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DossierRib } from '@/types/dossier';
 import { RibEeff } from '@/types/rib-eeff';
-import { supabase } from '@/integrations/supabase/client';
 
 interface RibEeffSectionProps {
   dossier: DossierRib;
@@ -45,42 +44,16 @@ const FinancialTableDisplay = ({ title, fields, data, icon }: { title: string, f
 
 const RibEeffSection: React.FC<RibEeffSectionProps> = ({ dossier }) => {
   const { ribEeff = [] } = dossier;
-  const [proveedorName, setProveedorName] = useState<string | null>(null);
 
   const deudorData = ribEeff.filter(r => r.tipo_entidad === 'deudor').reduce((acc, record) => {
     if (record.anio_reporte) acc[record.anio_reporte] = record;
     return acc;
   }, {} as Record<number, Partial<RibEeff>>);
 
-  const proveedorRecords = ribEeff.filter(r => r.tipo_entidad === 'proveedor');
-  
-  const proveedorData = proveedorRecords.reduce((acc, record) => {
+  const proveedorData = ribEeff.filter(r => r.tipo_entidad === 'proveedor').reduce((acc, record) => {
     if (record.anio_reporte) acc[record.anio_reporte] = record;
     return acc;
   }, {} as Record<number, Partial<RibEeff>>);
-
-  const proveedorRuc = proveedorRecords.length > 0 ? proveedorRecords[0].ruc : null;
-
-  useEffect(() => {
-    if (proveedorRuc) {
-      const fetchProveedorName = async () => {
-        const { data, error } = await supabase
-          .from('ficha_ruc')
-          .select('nombre_empresa')
-          .eq('ruc', proveedorRuc)
-          .limit(1)
-          .single();
-
-        if (error) {
-          console.error('Error fetching proveedor name:', error);
-          setProveedorName('Nombre no disponible');
-        } else if (data) {
-          setProveedorName(data.nombre_empresa);
-        }
-      };
-      fetchProveedorName();
-    }
-  }, [proveedorRuc]);
 
   // Corregido: Cargar los campos desde las props estáticas
   const { activoFields, pasivoFields, patrimonioFields } = (RibEeffSection as any).defaultProps;
@@ -96,7 +69,7 @@ const RibEeffSection: React.FC<RibEeffSectionProps> = ({ dossier }) => {
       <CardContent className="space-y-8">
         {Object.keys(deudorData).length > 0 && (
           <div className="space-y-6">
-            <h3 className="text-xl font-bold text-white">Deudor: {dossier.fichaRuc?.nombre_empresa || dossier.solicitudOperacion.ruc}</h3>
+            <h3 className="text-xl font-bold text-white">Deudor: {dossier.fichaRuc?.nombre_empresa}</h3>
             <FinancialTableDisplay title="Activos" fields={activoFields} data={deudorData} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} />
             <FinancialTableDisplay title="Pasivos" fields={pasivoFields} data={deudorData} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} />
             <FinancialTableDisplay title="Patrimonio" fields={patrimonioFields} data={deudorData} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} />
@@ -104,9 +77,7 @@ const RibEeffSection: React.FC<RibEeffSectionProps> = ({ dossier }) => {
         )}
         {Object.keys(proveedorData).length > 0 && (
           <div className="space-y-6 border-t border-gray-800 pt-8">
-            <h3 className="text-xl font-bold text-white">
-              Proveedor: {proveedorName || proveedorRuc || 'Cargando...'} ({proveedorRuc})
-            </h3>
+            <h3 className="text-xl font-bold text-white">Proveedor</h3>
             <FinancialTableDisplay title="Activos" fields={activoFields} data={proveedorData} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} />
             <FinancialTableDisplay title="Pasivos" fields={pasivoFields} data={proveedorData} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} />
             <FinancialTableDisplay title="Patrimonio" fields={patrimonioFields} data={proveedorData} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} />
