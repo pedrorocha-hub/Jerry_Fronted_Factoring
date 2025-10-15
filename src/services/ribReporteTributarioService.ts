@@ -45,28 +45,6 @@ export interface RibReporteTributarioDocument {
 }
 
 export class RibReporteTributarioService {
-  // Función para limpiar campos con sufijos de año
-  private static cleanFieldsWithYearSuffix(data: any): any {
-    const cleaned: any = {};
-    const validFields = [
-      'id', 'ruc', 'proveedor_ruc', 'anio', 'tipo_entidad',
-      'cuentas_por_cobrar_giro', 'total_activos', 'cuentas_por_pagar_giro',
-      'total_pasivos', 'capital_pagado', 'total_patrimonio', 'total_pasivo_patrimonio',
-      'ingreso_ventas', 'utilidad_bruta', 'utilidad_antes_impuesto',
-      'solvencia', 'gestion', 'user_id', 'status', 'solicitud_id',
-      'created_at', 'updated_at'
-    ];
-
-    for (const key in data) {
-      // Solo incluir campos válidos (sin sufijos de año)
-      if (validFields.includes(key)) {
-        cleaned[key] = data[key];
-      }
-    }
-
-    return cleaned;
-  }
-
   static async getAllSummaries(): Promise<RibReporteTributarioSummary[]> {
     const { data, error } = await supabase.rpc('get_rib_reporte_tributario_summaries');
     
@@ -114,12 +92,9 @@ export class RibReporteTributarioService {
   static async save(document: RibReporteTributarioDocument): Promise<RibReporteTributarioDocument> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    // Limpiar campos del deudor
-    const cleanedDeudor = this.cleanFieldsWithYearSuffix(document.deudor);
-    
     // Preparar el registro del deudor
     const deudorData = {
-      ...cleanedDeudor,
+      ...document.deudor,
       user_id: user?.id,
       status: document.status || 'Borrador',
       solicitud_id: document.solicitud_id,
@@ -142,10 +117,8 @@ export class RibReporteTributarioService {
 
       // Actualizar o crear proveedor si existe
       if (document.proveedor) {
-        const cleanedProveedor = this.cleanFieldsWithYearSuffix(document.proveedor);
-        
         const proveedorData = {
-          ...cleanedProveedor,
+          ...document.proveedor,
           user_id: user?.id,
           status: document.status || 'Borrador',
           solicitud_id: document.solicitud_id,
@@ -180,10 +153,8 @@ export class RibReporteTributarioService {
 
       // Crear proveedor si existe
       if (document.proveedor) {
-        const cleanedProveedor = this.cleanFieldsWithYearSuffix(document.proveedor);
-        
         const proveedorData = {
-          ...cleanedProveedor,
+          ...document.proveedor,
           user_id: user?.id,
           status: document.status || 'Borrador',
           solicitud_id: document.solicitud_id,

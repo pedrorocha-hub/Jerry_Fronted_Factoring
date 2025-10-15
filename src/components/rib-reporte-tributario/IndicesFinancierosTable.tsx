@@ -1,61 +1,104 @@
 import React from 'react';
-import { Input } from '@/components/ui/input';
+import { Calculator } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 
 interface IndicesFinancierosTableProps {
-  data: any;
-  onDataChange: (updatedData: any) => void;
+  data: Partial<RibReporteTributario> | null;
+  onDataChange: (updatedData: Partial<RibReporteTributario>) => void;
+  isProveedor?: boolean;
 }
 
-const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({
-  data,
-  onDataChange
+const IndicesFinancierosTable: React.FC<IndicesFinancierosTableProps> = ({ 
+  data, 
+  onDataChange, 
+  isProveedor = false 
 }) => {
-  const handleChange = (field: string, value: string) => {
-    const numericValue = value === '' ? null : parseFloat(value);
-    onDataChange({ [field]: numericValue });
+  const getSuffix = () => isProveedor ? '_proveedor' : '';
+
+  const handleInputChange = (field: string, value: string) => {
+    const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
+    const fieldName = `${field}${getSuffix()}`;
+    onDataChange({
+      ...data,
+      [fieldName]: numericValue,
+    });
   };
 
-  const formatNumber = (value: number | null | undefined) => {
-    if (value === null || value === undefined) return '';
-    return value.toString();
+  const InputCell = ({ field, year }: { field: string; year: string }) => {
+    const fieldName = `${field}_${year}${getSuffix()}`;
+    const value = data?.[fieldName as keyof RibReporteTributario] as number | null;
+    
+    return (
+      <TableCell className="p-2">
+        <input
+          type="text"
+          value={value?.toString() || ''}
+          onChange={(e) => handleInputChange(`${field}_${year}`, e.target.value)}
+          className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
+          placeholder="0.00"
+          step="0.01"
+        />
+      </TableCell>
+    );
   };
+
+  const rows = [
+    {
+      label: 'Solvencia',
+      field: 'solvencia',
+      description: 'Capacidad de la empresa para cumplir con sus obligaciones'
+    },
+    {
+      label: 'Gestión',
+      field: 'gestion',
+      description: 'Eficiencia en el manejo de recursos y operaciones'
+    }
+  ];
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-gray-800">
-            <th className="border border-gray-700 p-3 text-left text-white font-semibold">Índice</th>
-            <th className="border border-gray-700 p-3 text-left text-white font-semibold">Valor</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="bg-gray-900/50">
-            <td className="border border-gray-700 p-3 text-gray-300">Solvencia</td>
-            <td className="border border-gray-700 p-3">
-              <Input
-                type="number"
-                step="0.01"
-                value={formatNumber(data.solvencia)}
-                onChange={(e) => handleChange('solvencia', e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-            </td>
-          </tr>
-          <tr className="bg-gray-900/30">
-            <td className="border border-gray-700 p-3 text-gray-300">Gestión</td>
-            <td className="border border-gray-700 p-3">
-              <Input
-                type="number"
-                step="0.01"
-                value={formatNumber(data.gestion)}
-                onChange={(e) => handleChange('gestion', e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div className="bg-[#121212] rounded-lg border border-gray-800 overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-gray-800 hover:bg-gray-900/50">
+            <TableHead className="text-gray-300 font-semibold">Índice</TableHead>
+            <TableHead className="text-center text-gray-300 font-semibold">Dic 2022</TableHead>
+            <TableHead className="text-center text-gray-300 font-semibold">Dic 2023</TableHead>
+            <TableHead className="text-center text-gray-300 font-semibold">Dic 2024</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.field} className="border-gray-800 hover:bg-gray-900/30">
+              <TableCell className="font-medium text-white">
+                <div className="flex items-center space-x-2">
+                  <Calculator className="h-4 w-4 text-[#00FF80]" />
+                  <div>
+                    <div>{row.label}</div>
+                    <div className="text-xs text-gray-400">{row.description}</div>
+                  </div>
+                </div>
+              </TableCell>
+              <InputCell field={row.field} year="2022" />
+              <InputCell field={row.field} year="2023" />
+              <InputCell field={row.field} year="2024" />
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      
+      <div className="p-4 bg-gray-900/30 border-t border-gray-800">
+        <p className="text-xs text-gray-400">
+          <strong>Nota:</strong> Los índices financieros se expresan como ratios decimales (ej: 1.25 para 125%). Los campos vacíos se considerarán como 0.
+        </p>
+      </div>
     </div>
   );
 };
