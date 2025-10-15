@@ -116,7 +116,7 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
           <AsyncCombobox
             value={solicitudId} // <-- Conectado al valor actual
             placeholder="Buscar solicitud..."
-            onSearc={searchSolicitudes}
+            onSearch={searchSolicitudes}
             onSelect={(option) => onSolicitudIdChange(option?.value || null)}
             initialLabel={initialSolicitudLabel}
           />
