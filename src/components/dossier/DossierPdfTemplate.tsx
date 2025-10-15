@@ -520,3 +520,168 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
             </>
           )}
         </div>
+        {/* SECCIÓN 2: ANÁLISIS RIB */}
+        {dossier.analisisRib && (
+          <div style={styles.sectionCard}>
+            <div style={styles.sectionHeader}>
+              <div style={styles.sectionNumber}>2</div>
+              <h2 style={styles.sectionTitle}>Análisis RIB</h2>
+            </div>
+            
+            <div style={styles.subsectionTitle}>Información de la Empresa</div>
+            <div style={styles.infoGrid}>
+              <InfoItem label="Inicio de Actividades" value={formatDate(dossier.analisisRib.inicio_actividades)} />
+              <InfoItem label="Grupo Económico" value={dossier.analisisRib.grupo_economico} />
+              <InfoItem label="Cómo llegó a LCP" value={dossier.analisisRib.como_llego_lcp} />
+              <InfoItem label="Validado por" value={dossier.analisisRib.validado_por} />
+              <InfoItem label="Dirección" value={dossier.analisisRib.direccion} />
+              <InfoItem label="Teléfono" value={dossier.analisisRib.telefono} />
+              <InfoItem label="Relación Comercial con Deudor" value={dossier.analisisRib.relacion_comercial_deudor} />
+            </div>
+
+            {dossier.analisisRib.descripcion_empresa && (
+              <TextBlock label="Descripción de la Empresa" value={dossier.analisisRib.descripcion_empresa} />
+            )}
+
+            {dossier.analisisRib.visita && (
+              <TextBlock label="Visita" value={dossier.analisisRib.visita} />
+            )}
+
+            {dossier.accionistas && dossier.accionistas.length > 0 && (
+              <>
+                <div style={styles.subsectionTitle}>Accionistas</div>
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead style={styles.tableHeader}>
+                      <tr style={styles.tr}>
+                        <th style={styles.th}>Nombre</th>
+                        <th style={styles.th}>DNI</th>
+                        <th style={styles.th}>%</th>
+                        <th style={styles.th}>Vínculo</th>
+                        <th style={styles.th}>Calificación</th>
+                        <th style={styles.thLast}>Comentario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dossier.accionistas.map((acc: any, index: number) => (
+                        <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+                          <td style={styles.td}>{acc.nombre}</td>
+                          <td style={styles.td}>{acc.dni}</td>
+                          <td style={styles.td}>{acc.porcentaje ? `${acc.porcentaje}%` : 'N/A'}</td>
+                          <td style={styles.td}>{acc.vinculo || 'N/A'}</td>
+                          <td style={styles.td}>{acc.calificacion || 'N/A'}</td>
+                          <td style={styles.tdLast}>{acc.comentario || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {dossier.gerencia && dossier.gerencia.length > 0 && (
+              <>
+                <div style={styles.subsectionTitle}>Gerencia</div>
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead style={styles.tableHeader}>
+                      <tr style={styles.tr}>
+                        <th style={styles.th}>Nombre</th>
+                        <th style={styles.th}>DNI</th>
+                        <th style={styles.th}>Cargo</th>
+                        <th style={styles.th}>Vínculo</th>
+                        <th style={styles.th}>Calificación</th>
+                        <th style={styles.thLast}>Comentario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dossier.gerencia.map((ger: any, index: number) => (
+                        <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+                          <td style={styles.td}>{ger.nombre}</td>
+                          <td style={styles.td}>{ger.dni}</td>
+                          <td style={styles.td}>{ger.cargo || 'N/A'}</td>
+                          <td style={styles.td}>{ger.vinculo || 'N/A'}</td>
+                          <td style={styles.td}>{ger.calificacion || 'N/A'}</td>
+                          <td style={styles.tdLast}>{ger.comentario || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* SECCIÓN 3: COMPORTAMIENTO CREDITICIO */}
+        {dossier.comportamientoCrediticio && (
+          <div style={styles.sectionCard}>
+            <div style={styles.sectionHeader}>
+              <div style={styles.sectionNumber}>3</div>
+              <h2 style={styles.sectionTitle}>Comportamiento Crediticio</h2>
+            </div>
+            
+            <div style={styles.subsectionTitle}>Proveedor</div>
+            <div style={styles.infoGrid}>
+              <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.equifax_calificacion} />
+              <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.equifax_score} />
+              <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_directa)} />
+              <InfoItem label="Deuda Indirecta Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_indirecta)} />
+              <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.sentinel_calificacion} />
+              <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.sentinel_score} />
+              <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_directa)} />
+              <InfoItem label="Deuda Indirecta Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_indirecta)} />
+            </div>
+
+            {dossier.comportamientoCrediticio.deudor && (
+              <>
+                <div style={styles.subsectionTitle}>Deudor</div>
+                <div style={styles.infoGrid}>
+                  <InfoItem label="Deudor" value={dossier.comportamientoCrediticio.deudor} />
+                  <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_calificacion} />
+                  <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_score} />
+                  <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.deudor_equifax_deuda_directa)} />
+                  <InfoItem label="Deuda Indirecta Equifax" value={formatCurrency(dossier.comportamientoCrediticio.deudor_equifax_deuda_indirecta)} />
+                  <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_calificacion} />
+                  <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_score} />
+                  <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.deudor_sentinel_deuda_directa)} />
+                  <InfoItem label="Deuda Indirecta Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.deudor_sentinel_deuda_indirecta)} />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* SECCIÓN 4: RIB REPORTE TRIBUTARIO */}
+        {dossier.ribReporteTributario && dossier.ribReporteTributario.length > 0 && (
+          <div style={styles.sectionCard}>
+            <div style={styles.sectionHeader}>
+              <div style={styles.sectionNumber}>4</div>
+              <h2 style={styles.sectionTitle}>RIB - Reporte Tributario</h2>
+            </div>
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr style={styles.tr}>
+                    <th style={styles.th}>Año</th>
+                    <th style={styles.th}>Tipo</th>
+                    <th style={styles.th}>Total Activos</th>
+                    <th style={styles.th}>Total Pasivos</th>
+                    <th style={styles.thLast}>Ingreso Ventas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dossier.ribReporteTributario.map((reporte: any, index: number) => (
+                    <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+                      <td style={styles.td}>{reporte.anio}</td>
+                      <td style={styles.td}>{reporte.tipo_entidad}</td>
+                      <td style={styles.td}>{formatCurrency(reporte.total_activos)}</td>
+                      <td style={styles.td}>{formatCurrency(reporte.total_pasivos)}</td>
+                      <td style={styles.tdLast}>{formatCurrency(reporte.ingreso_ventas)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
