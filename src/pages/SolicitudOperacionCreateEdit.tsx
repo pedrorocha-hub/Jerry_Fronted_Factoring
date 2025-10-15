@@ -81,6 +81,7 @@ const SolicitudOperacionCreateEditPage = () => {
     resumen_solicitud: '',
     garantias: '',
     condiciones_desembolso: '',
+    validado_por: '', // <-- Inicialización del nuevo campo
   });
 
   const handleEditSolicitud = useCallback(async (solicitud: SolicitudOperacionWithRiesgos) => {
@@ -137,6 +138,7 @@ const SolicitudOperacionCreateEditPage = () => {
       resumen_solicitud: solicitud.resumen_solicitud || '',
       garantias: solicitud.garantias || '',
       condiciones_desembolso: solicitud.condiciones_desembolso || '',
+      validado_por: solicitud.validado_por || '', // <-- Mapeo del campo
     });
     await handleSearch(solicitud.ruc);
     window.scrollTo(0, 0);
@@ -213,6 +215,7 @@ const SolicitudOperacionCreateEditPage = () => {
       resumen_solicitud: '',
       garantias: '',
       condiciones_desembolso: '',
+      validado_por: '', // <-- Reset del nuevo campo
     });
   };
 
