@@ -25,7 +25,7 @@ import Rib from './pages/Rib';
 import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import RibEeffPage from './pages/RibEeff';
-import RibEEFFSectionsPage from './pages/RibEEFFSections';
+import RibEeffForm from './pages/RibEeffForm';
 
 function App() {
   return (
@@ -71,7 +71,8 @@ function App() {
           <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
 
           <Route path="/rib-eeff" element={<ProtectedRoute><RibEeffPage /></ProtectedRoute>} />
-          <Route path="/rib-eeff/manage/:solicitudId" element={<ProtectedRoute><RibEEFFSectionsPage /></ProtectedRoute>} />
+          <Route path="/rib-eeff/nuevo" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
+          <Route path="/rib-eeff/manage/:ruc" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
 
           <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
 
