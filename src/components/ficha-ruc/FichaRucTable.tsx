@@ -7,7 +7,8 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
-  Building2
+  Building2,
+  Trash2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,13 +28,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { FichaRuc } from '@/types/ficha-ruc';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface FichaRucTableProps {
   fichas: FichaRuc[];
   onViewFicha: (ficha: FichaRuc) => void;
   onEditFicha: (ficha: FichaRuc) => void;
   onExportFicha: (ficha: FichaRuc) => void;
+  onRefresh?: () => void;
 }
 
 const FichaRucTable: React.FC<FichaRucTableProps> = ({
@@ -41,10 +55,13 @@ const FichaRucTable: React.FC<FichaRucTableProps> = ({
   onViewFicha,
   onEditFicha,
   onExportFicha,
+  onRefresh,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [fichaToDelete, setFichaToDelete] = useState<FichaRuc | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const itemsPerPage = 10;
 
   const filteredFichas = fichas.filter(ficha => {
@@ -64,6 +81,36 @@ const FichaRucTable: React.FC<FichaRucTableProps> = ({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleDeleteClick = (ficha: FichaRuc) => {
+    setFichaToDelete(ficha);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!fichaToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('ficha_ruc')
+        .delete()
+        .eq('id', fichaToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Ficha RUC eliminada exitosamente');
+      setFichaToDelete(null);
+      
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Error al eliminar ficha RUC:', error);
+      toast.error('Error al eliminar la ficha RUC');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const getStatusBadge = (estado?: string) => {
@@ -198,6 +245,15 @@ const FichaRucTable: React.FC<FichaRucTableProps> = ({
                       >
                         <Download className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(ficha)}
+                        title="Eliminar"
+                        className="text-gray-400 hover:text-red-500 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -252,6 +308,38 @@ const FichaRucTable: React.FC<FichaRucTableProps> = ({
           </div>
         </div>
       )}
+
+      {/* Diálogo de confirmación de eliminación */}
+      <AlertDialog open={!!fichaToDelete} onOpenChange={() => setFichaToDelete(null)}>
+        <AlertDialogContent className="bg-[#121212] border-gray-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">¿Eliminar Ficha RUC?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              ¿Estás seguro de que deseas eliminar la ficha RUC de{' '}
+              <span className="font-semibold text-white">{fichaToDelete?.nombre_empresa}</span>
+              {' '}(RUC: {fichaToDelete?.ruc})?
+              <br />
+              <br />
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="bg-gray-800 text-white hover:bg-gray-700 border-gray-700"
+              disabled={isDeleting}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
