@@ -19,6 +19,7 @@ interface VentasStatusManagerProps {
   onSolicitudIdChange: (solicitudId: string | null) => void;
   searchSolicitudes: (query: string) => Promise<ComboboxOption[]>;
   initialSolicitudLabel: string | null;
+  solicitudId: string | null;
 }
 
 const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
@@ -33,6 +34,7 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
   onSolicitudIdChange,
   searchSolicitudes,
   initialSolicitudLabel,
+  solicitudId,
 }) => {
   const [localValidadoPor, setLocalValidadoPor] = useState(validadoPor || '');
 
@@ -113,9 +115,10 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
           <Label htmlFor="solicitud" className="text-gray-300">Solicitud de Operación</Label>
           <AsyncCombobox
             placeholder="Buscar solicitud..."
-            searchFunction={searchSolicitudes}
-            onSelect={(option) => onSolicitudIdChange(option?.value || null)}
-            initialLabel={initialSolicitudLabel}
+            onSearch={searchSolicitudes}
+            onChange={onSolicitudIdChange}
+            initialDisplayValue={initialSolicitudLabel}
+            key={solicitudId || 'empty'}
           />
         </div>
 
