@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
 import { EstadoSituacionService } from '@/services/estadoSituacionService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
 type View = 'list' | 'search_results' | 'form';
@@ -195,6 +196,17 @@ const RibReporteTributarioPage = () => {
     else if (view === 'search_results') {
       setView('list');
       clearState();
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Completado':
+        return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'En revisión':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
 
