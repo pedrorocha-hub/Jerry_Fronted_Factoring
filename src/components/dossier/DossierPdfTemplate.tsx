@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { DossierRib } from '@/types/dossier';
+import { RibEeff } from '@/types/rib-eeff';
 
 interface DossierPdfTemplateProps {
   dossier: DossierRib;
@@ -36,6 +37,13 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       marginBottom: '12px',
       marginTop: '20px',
       color: '#1a1a1a',
+    },
+    h3: {
+      fontSize: '14px',
+      fontWeight: 'bold' as 'bold',
+      marginTop: '15px',
+      marginBottom: '10px',
+      color: '#2a2a2a',
     },
     p: {
       fontSize: '12px',
@@ -113,6 +121,95 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     </div>
   );
 
+  // --- Ventas Mensuales Data Processing ---
+  const getVentasMensualesData = () => {
+    if (!dossier.ventasMensuales) return [];
+    const salesData: { year: number; month: string; proveedorVenta: number | null; deudorVenta: number | null }[] = [];
+    const years = [2023, 2024, 2025];
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+    
+    years.forEach(year => {
+      months.forEach(month => {
+        const proveedorKey = `${month}_${year}_proveedor`;
+        const deudorKey = `${month}_${year}_deudor`;
+        const proveedorVenta = dossier.ventasMensuales[proveedorKey] as number | null ?? null;
+        const deudorVenta = dossier.ventasMensuales[deudorKey] as number | null ?? null;
+        if (proveedorVenta !== null || deudorVenta !== null) {
+          salesData.push({ year, month, proveedorVenta, deudorVenta });
+        }
+      });
+    });
+    return salesData;
+  };
+  const ventasMensualesData = getVentasMensualesData();
+
+  // --- RIB EEFF Data Processing ---
+  const ribEeffFields = {
+    activoFields: {
+      activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
+      activo_cuentas_por_cobrar_del_giro: "Cuentas por Cobrar del Giro",
+      activo_total_activo_circulante: "Total Activo Circulante",
+      activo_activo_fijo_neto: "Activo Fijo Neto",
+      activo_total_activos_no_circulantes: "Total Activos no Circulantes",
+      activo_total_activos: "Total Activos",
+    },
+    pasivoFields: {
+      pasivo_sobregiro_bancos_y_obligaciones_corto_plazo: "Sobregiro Bancos y Obligaciones (Corto Plazo)",
+      pasivo_cuentas_por_pagar_del_giro: "Cuentas por Pagar del Giro",
+      pasivo_total_pasivos_circulantes: "Total Pasivos Circulantes",
+      pasivo_total_pasivos_no_circulantes: "Total Pasivos no Circulantes",
+      pasivo_total_pasivos: "Total Pasivos",
+    },
+    patrimonioFields: {
+      patrimonio_neto_capital_pagado: "Capital Pagado",
+      patrimonio_neto_utilidad_perdida_acumulada: "Utilidad/Pérdida Acumulada",
+      patrimonio_neto_utilidad_perdida_del_ejercicio: "Utilidad/Pérdida del Ejercicio",
+      patrimonio_neto_total_patrimonio: "Total Patrimonio",
+      patrimonio_neto_total_pasivos_y_patrimonio: "Total Pasivos y Patrimonio",
+    }
+  };
+
+  const getRibEeffData = (tipo: 'deudor' | 'proveedor') => {
+    if (!dossier.ribEeff || dossier.ribEeff.length === 0) return { data: {}, years: [] };
+    const data = dossier.ribEeff
+      .filter((r: RibEeff) => r.tipo_entidad === tipo)
+      .reduce((acc, record) => {
+        if (record.anio_reporte) acc[record.anio_reporte] = record;
+        return acc;
+      }, {} as Record<number, Partial<RibEeff>>);
+    const years = Object.keys(data).map(Number).sort((a, b) => b - a);
+    return { data, years };
+  };
+
+  const deudorEeff = getRibEeffData('deudor');
+  const proveedorEeff = getRibEeffData('proveedor');
+
+  const FinancialTable: React.FC<{ title: string, fields: Record<string, string>, years: number[], data: Record<number, Partial<RibEeff>> }> = ({ title, fields, years, data }) => (
+    <>
+      <h3 style={styles.h3}>{title}</h3>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>Concepto</th>
+            {years.map(year => <th key={year} style={styles.th}>{year}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(fields).map(([name, label]) => (
+            <tr key={name}>
+              <td style={styles.td}>{label}</td>
+              {years.map(year => (
+                <td key={year} style={styles.td}>
+                  {formatCurrency(data[year]?.[name as keyof RibEeff] as number)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
+
   return (
     <div ref={ref} style={styles.page}>
       <header style={styles.header}>
@@ -179,6 +276,54 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
               ))}
             </tbody>
           </table>
+        </section>
+      )}
+
+      {ventasMensualesData.length > 0 && (
+        <section style={styles.section}>
+          <h2 style={styles.h2}>5. Ventas Mensuales</h2>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Año</th>
+                <th style={styles.th}>Mes</th>
+                <th style={styles.th}>Ventas Proveedor</th>
+                <th style={styles.th}>Ventas Deudor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ventasMensualesData.map((row, index) => (
+                <tr key={index}>
+                  <td style={styles.td}>{row.year}</td>
+                  <td style={styles.td}>{row.month}</td>
+                  <td style={styles.td}>{formatCurrency(row.proveedorVenta)}</td>
+                  <td style={styles.td}>{formatCurrency(row.deudorVenta)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {dossier.ribEeff && dossier.ribEeff.length > 0 && (
+        <section style={styles.section}>
+          <h2 style={styles.h2}>6. RIB - Estados Financieros (EEFF)</h2>
+          {deudorEeff.years.length > 0 && (
+            <div>
+              <h3 style={styles.h3}>Deudor: {nombreEmpresa}</h3>
+              <FinancialTable title="Activos" fields={ribEeffFields.activoFields} years={deudorEeff.years} data={deudorEeff.data} />
+              <FinancialTable title="Pasivos" fields={ribEeffFields.pasivoFields} years={deudorEeff.years} data={deudorEeff.data} />
+              <FinancialTable title="Patrimonio" fields={ribEeffFields.patrimonioFields} years={deudorEeff.years} data={deudorEeff.data} />
+            </div>
+          )}
+          {proveedorEeff.years.length > 0 && (
+            <div>
+              <h3 style={styles.h3}>Proveedor</h3>
+              <FinancialTable title="Activos" fields={ribEeffFields.activoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
+              <FinancialTable title="Pasivos" fields={ribEeffFields.pasivoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
+              <FinancialTable title="Patrimonio" fields={ribEeffFields.patrimonioFields} years={proveedorEeff.years} data={proveedorEeff.data} />
+            </div>
+          )}
         </section>
       )}
 
