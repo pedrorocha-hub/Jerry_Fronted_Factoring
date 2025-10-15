@@ -8,7 +8,7 @@ interface DossierPdfTemplateProps {
 const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>(({ dossier }, ref) => {
   const styles = {
     page: {
-      padding: '20px',
+      padding: '15mm',
       backgroundColor: 'white',
       color: 'black',
       fontFamily: 'Arial, sans-serif',
@@ -41,6 +41,10 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       fontSize: '12px',
       color: '#555',
       margin: '4px 0',
+    },
+    section: {
+      pageBreakInside: 'avoid' as 'avoid',
+      marginBottom: '20px',
     },
     infoRow: {
       display: 'flex',
@@ -95,7 +99,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
-      // Asegurarse de que la fecha se interpreta correctamente como UTC
       const date = new Date(dateString + 'T00:00:00');
       return date.toLocaleDateString('es-PE', { timeZone: 'UTC' });
     } catch (error) {
@@ -118,7 +121,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
         <p style={styles.p}>RUC: {dossier.solicitudOperacion.ruc}</p>
       </header>
 
-      <section>
+      <section style={styles.section}>
         <h2 style={styles.h2}>1. Solicitud de Operación</h2>
         <InfoRow label="Empresa" value={dossier.fichaRuc?.nombre_empresa} />
         <InfoRow label="RUC" value={dossier.solicitudOperacion.ruc} />
@@ -131,7 +134,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       </section>
 
       {dossier.analisisRib && (
-        <section>
+        <section style={styles.section}>
           <h2 style={styles.h2}>2. Análisis RIB</h2>
           <InfoRow label="Descripción Empresa" value={dossier.analisisRib.descripcion_empresa} />
           <InfoRow label="Inicio de Actividades" value={formatDate(dossier.analisisRib.inicio_actividades)} />
@@ -142,7 +145,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       )}
 
       {dossier.comportamientoCrediticio && (
-        <section>
+        <section style={styles.section}>
           <h2 style={styles.h2}>3. Comportamiento Crediticio</h2>
           <InfoRow label="Proveedor - Calificación Equifax" value={dossier.comportamientoCrediticio.equifax_calificacion} />
           <InfoRow label="Proveedor - Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_directa)} />
@@ -152,7 +155,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       )}
 
       {dossier.ribReporteTributario && dossier.ribReporteTributario.length > 0 && (
-        <section>
+        <section style={styles.section}>
           <h2 style={styles.h2}>4. RIB - Reporte Tributario</h2>
           <table style={styles.table}>
             <thead>

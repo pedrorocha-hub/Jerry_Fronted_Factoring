@@ -7,9 +7,8 @@ import DossierSearch from '@/components/dossier/DossierSearch';
 import DossierTable from '@/components/dossier/DossierTable';
 import DossierViewer from '@/components/dossier/DossierViewer';
 import DossierPdfTemplate from '@/components/dossier/DossierPdfTemplate';
-import { showLoading, dismissToast, showSuccess } from '@/utils/toast';
+import { showLoading, dismissToast, showSuccess, showError } from '@/utils/toast';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { DossierRib } from '@/types/dossier';
 
 const DossiersGuardadosPage = () => {
@@ -29,35 +28,10 @@ const DossiersGuardadosPage = () => {
 
   const [pdfData, setPdfData] = useState<DossierRib | null>(null);
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
-  const [generatingPdfToastId, setGeneratingPdfToastId] = useState<string | number | null>(null);
 
   useEffect(() => {
     loadSavedDossiers();
   }, []);
-
-  useEffect(() => {
-    if (pdfData && pdfTemplateRef.current) {
-      const element = pdfTemplateRef.current;
-      html2canvas(element, { scale: 2 }).then((canvas) => {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const canvasWidth = canvas.width;
-        const canvasHeight = canvas.height;
-        const ratio = canvasWidth / canvasHeight;
-        const imgWidth = pdfWidth - 20; // with margin
-        const imgHeight = imgWidth / ratio;
-        
-        pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-        pdf.save(`Dossier_RIB_${pdfData.solicitudOperacion.ruc}.pdf`);
-        
-        if (generatingPdfToastId) dismissToast(generatingPdfToastId);
-        showSuccess('PDF generado exitosamente.');
-        setPdfData(null);
-        setGeneratingPdfToastId(null);
-      });
-    }
-  }, [pdfData, generatingPdfToastId]);
 
   const handleViewDossier = (solicitudId: string) => {
     loadDossierFromSaved(solicitudId);
@@ -74,8 +48,37 @@ const DossiersGuardadosPage = () => {
   const handleDownload = () => {
     if (!dossier) return;
     const toastId = showLoading('Generando PDF...');
-    setGeneratingPdfToastId(toastId);
+    
+    // Render the template off-screen to be captured
     setPdfData(dossier);
+
+    // Use a timeout to ensure the template is rendered in the DOM before capturing
+    setTimeout(() => {
+      const element = pdfTemplateRef.current;
+      if (!element) {
+        dismissToast(toastId);
+        showError('No se pudo encontrar la plantilla del PDF para generar el documento.');
+        setPdfData(null);
+        return;
+      }
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      pdf.html(element, {
+        callback: function (doc) {
+          doc.save(`Dossier_RIB_${dossier.solicitudOperacion.ruc}.pdf`);
+          dismissToast(toastId);
+          showSuccess('PDF generado exitosamente.');
+          setPdfData(null); // Clean up the rendered template from the DOM
+        },
+        x: 0,
+        y: 0,
+        width: 210, // A4 width in mm
+        windowWidth: element.scrollWidth,
+        autoPaging: 'text',
+        margin: [15, 15, 15, 15]
+      });
+    }, 500); // A small delay to ensure the component has rendered
   };
 
   return (
