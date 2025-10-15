@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users, Briefcase } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users, Briefcase, Plus } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -38,6 +38,7 @@ const getStatusColor = (status: RibStatus | null | undefined) => {
 
 const RibPage = () => {
   const { isAdmin } = useSession();
+  const [view, setView] = useState<'list' | 'search_results' | 'form'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -71,8 +72,6 @@ const RibPage = () => {
   const [formData, setFormData] = useState(emptyForm);
   const [initialFormData, setInitialFormData] = useState(emptyForm);
   const [isDirty, setIsDirty] = useState(false);
-
-  const searchSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadAllRibs();
@@ -170,11 +169,7 @@ const RibPage = () => {
         setExistingRibs(ribData);
         setAccionistas(accionistasData);
         setGerentes(gerentesData);
-        if (ribData.length > 0) {
-          await handleSelectRib(ribData[0]);
-        } else {
-          setInitialFormData(emptyForm);
-        }
+        setView('search_results');
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un análisis RIB.');
         showError('Ficha RUC no encontrada.');
@@ -204,24 +199,15 @@ const RibPage = () => {
     }
     setSaving(true);
     try {
-      let savedData;
       if (selectedRib) {
-        savedData = await RibService.update(selectedRib.id, { ...formData });
+        await RibService.update(selectedRib.id, { ...formData });
         showSuccess('Análisis RIB actualizado.');
       } else {
-        savedData = await RibService.create({ ruc: searchedFicha.ruc, ...formData });
+        await RibService.create({ ruc: searchedFicha.ruc, ...formData });
         showSuccess('Análisis RIB creado.');
       }
-      setInitialFormData(formData);
-      const ribData = await RibService.getByRuc(searchedFicha.ruc);
-      setExistingRibs(ribData);
-      if (selectedRib) {
-        const updatedSelected = ribData.find(r => r.id === selectedRib.id);
-        if (updatedSelected) setSelectedRib(updatedSelected);
-      } else if (ribData.length > 0) {
-        await handleSelectRib(ribData[ribData.length - 1]);
-      }
       await loadAllRibs();
+      handleBackToList();
     } catch (err) {
       showError('Error al guardar el análisis RIB.');
     } finally {
@@ -229,7 +215,7 @@ const RibPage = () => {
     }
   };
 
-  const handleSelectRib = async (rib: Rib) => {
+  const handleSelectRibForEdit = async (rib: Rib) => {
     setSelectedRib(rib);
     const newFormData = {
       direccion: rib.direccion || '',
@@ -280,6 +266,7 @@ const RibPage = () => {
         setCreatorDetails({ fullName: 'Error al cargar', email: '' });
       }
     }
+    setView('form');
   };
 
   const handleDelete = async (id: string) => {
@@ -288,12 +275,12 @@ const RibPage = () => {
         await RibService.delete(id);
         showSuccess('Análisis RIB eliminado.');
         await loadAllRibs();
-        if (searchedFicha && existingRibs.some(r => r.id === id)) {
-          const ribData = await RibService.getByRuc(searchedFicha.ruc);
-          setExistingRibs(ribData);
+        if (searchedFicha) {
+          setExistingRibs(prev => prev.filter(r => r.id !== id));
         }
         if (selectedRib?.id === id) {
           resetForm();
+          setView('search_results');
         }
       } catch (err) {
         showError('Error al eliminar el análisis.');
@@ -304,19 +291,25 @@ const RibPage = () => {
   const handleEditFromList = (rib: RibWithDetails) => {
     setRucInput(rib.ruc);
     handleSearch(rib.ruc);
-    searchSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCreateNew = () => {
+    resetForm();
+    setView('form');
   };
 
   const handleBackToList = () => {
     if (isDirty && !window.confirm('Hay cambios sin guardar. ¿Está seguro de que quiere volver a la lista?')) {
       return;
     }
-    setSearchedFicha(null);
+    setView('list');
     setRucInput('');
-    setError(null);
+    setSearchedFicha(null);
+    setExistingRibs([]);
     resetForm();
     setAccionistas([]);
     setGerentes([]);
+    setError(null);
   };
 
   const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
@@ -339,22 +332,12 @@ const RibPage = () => {
         <div className="space-y-6 p-6">
           <h1 className="text-2xl font-bold text-white">Análisis RIB</h1>
 
-          <div ref={searchSectionRef}>
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-white">
-                    {searchedFicha ? 'Detalles y Edición' : 'Buscar Empresa por RUC'}
-                  </CardTitle>
-                  {searchedFicha && (
-                    <Button variant="outline" onClick={handleBackToList} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Volver a la lista
-                    </Button>
-                  )}
-                </div>
-              </CardHeader>
-              {!searchedFicha && (
+          {view === 'list' && (
+            <div className="space-y-6">
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white">Buscar Empresa por RUC</CardTitle>
+                </CardHeader>
                 <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
                   <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -365,13 +348,71 @@ const RibPage = () => {
                     Buscar
                   </Button>
                 </CardContent>
-              )}
-            </Card>
-          </div>
+              </Card>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingAllRibs ? (
+                    <div className="flex justify-center items-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
+                  ) : allRibs.length === 0 ? (
+                    <div className="text-center py-12 text-gray-400"><p>No hay análisis RIB creados.</p></div>
+                  ) : (
+                    <RibTable ribs={allRibs} onEdit={handleEditFromList} onDelete={handleDelete} />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
-          {searchedFicha && (
+          {view === 'search_results' && searchedFicha && (
+            <div className="space-y-6">
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-white">Resultados para: {searchedFicha.nombre_empresa}</CardTitle>
+                    <Button variant="outline" onClick={handleBackToList} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Volver a la lista
+                    </Button>
+                  </div>
+                  <p className="text-gray-400 font-mono">{searchedFicha.ruc}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-end mb-4">
+                    <Button onClick={handleCreateNew} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Crear Nuevo Análisis RIB
+                    </Button>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Análisis Existentes ({existingRibs.length})</h3>
+                  {existingRibs.length > 0 ? (
+                    <Table>
+                      <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha Creación</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                      <TableBody>
+                        {existingRibs.map(rib => (
+                          <TableRow key={rib.id} className="border-gray-800">
+                            <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell><span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(rib.status)}`}>{rib.status || 'Borrador'}</span></TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" onClick={() => handleSelectRibForEdit(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4 mr-2" />Editar</Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {view === 'form' && searchedFicha && (
             <div className="space-y-6">
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
@@ -554,7 +595,7 @@ const RibPage = () => {
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <div className="flex justify-between items-center">
-                    <CardTitle className="text-white">Historial de Análisis (RUC Actual)</CardTitle>
+                    <CardTitle className="text-white">Gestión del Análisis</CardTitle>
                     {isAdmin && (
                       <Button onClick={handleSave} disabled={saving || !isDirty}>
                         {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
@@ -563,134 +604,85 @@ const RibPage = () => {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  {existingRibs.length > 0 ? (
-                    <Table>
-                      <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {existingRibs.map(rib => (
-                          <TableRow key={rib.id} className={`border-gray-800 ${selectedRib?.id === rib.id ? 'bg-gray-800/50' : ''}`}>
-                            <TableCell>{new Date(rib.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(rib.status)}`}>
-                                {rib.status || 'Borrador'}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={async () => await handleSelectRib(rib)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4" /></Button>
-                              {isAdmin && <Button variant="ghost" size="icon" onClick={() => handleDelete(rib.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></Button>}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <p className="text-center text-gray-400 py-4">No hay análisis previos para este RUC.</p>
-                  )}
-                </CardContent>
-                {selectedRib && (
-                  <CardFooter className="flex flex-col items-start space-y-4 text-sm text-gray-300 border-t border-gray-800 pt-4">
-                    <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
-                    <div className="flex items-start">
-                      <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" />
-                      <div>
-                        <p>
-                          <strong className="text-gray-400">Ejecutivo:</strong>
-                          {selectedRib.user_id ? (
-                            creatorDetails ? (
-                              <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                <CardContent className="flex flex-col items-start space-y-4 text-sm text-gray-300 pt-4">
+                  <div className="w-full pt-2">
+                    <Label htmlFor="solicitud_id" className="font-semibold text-white">Asociar a Solicitud de Operación</Label>
+                    <AsyncCombobox
+                      value={formData.solicitud_id}
+                      onChange={(value) => setFormData(prev => ({ ...prev, solicitud_id: value }))}
+                      onSearch={searchSolicitudes}
+                      placeholder="Buscar por RUC, empresa o ID de solicitud..."
+                      searchPlaceholder="Escriba para buscar..."
+                      emptyMessage="No se encontraron solicitudes."
+                      disabled={!isAdmin}
+                      initialDisplayValue={initialSolicitudLabel}
+                    />
+                  </div>
+                  <div className="w-full pt-2">
+                    <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
+                    <Input
+                      id="validado_por"
+                      value={formData.validado_por || ''}
+                      onChange={handleFormChange}
+                      className="bg-gray-900/50 border-gray-700 mt-1"
+                      disabled={!isAdmin}
+                    />
+                  </div>
+                  <div className="w-full pt-2">
+                    <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => handleStatusChange(value as RibStatus)}
+                      disabled={!isAdmin}
+                    >
+                      <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
+                        <SelectValue placeholder="Seleccione un estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Borrador">Borrador</SelectItem>
+                        <SelectItem value="En revisión">En revisión</SelectItem>
+                        <SelectItem value="Completado">Completado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedRib && (
+                    <div className="w-full pt-4 border-t border-gray-800 mt-4 space-y-2">
+                      <div className="flex items-start">
+                        <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" />
+                        <div>
+                          <p>
+                            <strong className="text-gray-400">Ejecutivo:</strong>
+                            {selectedRib.user_id ? (
+                              creatorDetails ? (
+                                <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                              ) : (
+                                <span> Cargando...</span>
+                              )
                             ) : (
-                              <span> Cargando...</span>
-                            )
-                          ) : (
-                            <span> Desconocido</span>
-                          )}
-                        </p>
-                        <div className="flex items-center mt-1 text-gray-500">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          <span className="text-xs">
-                            {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
-                          </span>
+                              <span> Desconocido</span>
+                            )}
+                          </p>
+                          <div className="flex items-center mt-1 text-gray-500">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            <span className="text-xs">
+                              {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                        <div>
+                          <strong className="text-gray-400">Última modificación:</strong>{' '}
+                          {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                      <div>
-                        <strong className="text-gray-400">Última modificación:</strong>{' '}
-                        {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
-                      </div>
-                    </div>
-                    <div className="w-full pt-2">
-                      <Label htmlFor="solicitud_id" className="font-semibold text-white">Asociar a Solicitud de Operación</Label>
-                      <AsyncCombobox
-                        value={formData.solicitud_id}
-                        onChange={(value) => setFormData(prev => ({ ...prev, solicitud_id: value }))}
-                        onSearch={searchSolicitudes}
-                        placeholder="Buscar por RUC, empresa o ID de solicitud..."
-                        searchPlaceholder="Escriba para buscar..."
-                        emptyMessage="No se encontraron solicitudes."
-                        disabled={!isAdmin}
-                        initialDisplayValue={initialSolicitudLabel}
-                      />
-                    </div>
-                    <div className="w-full pt-2">
-                      <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
-                      <Input
-                        id="validado_por"
-                        value={formData.validado_por || ''}
-                        onChange={handleFormChange}
-                        className="bg-gray-900/50 border-gray-700 mt-1"
-                        disabled={!isAdmin}
-                      />
-                    </div>
-                    <div className="w-full pt-2">
-                      <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) => handleStatusChange(value as RibStatus)}
-                        disabled={!isAdmin}
-                      >
-                        <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
-                          <SelectValue placeholder="Seleccione un estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Borrador">Borrador</SelectItem>
-                          <SelectItem value="En revisión">En revisión</SelectItem>
-                          <SelectItem value="Completado">Completado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardFooter>
-                )}
+                  )}
+                </CardContent>
               </Card>
             </div>
           )}
-
-          {!searchedFicha && (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-white">Todos los RIBs Creados</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingAllRibs ? (
-                  <div className="flex justify-center items-center py-8">
-                    <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
-                  </div>
-                ) : allRibs.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <p>No hay análisis RIB creados.</p>
-                    <p className="text-sm mt-2">Utilice el buscador para crear uno nuevo.</p>
-                  </div>
-                ) : (
-                  <RibTable ribs={allRibs} onEdit={handleEditFromList} onDelete={handleDelete} />
-                )}
-              </CardContent>
-            </Card>
-          )}
-
         </div>
       </div>
     </Layout>
