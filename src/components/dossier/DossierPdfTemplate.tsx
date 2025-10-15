@@ -118,6 +118,21 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       breakAfter: 'avoid' as 'avoid',
       pageBreakAfter: 'avoid' as 'avoid',
     },
+    yearSubtitle: {
+      fontSize: '11px',
+      fontWeight: '600' as '600',
+      color: '#00b894',
+      marginTop: '8px',
+      marginBottom: '4px',
+      paddingLeft: '8px',
+      backgroundColor: '#f0fdf4',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      breakInside: 'avoid' as 'avoid',
+      pageBreakInside: 'avoid' as 'avoid',
+      breakAfter: 'avoid' as 'avoid',
+      pageBreakAfter: 'avoid' as 'avoid',
+    },
     infoGrid: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
@@ -161,8 +176,9 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     tableWrapper: {
       marginTop: '8px',
       width: '100%',
-      breakInside: 'auto' as 'auto',
-      pageBreakInside: 'auto' as 'auto',
+      breakInside: 'avoid' as 'avoid',
+      pageBreakInside: 'avoid' as 'avoid',
+      marginBottom: '6px',
     },
     table: {
       width: '100%',
@@ -198,6 +214,10 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       textTransform: 'uppercase' as 'uppercase',
       letterSpacing: '0.5px',
       borderBottom: '2px solid #00b894',
+    },
+    tr: {
+      breakInside: 'avoid' as 'avoid',
+      pageBreakInside: 'avoid' as 'avoid',
     },
     td: {
       padding: '6px 6px',
@@ -282,458 +302,25 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     </div>
   );
 
-  const getVentasMensualesData = () => {
-    if (!dossier.ventasMensuales) return [];
-    const salesData: { year: number; month: string; proveedorVenta: number | null; deudorVenta: number | null }[] = [];
+  // NUEVA FUNCIÓN: Agrupar ventas mensuales por año
+  const getVentasMensualesDataByYear = () => {
+    if (!dossier.ventasMensuales) return {};
+    const salesByYear: Record<number, Array<{ month: string; proveedorVenta: number | null; deudorVenta: number | null }>> = {};
     const years = [2023, 2024, 2025];
     const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
     
     years.forEach(year => {
+      salesByYear[year] = [];
       months.forEach(month => {
         const proveedorKey = `${month}_${year}_proveedor`;
         const deudorKey = `${month}_${year}_deudor`;
         const proveedorVenta = dossier.ventasMensuales[proveedorKey] as number | null ?? null;
         const deudorVenta = dossier.ventasMensuales[deudorKey] as number | null ?? null;
         if (proveedorVenta !== null || deudorVenta !== null) {
-          salesData.push({ year, month, proveedorVenta, deudorVenta });
+          salesByYear[year].push({ month, proveedorVenta, deudorVenta });
         }
       });
     });
-    return salesData;
+    return salesByYear;
   };
-  const ventasMensualesData = getVentasMensualesData();
-
-  const ribEeffFields = {
-    activoFields: {
-      activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
-      activo_cuentas_por_cobrar_del_giro: "Cuentas por Cobrar del Giro",
-      activo_total_activo_circulante: "Total Activo Circulante",
-      activo_activo_fijo_neto: "Activo Fijo Neto",
-      activo_total_activos_no_circulantes: "Total Activos no Circulantes",
-      activo_total_activos: "Total Activos",
-    },
-    pasivoFields: {
-      pasivo_sobregiro_bancos_y_obligaciones_corto_plazo: "Sobregiro Bancos y Obligaciones (CP)",
-      pasivo_cuentas_por_pagar_del_giro: "Cuentas por Pagar del Giro",
-      pasivo_total_pasivos_circulantes: "Total Pasivos Circulantes",
-      pasivo_total_pasivos_no_circulantes: "Total Pasivos no Circulantes",
-      pasivo_total_pasivos: "Total Pasivos",
-    },
-    patrimonioFields: {
-      patrimonio_neto_capital_pagado: "Capital Pagado",
-      patrimonio_neto_utilidad_perdida_acumulada: "Utilidad/Pérdida Acumulada",
-      patrimonio_neto_utilidad_perdida_del_ejercicio: "Utilidad/Pérdida del Ejercicio",
-      patrimonio_neto_total_patrimonio: "Total Patrimonio",
-      patrimonio_neto_total_pasivos_y_patrimonio: "Total Pasivos y Patrimonio",
-    }
-  };
-
-  const getRibEeffData = (tipo: 'deudor' | 'proveedor') => {
-    if (!dossier.ribEeff || dossier.ribEeff.length === 0) return { data: {}, years: [] };
-    const data = dossier.ribEeff
-      .filter((r: RibEeff) => r.tipo_entidad === tipo)
-      .reduce((acc, record) => {
-        if (record.anio_reporte) acc[record.anio_reporte] = record;
-        return acc;
-      }, {} as Record<number, Partial<RibEeff>>);
-    const years = Object.keys(data).map(Number).sort((a, b) => b - a);
-    return { data, years };
-  };
-
-  const deudorEeff = getRibEeffData('deudor');
-  const proveedorEeff = getRibEeffData('proveedor');
-
-  const FinancialTable: React.FC<{ title: string, fields: Record<string, string>, years: number[], data: Record<number, Partial<RibEeff>> }> = ({ title, fields, years, data }) => (
-    <div style={styles.tableWrapper}>
-      <div style={styles.subsectionTitle}>{title}</div>
-      <table style={styles.table}>
-        <thead style={styles.tableHeader}>
-          <tr>
-            <th style={styles.th}>Concepto</th>
-            {years.map((year, index) => (
-              <th key={year} style={index === years.length - 1 ? styles.thLast : styles.th}>{year}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(fields).map(([name, label], index) => (
-            <tr key={name} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-              <td style={styles.td}>{label}</td>
-              {years.map((year, yearIndex) => (
-                <td key={year} style={yearIndex === years.length - 1 ? styles.tdLast : styles.td}>
-                  {formatCurrency(data[year]?.[name as keyof RibEeff] as number)}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  return (
-    <div ref={ref} data-pdf-template style={styles.page}>
-      <style>
-        {`
-          @media print {
-            * {
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              color-adjust: exact !important;
-            }
-            @page {
-              margin: 0;
-              size: A4 portrait;
-            }
-          }
-        `}
-      </style>
-      
-      <div style={styles.headerBanner}>
-        <div style={styles.headerContent}>
-          <h1 style={styles.headerTitle}>Dossier RIB</h1>
-          <p style={styles.headerSubtitle}>{nombreEmpresa}</p>
-          <p style={styles.headerRuc}>RUC: {dossier.solicitudOperacion.ruc}</p>
-        </div>
-      </div>
-      <div style={styles.accentBar}></div>
-
-      <div style={styles.content}>
-        {/* SECCIÓN 1: SOLICITUD DE OPERACIÓN - COMPLETA */}
-        <div style={styles.sectionCard}>
-          <div style={styles.sectionHeader}>
-            <div style={styles.sectionNumber}>1</div>
-            <h2 style={styles.sectionTitle}>Solicitud de Operación</h2>
-          </div>
-
-          {/* Información TOP 10K si existe */}
-          {dossier.top10kData && (
-            <div style={styles.highlightBox}>
-              <div style={{ ...styles.infoLabel, marginBottom: '6px' }}>⭐ INFORMACIÓN TOP 10K PERÚ</div>
-              <div style={styles.infoGrid}>
-                <InfoItem label="Sector" value={dossier.top10kData.sector} />
-                <InfoItem label="Ranking 2024" value={dossier.top10kData.ranking_2024 ? `#${dossier.top10kData.ranking_2024}` : 'N/A'} />
-                <InfoItem label="Facturado 2024 (Máx)" value={formatCurrency(dossier.top10kData.facturado_2024_soles_maximo)} />
-                <InfoItem label="Tamaño Empresa" value={dossier.top10kData.tamano} />
-              </div>
-            </div>
-          )}
-
-          <div style={styles.subsectionTitle}>Información Básica</div>
-          <div style={styles.infoGrid}>
-            <InfoItem label="Empresa" value={dossier.fichaRuc?.nombre_empresa} />
-            <InfoItem label="RUC" value={dossier.solicitudOperacion.ruc} />
-            <InfoItem label="Producto" value={dossier.solicitudOperacion.producto} />
-            <InfoItem label="Proveedor" value={dossier.solicitudOperacion.proveedor} />
-            <InfoItem label="Deudor" value={dossier.solicitudOperacion.deudor} />
-            <InfoItem label="Moneda" value={dossier.solicitudOperacion.moneda_operacion} />
-            <InfoItem label="Exposición Total" value={dossier.solicitudOperacion.exposicion_total} />
-            <InfoItem label="Propuesta Comercial" value={dossier.solicitudOperacion.propuesta_comercial} />
-            <InfoItem label="Riesgo Aprobado" value={dossier.solicitudOperacion.riesgo_aprobado} />
-            <InfoItem label="Fecha Ficha" value={formatDate(dossier.solicitudOperacion.fecha_ficha)} />
-            <InfoItem label="L/P" value={dossier.solicitudOperacion.lp} />
-            <InfoItem label="L/P Vigente GVE" value={dossier.solicitudOperacion.lp_vigente_gve} />
-            <InfoItem label="Fianza" value={dossier.solicitudOperacion.fianza} />
-            <InfoItem label="Tipo de Cambio" value={dossier.solicitudOperacion.tipo_cambio} />
-            <InfoItem label="Orden de Servicio" value={dossier.solicitudOperacion.orden_servicio} />
-            <InfoItem label="Factura" value={dossier.solicitudOperacion.factura} />
-          </div>
-
-          {dossier.solicitudOperacion.direccion && (
-            <>
-              <div style={styles.subsectionTitle}>Información del Deudor</div>
-              <div style={styles.infoGrid}>
-                <InfoItem label="Dirección" value={dossier.solicitudOperacion.direccion} />
-                <InfoItem label="Visita" value={dossier.solicitudOperacion.visita} />
-                <InfoItem label="Contacto" value={dossier.solicitudOperacion.contacto} />
-              </div>
-            </>
-          )}
-
-          {dossier.solicitudOperacion.resumen_solicitud && (
-            <TextBlock label="Resumen Solicitud" value={dossier.solicitudOperacion.resumen_solicitud} />
-          )}
-
-          {dossier.solicitudOperacion.garantias && (
-            <TextBlock label="Garantías" value={dossier.solicitudOperacion.garantias} />
-          )}
-
-          {dossier.solicitudOperacion.condiciones_desembolso && (
-            <TextBlock label="Condiciones de Desembolso" value={dossier.solicitudOperacion.condiciones_desembolso} />
-          )}
-
-          {dossier.solicitudOperacion.comentarios && (
-            <TextBlock label="Comentarios" value={dossier.solicitudOperacion.comentarios} />
-          )}
-
-          {/* Riesgos del Proveedor */}
-          {dossier.riesgos && dossier.riesgos.length > 0 && (
-            <>
-              <div style={styles.subsectionTitle}>Riesgos del Proveedor</div>
-              <div style={styles.tableWrapper}>
-                <table style={styles.table}>
-                  <thead style={styles.tableHeader}>
-                    <tr>
-                      <th style={styles.th}>L/P</th>
-                      <th style={styles.th}>Producto</th>
-                      <th style={styles.th}>Deudor</th>
-                      <th style={styles.th}>Riesgo Aprobado</th>
-                      <th style={styles.thLast}>Propuesta Comercial</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dossier.riesgos.map((riesgo: any, index: number) => (
-                      <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                        <td style={styles.td}>{riesgo.lp || 'N/A'}</td>
-                        <td style={styles.td}>{riesgo.producto || 'N/A'}</td>
-                        <td style={styles.td}>{riesgo.deudor || 'N/A'}</td>
-                        <td style={styles.td}>{formatCurrency(riesgo.riesgo_aprobado)}</td>
-                        <td style={styles.tdLast}>{formatCurrency(riesgo.propuesta_comercial)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* SECCIÓN 2: ANÁLISIS RIB - COMPLETA */}
-        {dossier.analisisRib && (
-          <div style={styles.sectionCard}>
-            <div style={styles.sectionHeader}>
-              <div style={styles.sectionNumber}>2</div>
-              <h2 style={styles.sectionTitle}>Análisis RIB</h2>
-            </div>
-            
-            <div style={styles.subsectionTitle}>Información de la Empresa</div>
-            <div style={styles.infoGrid}>
-              <InfoItem label="Inicio de Actividades" value={formatDate(dossier.analisisRib.inicio_actividades)} />
-              <InfoItem label="Grupo Económico" value={dossier.analisisRib.grupo_economico} />
-              <InfoItem label="Cómo llegó a LCP" value={dossier.analisisRib.como_llego_lcp} />
-              <InfoItem label="Validado por" value={dossier.analisisRib.validado_por} />
-              <InfoItem label="Dirección" value={dossier.analisisRib.direccion} />
-              <InfoItem label="Teléfono" value={dossier.analisisRib.telefono} />
-              <InfoItem label="Relación Comercial con Deudor" value={dossier.analisisRib.relacion_comercial_deudor} />
-            </div>
-
-            {dossier.analisisRib.descripcion_empresa && (
-              <TextBlock label="Descripción de la Empresa" value={dossier.analisisRib.descripcion_empresa} />
-            )}
-
-            {dossier.analisisRib.visita && (
-              <TextBlock label="Visita" value={dossier.analisisRib.visita} />
-            )}
-
-            {/* Accionistas */}
-            {dossier.accionistas && dossier.accionistas.length > 0 && (
-              <>
-                <div style={styles.subsectionTitle}>Accionistas</div>
-                <div style={styles.tableWrapper}>
-                  <table style={styles.table}>
-                    <thead style={styles.tableHeader}>
-                      <tr>
-                        <th style={styles.th}>Nombre</th>
-                        <th style={styles.th}>DNI</th>
-                        <th style={styles.th}>%</th>
-                        <th style={styles.th}>Vínculo</th>
-                        <th style={styles.th}>Calificación</th>
-                        <th style={styles.thLast}>Comentario</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dossier.accionistas.map((acc: any, index: number) => (
-                        <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                          <td style={styles.td}>{acc.nombre}</td>
-                          <td style={styles.td}>{acc.dni}</td>
-                          <td style={styles.td}>{acc.porcentaje ? `${acc.porcentaje}%` : 'N/A'}</td>
-                          <td style={styles.td}>{acc.vinculo || 'N/A'}</td>
-                          <td style={styles.td}>{acc.calificacion || 'N/A'}</td>
-                          <td style={styles.tdLast}>{acc.comentario || 'N/A'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-
-            {/* Gerencia */}
-            {dossier.gerencia && dossier.gerencia.length > 0 && (
-              <>
-                <div style={styles.subsectionTitle}>Gerencia</div>
-                <div style={styles.tableWrapper}>
-                  <table style={styles.table}>
-                    <thead style={styles.tableHeader}>
-                      <tr>
-                        <th style={styles.th}>Nombre</th>
-                        <th style={styles.th}>DNI</th>
-                        <th style={styles.th}>Cargo</th>
-                        <th style={styles.th}>Vínculo</th>
-                        <th style={styles.th}>Calificación</th>
-                        <th style={styles.thLast}>Comentario</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dossier.gerencia.map((ger: any, index: number) => (
-                        <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                          <td style={styles.td}>{ger.nombre}</td>
-                          <td style={styles.td}>{ger.dni}</td>
-                          <td style={styles.td}>{ger.cargo || 'N/A'}</td>
-                          <td style={styles.td}>{ger.vinculo || 'N/A'}</td>
-                          <td style={styles.td}>{ger.calificacion || 'N/A'}</td>
-                          <td style={styles.tdLast}>{ger.comentario || 'N/A'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* SECCIÓN 3: COMPORTAMIENTO CREDITICIO - COMPLETA */}
-        {dossier.comportamientoCrediticio && (
-          <div style={styles.sectionCard}>
-            <div style={styles.sectionHeader}>
-              <div style={styles.sectionNumber}>3</div>
-              <h2 style={styles.sectionTitle}>Comportamiento Crediticio</h2>
-            </div>
-            
-            <div style={styles.subsectionTitle}>Proveedor</div>
-            <div style={styles.infoGrid}>
-              <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.equifax_calificacion} />
-              <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.equifax_score} />
-              <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_directa)} />
-              <InfoItem label="Deuda Indirecta Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_indirecta)} />
-              <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.sentinel_calificacion} />
-              <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.sentinel_score} />
-              <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_directa)} />
-              <InfoItem label="Deuda Indirecta Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_indirecta)} />
-            </div>
-
-            {dossier.comportamientoCrediticio.deudor && (
-              <>
-                <div style={styles.subsectionTitle}>Deudor</div>
-                <div style={styles.infoGrid}>
-                  <InfoItem label="Deudor" value={dossier.comportamientoCrediticio.deudor} />
-                  <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_calificacion} />
-                  <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_score} />
-                  <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.deudor_equifax_deuda_directa)} />
-                  <InfoItem label="Deuda Indirecta Equifax" value={formatCurrency(dossier.comportamientoCrediticio.deudor_equifax_deuda_indirecta)} />
-                  <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_calificacion} />
-                  <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_score} />
-                  <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.deudor_sentinel_deuda_directa)} />
-                  <InfoItem label="Deuda Indirecta Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.deudor_sentinel_deuda_indirecta)} />
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* SECCIÓN 4: RIB REPORTE TRIBUTARIO */}
-        {dossier.ribReporteTributario && dossier.ribReporteTributario.length > 0 && (
-          <div style={styles.sectionCard}>
-            <div style={styles.sectionHeader}>
-              <div style={styles.sectionNumber}>4</div>
-              <h2 style={styles.sectionTitle}>RIB - Reporte Tributario</h2>
-            </div>
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead style={styles.tableHeader}>
-                  <tr>
-                    <th style={styles.th}>Año</th>
-                    <th style={styles.th}>Tipo</th>
-                    <th style={styles.th}>Total Activos</th>
-                    <th style={styles.th}>Total Pasivos</th>
-                    <th style={styles.thLast}>Ingreso Ventas</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dossier.ribReporteTributario.map((reporte: any, index: number) => (
-                    <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                      <td style={styles.td}>{reporte.anio}</td>
-                      <td style={styles.td}>{reporte.tipo_entidad}</td>
-                      <td style={styles.td}>{formatCurrency(reporte.total_activos)}</td>
-                      <td style={styles.td}>{formatCurrency(reporte.total_pasivos)}</td>
-                      <td style={styles.tdLast}>{formatCurrency(reporte.ingreso_ventas)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* SECCIÓN 5: VENTAS MENSUALES */}
-        {ventasMensualesData.length > 0 && (
-          <div style={styles.sectionCard}>
-            <div style={styles.sectionHeader}>
-              <div style={styles.sectionNumber}>5</div>
-              <h2 style={styles.sectionTitle}>Ventas Mensuales</h2>
-            </div>
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead style={styles.tableHeader}>
-                  <tr>
-                    <th style={styles.th}>Año</th>
-                    <th style={styles.th}>Mes</th>
-                    <th style={styles.th}>Ventas Proveedor</th>
-                    <th style={styles.thLast}>Ventas Deudor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ventasMensualesData.map((row, index) => (
-                    <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                      <td style={styles.td}>{row.year}</td>
-                      <td style={{...styles.td, textTransform: 'capitalize'}}>{row.month}</td>
-                      <td style={styles.td}>{formatCurrency(row.proveedorVenta)}</td>
-                      <td style={styles.tdLast}>{formatCurrency(row.deudorVenta)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* SECCIÓN 6: RIB EEFF */}
-        {dossier.ribEeff && dossier.ribEeff.length > 0 && (
-          <div style={styles.sectionCard}>
-            <div style={styles.sectionHeader}>
-              <div style={styles.sectionNumber}>6</div>
-              <h2 style={styles.sectionTitle}>RIB - Estados Financieros (EEFF)</h2>
-            </div>
-            {deudorEeff.years.length > 0 && (
-              <div>
-                <div style={{...styles.subsectionTitle, marginTop: '0'}}>Deudor: {nombreEmpresa}</div>
-                <FinancialTable title="Activos" fields={ribEeffFields.activoFields} years={deudorEeff.years} data={deudorEeff.data} />
-                <FinancialTable title="Pasivos" fields={ribEeffFields.pasivoFields} years={deudorEeff.years} data={deudorEeff.data} />
-                <FinancialTable title="Patrimonio" fields={ribEeffFields.patrimonioFields} years={deudorEeff.years} data={deudorEeff.data} />
-              </div>
-            )}
-            {proveedorEeff.years.length > 0 && (
-              <div style={{marginTop: '20px'}}>
-                <div style={styles.subsectionTitle}>Proveedor</div>
-                <FinancialTable title="Activos" fields={ribEeffFields.activoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
-                <FinancialTable title="Pasivos" fields={ribEeffFields.pasivoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
-                <FinancialTable title="Patrimonio" fields={ribEeffFields.patrimonioFields} years={proveedorEeff.years} data={proveedorEeff.data} />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* FOOTER */}
-        <div style={styles.footer}>
-          <p style={styles.footerText}>Documento generado el {new Date().toLocaleString('es-ES')}</p>
-          <p style={styles.footerBrand}>Upgrade AI - Análisis Inteligente</p>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-DossierPdfTemplate.displayName = 'DossierPdfTemplate';
-
-export default DossierPdfTemplate;
+  const ventasMensualesByYear = getVentasMensualesDataByYear();
