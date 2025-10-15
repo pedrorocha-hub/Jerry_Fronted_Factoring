@@ -1,29 +1,85 @@
-import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import VentasMensualesDetail from './pages/VentasMensualesDetail';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from '@/components/ui/sonner';
+import { SessionProvider } from './contexts/SessionContext';
 
-// Mock component for home page
-const HomePage = () => (
-  <div className="p-8 bg-gray-900 text-white min-h-screen">
-    <h1 className="text-3xl font-bold mb-4">Página Principal</h1>
-    <p>Navega a la página de ventas mensuales con un RUC de ejemplo:</p>
-    <Link to="/ventas-mensuales/20601572699" className="text-[#00FF80] hover:underline">
-      Ir a Ventas Mensuales para RUC 20601572699
-    </Link>
-  </div>
-);
+import Dashboard from './pages/Dashboard';
+import SolicitudOperacion from './pages/SolicitudOperacion';
+import SolicitudOperacionCreateEdit from './pages/SolicitudOperacionCreateEdit';
+import DossiersGuardados from './pages/DossiersGuardados';
+import DossierCompletado from './pages/DossierCompletado';
+import Login from './pages/Login';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import UserManagement from './pages/Admin/Users';
+import FichasRuc from './pages/FichasRuc';
+import EeffPage from './pages/Eeff';
+import EeffForm from './pages/EeffForm';
+import SentinelPage from './pages/SentinelPage';
+import SentinelCreatePage from './pages/SentinelCreatePage';
+import Upload from './pages/Upload';
+import ReporteTributarioPage from './pages/ReporteTributario';
+import RibReporteTributarioPage from './pages/RibReporteTributario';
+import RibReporteTributarioForm from './pages/RibReporteTributarioForm';
+import VentasMensualesPage from './pages/VentasMensuales';
+import VentasMensualesForm from './pages/VentasMensualesForm';
+import Rib from './pages/Rib';
+import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
+import AuthCallbackPage from './pages/AuthCallbackPage';
+import RibEeffPage from './pages/RibEeff';
+import RibEeffForm from './pages/RibEeffForm';
 
 function App() {
   return (
-    <>
-      <Toaster richColors theme="dark" />
+    <SessionProvider>
       <Router>
+        <Toaster position="top-right" richColors theme="dark" />
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/ventas-mensuales/:ruc" element={<VentasMensualesDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+          <Route path="/solicitudes-operacion" element={<ProtectedRoute><SolicitudOperacion /></ProtectedRoute>} />
+          <Route path="/solicitudes-operacion/crear" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
+          <Route path="/solicitudes-operacion/editar/:id" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
+          <Route path="/solicitudes-operacion/:id" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
+
+          <Route path="/dossiers-guardados" element={<ProtectedRoute><DossiersGuardados /></ProtectedRoute>} />
+          <Route path="/dossier/:id" element={<ProtectedRoute><DossierCompletado /></ProtectedRoute>} />
+
+          <Route path="/fichas-ruc" element={<ProtectedRoute><FichasRuc /></ProtectedRoute>} />
+
+          <Route path="/eeff" element={<ProtectedRoute><EeffPage /></ProtectedRoute>} />
+          <Route path="/eeff/nuevo" element={<ProtectedRoute><EeffForm /></ProtectedRoute>} />
+          <Route path="/eeff/edit/:id" element={<ProtectedRoute><EeffForm /></ProtectedRoute>} />
+
+          <Route path="/sentinel" element={<ProtectedRoute><SentinelPage /></ProtectedRoute>} />
+          <Route path="/sentinel/create" element={<ProtectedRoute><SentinelCreatePage /></ProtectedRoute>} />
+
+          <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+
+          <Route path="/reporte-tributario" element={<ProtectedRoute><ReporteTributarioPage /></ProtectedRoute>} />
+          
+          <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributarioPage /></ProtectedRoute>} />
+          <Route path="/rib-reporte-tributario/new" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
+          <Route path="/rib-reporte-tributario/edit/:id" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
+
+          <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensualesPage /></ProtectedRoute>} />
+          <Route path="/ventas-mensuales/new" element={<ProtectedRoute><VentasMensualesForm /></ProtectedRoute>} />
+          <Route path="/ventas-mensuales/edit/:id" element={<ProtectedRoute><VentasMensualesForm /></ProtectedRoute>} />
+
+          <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
+          <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
+
+          <Route path="/rib-eeff" element={<ProtectedRoute><RibEeffPage /></ProtectedRoute>} />
+          <Route path="/rib-eeff/nuevo" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
+          <Route path="/rib-eeff/edit/:id" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
+
+          <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
-    </>
+    </SessionProvider>
   );
 }
 
