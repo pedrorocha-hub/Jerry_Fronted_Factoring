@@ -42,7 +42,7 @@ const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDo
         <CardContent className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00FF80] mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando dossiers...</p>
+            <p className="text-gray-400">Cargando RIBs...</p>
           </div>
         </CardContent>
       </Card>
@@ -55,9 +55,9 @@ const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDo
         <CardContent className="flex items-center justify-center py-12">
           <div className="text-center">
             <Building2 className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">No hay dossiers guardados disponibles</p>
+            <p className="text-gray-400">No hay RIBs guardados disponibles</p>
             <p className="text-gray-500 text-sm mt-2">
-              Busca un ID de Solicitud y guarda el dossier para verlo aquí
+              Busca un ID de Solicitud y guarda el RIB para verlo aquí
             </p>
           </div>
         </CardContent>
@@ -70,7 +70,7 @@ const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDo
       <CardHeader>
         <CardTitle className="text-white flex items-center">
           <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-          Dossiers Guardados ({dossiers.length})
+          RIBs Guardados ({dossiers.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
