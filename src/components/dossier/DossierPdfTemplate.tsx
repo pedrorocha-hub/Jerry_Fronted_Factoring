@@ -17,6 +17,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       minHeight: '297mm',
       boxSizing: 'border-box' as 'border-box',
       margin: '0 auto',
+      overflow: 'hidden',
     },
     headerBanner: {
       background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
@@ -66,6 +67,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       marginBottom: '20px',
       boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
       pageBreakInside: 'avoid' as 'avoid',
+      overflow: 'hidden',
     },
     sectionHeader: {
       display: 'flex',
@@ -132,6 +134,8 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     tableWrapper: {
       pageBreakInside: 'avoid' as 'avoid',
       marginTop: '12px',
+      overflowX: 'auto' as 'auto',
+      width: '100%',
     },
     table: {
       width: '100%',
@@ -140,6 +144,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       borderRadius: '7px',
       overflow: 'hidden',
       border: '1px solid #e5e7eb',
+      tableLayout: 'fixed' as 'fixed',
     },
     tableHeader: {
       backgroundColor: '#1a1a1a',
@@ -169,6 +174,8 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       borderRight: '1px solid #e5e7eb',
       fontSize: '11px',
       color: '#374151',
+      wordWrap: 'break-word' as 'break-word',
+      overflow: 'hidden',
     },
     tdLast: {
       padding: '9px 12px',
@@ -176,6 +183,8 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       borderRight: 'none',
       fontSize: '11px',
       color: '#374151',
+      wordWrap: 'break-word' as 'break-word',
+      overflow: 'hidden',
     },
     tableRowEven: {
       backgroundColor: '#f9fafb',
