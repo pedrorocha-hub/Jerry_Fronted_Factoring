@@ -19,7 +19,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
 import { SalesData } from '@/types/salesData';
 
-const AVAILABLE_YEARS = [2023, 2024, 2025];
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const VentasMensualesForm = () => {
@@ -36,6 +35,7 @@ const VentasMensualesForm = () => {
   
   const [proveedorSalesData, setProveedorSalesData] = useState<SalesData>({});
   const [deudorSalesData, setDeudorSalesData] = useState<SalesData>({});
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   const [status, setStatus] = useState<string>('Borrador');
   const [validadoPor, setValidadoPor] = useState<string | null>(null);
@@ -46,9 +46,31 @@ const VentasMensualesForm = () => {
   const [saving, setSaving] = useState(false);
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
-  const initializeSalesData = (): SalesData => {
+  // Función para obtener años únicos de los datos y agregar años recientes
+  const getAvailableYears = (salesData: SalesData, additionalYears: number[] = []): number[] => {
+    const currentYear = new Date().getFullYear();
+    const yearsSet = new Set<number>();
+    
+    // Agregar años de los datos existentes
+    Object.keys(salesData).forEach(year => {
+      yearsSet.add(parseInt(year));
+    });
+    
+    // Agregar años adicionales (de otros reportes)
+    additionalYears.forEach(year => yearsSet.add(year));
+    
+    // Agregar año actual y próximos 2 años si no existen
+    yearsSet.add(currentYear);
+    yearsSet.add(currentYear + 1);
+    yearsSet.add(currentYear + 2);
+    
+    // Convertir a array y ordenar
+    return Array.from(yearsSet).sort((a, b) => a - b);
+  };
+
+  const initializeSalesData = (years: number[]): SalesData => {
     const data: SalesData = {};
-    AVAILABLE_YEARS.forEach(year => {
+    years.forEach(year => {
       data[year] = {};
       MONTHS.forEach(month => {
         data[year][month] = null;
@@ -58,7 +80,11 @@ const VentasMensualesForm = () => {
   };
 
   const extractSalesDataFromReports = (reports: VentasMensuales[]): SalesData => {
-    const salesData = initializeSalesData();
+    // Primero extraer los años de los reportes
+    const yearsFromReports = reports.map(r => r.anio);
+    const years = getAvailableYears({}, yearsFromReports);
+    
+    const salesData = initializeSalesData(years);
     reports.forEach(report => {
       if (salesData[report.anio]) {
         MONTHS.forEach(month => {
@@ -73,7 +99,11 @@ const VentasMensualesForm = () => {
   };
 
   const extractSalesDataFromReporteTributario = (reportes: any[]): SalesData => {
-    const salesData = initializeSalesData();
+    // Extraer años de los reportes tributarios
+    const yearsFromReports = reportes.map(r => r.anio_reporte);
+    const years = getAvailableYears({}, yearsFromReports);
+    
+    const salesData = initializeSalesData(years);
     reportes.forEach(reporte => {
       const year = reporte.anio_reporte;
       if (salesData[year]) {
@@ -116,8 +146,15 @@ const VentasMensualesForm = () => {
       const proveedorReports = allReports.filter(r => r.tipo_entidad === 'proveedor');
       const deudorReports = allReports.filter(r => r.tipo_entidad === 'deudor');
 
-      setProveedorSalesData(extractSalesDataFromReports(proveedorReports));
-      setDeudorSalesData(extractSalesDataFromReports(deudorReports));
+      const proveedorData = extractSalesDataFromReports(proveedorReports);
+      const deudorData = extractSalesDataFromReports(deudorReports);
+      
+      setProveedorSalesData(proveedorData);
+      setDeudorSalesData(deudorData);
+      
+      // Combinar años de ambos datasets
+      const allYears = getAvailableYears(proveedorData, Object.keys(deudorData).map(y => parseInt(y)));
+      setAvailableYears(allYears);
 
       if (reportData.user_id) {
         const profile = await ProfileService.getProfileById(reportData.user_id);
@@ -173,10 +210,20 @@ const VentasMensualesForm = () => {
 
       const reportesTributarios = await ReporteTributarioService.getReportesByRuc(rucInput);
       if (reportesTributarios.length > 0) {
-        setProveedorSalesData(extractSalesDataFromReporteTributario(reportesTributarios));
+        const salesData = extractSalesDataFromReporteTributario(reportesTributarios);
+        setProveedorSalesData(salesData);
+        
+        // Establecer años disponibles basados en los datos
+        const years = getAvailableYears(salesData);
+        setAvailableYears(years);
+        
         showSuccess('Datos autocompletados desde reportes tributarios.');
       } else {
-        setProveedorSalesData(initializeSalesData());
+        // Si no hay reportes, usar años por defecto (actual + 2 próximos)
+        const currentYear = new Date().getFullYear();
+        const defaultYears = [currentYear, currentYear + 1, currentYear + 2];
+        setAvailableYears(defaultYears);
+        setProveedorSalesData(initializeSalesData(defaultYears));
         showError('No se encontraron reportes tributarios para autocompletar.');
       }
       
@@ -199,8 +246,8 @@ const VentasMensualesForm = () => {
         solicitud_id: solicitudId,
       };
 
-      // Guardar datos del proveedor para cada año
-      for (const year of AVAILABLE_YEARS) {
+      // Guardar datos del proveedor para cada año que tenga datos
+      for (const year of availableYears) {
         const yearData = proveedorSalesData[year] || {};
         const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
         
@@ -218,7 +265,7 @@ const VentasMensualesForm = () => {
 
       // Guardar datos del deudor si existe
       if (deudorFicha) {
-        for (const year of AVAILABLE_YEARS) {
+        for (const year of availableYears) {
           const yearData = deudorSalesData[year] || {};
           const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
           
