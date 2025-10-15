@@ -351,7 +351,15 @@ const RibPage = () => {
     <Layout>
       <div className="min-h-screen bg-black">
         <div className="space-y-6 p-6">
-          <h1 className="text-2xl font-bold text-white">Análisis RIB</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white">Análisis RIB</h1>
+            {view !== 'list' && (
+              <Button variant="outline" onClick={handleBackToList} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver a la lista
+              </Button>
+            )}
+          </div>
 
           {view === 'list' && (
             <div className="space-y-6">
@@ -401,13 +409,7 @@ const RibPage = () => {
             <div className="space-y-6">
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-white">Resultados para: {searchedFicha.nombre_empresa}</CardTitle>
-                    <Button variant="outline" onClick={handleBackToList} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Volver a la lista
-                    </Button>
-                  </div>
+                  <CardTitle className="text-white">Resultados para: {searchedFicha.nombre_empresa}</CardTitle>
                   <p className="text-gray-400 font-mono">{searchedFicha.ruc}</p>
                 </CardHeader>
                 <CardContent>
