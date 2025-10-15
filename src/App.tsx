@@ -20,6 +20,7 @@ import ReporteTributarioPage from './pages/ReporteTributario';
 import RibReporteTributarioPage from './pages/RibReporteTributario';
 import RibReporteTributarioForm from './pages/RibReporteTributarioForm';
 import VentasMensualesPage from './pages/VentasMensuales';
+import VentasMensualesForm from './pages/VentasMensualesForm';
 import Rib from './pages/Rib';
 import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import AuthCallbackPage from './pages/AuthCallbackPage';
@@ -63,6 +64,9 @@ function App() {
           <Route path="/rib-reporte-tributario/edit/:id" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
 
           <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensualesPage /></ProtectedRoute>} />
+          <Route path="/ventas-mensuales/new" element={<ProtectedRoute><VentasMensualesForm /></ProtectedRoute>} />
+          <Route path="/ventas-mensuales/edit/:id" element={<ProtectedRoute><VentasMensualesForm /></ProtectedRoute>} />
+
           <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
           <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
 

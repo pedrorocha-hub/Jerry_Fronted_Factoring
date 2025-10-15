@@ -4,8 +4,8 @@ import { FilePenLine, Calendar, User, Building2, Trash2 } from 'lucide-react';
 
 interface VentasMensualesListProps {
   items: VentasMensualesSummary[];
-  onSelectReport: (ruc: string) => void;
-  onDeleteReport: (ruc: string) => void;
+  onSelectReport: (id: string) => void;
+  onDeleteReport: (id: string) => void;
 }
 
 const VentasMensualesList = ({ items, onSelectReport, onDeleteReport }: VentasMensualesListProps) => {
@@ -16,7 +16,7 @@ const VentasMensualesList = ({ items, onSelectReport, onDeleteReport }: VentasMe
   return (
     <div className="space-y-4">
       {items.map((item) => (
-        <Card key={item.ruc} className="bg-[#121212] border-gray-800 text-white">
+        <Card key={item.id} className="bg-[#121212] border-gray-800 text-white">
           <CardContent className="p-4 flex justify-between items-center">
             <div>
               <p className="font-bold flex items-center"><Building2 className="w-4 h-4 mr-2" />{item.nombre_empresa} ({item.ruc})</p>
@@ -27,8 +27,8 @@ const VentasMensualesList = ({ items, onSelectReport, onDeleteReport }: VentasMe
               <span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.status === 'Completado' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                 {item.status}
               </span>
-              <button onClick={() => onSelectReport(item.ruc)} className="text-gray-400 hover:text-white"><FilePenLine className="w-5 h-5" /></button>
-              <button onClick={() => onDeleteReport(item.ruc)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
+              <button onClick={() => onSelectReport(item.id)} className="text-gray-400 hover:text-white"><FilePenLine className="w-5 h-5" /></button>
+              <button onClick={() => onDeleteReport(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
             </div>
           </CardContent>
         </Card>
