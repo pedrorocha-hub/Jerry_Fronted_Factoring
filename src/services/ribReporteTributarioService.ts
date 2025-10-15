@@ -14,46 +14,48 @@ export interface RibReporteTributarioSummary {
   anio: number;
 }
 
-export const getRibReporteTributarioSummaries = async (): Promise<RibReporteTributarioSummary[]> => {
-  const { data, error } = await supabase.rpc('get_rib_reporte_tributario_summaries');
+export class RibReporteTributarioService {
+  static async getAllSummaries(): Promise<RibReporteTributarioSummary[]> {
+    const { data, error } = await supabase.rpc('get_rib_reporte_tributario_summaries');
 
-  if (error) {
-    console.error('Error fetching RIB reporte tributario summaries:', error);
-    throw new Error('No se pudieron cargar los resúmenes de reportes tributarios.');
+    if (error) {
+      console.error('Error fetching RIB reporte tributario summaries:', error);
+      throw new Error('No se pudieron cargar los resúmenes de reportes tributarios.');
+    }
+
+    return data || [];
   }
 
-  return data || [];
-};
+  static async getForEdit(solicitudId: string, anio: number) {
+    const { data, error } = await supabase
+      .from('rib_reporte_tributario')
+      .select('*')
+      .eq('solicitud_id', solicitudId)
+      .eq('anio', anio);
 
-export const getReporteTributarioForEdit = async (solicitudId: string, anio: number) => {
-  const { data, error } = await supabase
-    .from('rib_reporte_tributario')
-    .select('*')
-    .eq('solicitud_id', solicitudId)
-    .eq('anio', anio);
+    if (error) {
+      console.error('Error fetching reporte tributario for edit:', error);
+      throw new Error('Error al cargar el reporte para editar.');
+    }
 
-  if (error) {
-    console.error('Error fetching reporte tributario for edit:', error);
-    throw new Error('Error al cargar el reporte para editar.');
+    const deudorReport = data.find(r => r.tipo_entidad === 'deudor') || null;
+    const proveedorReport = data.find(r => r.tipo_entidad === 'proveedor') || null;
+
+    return { deudorReport, proveedorReport };
   }
 
-  const deudorReport = data.find(r => r.tipo_entidad === 'deudor') || null;
-  const proveedorReport = data.find(r => r.tipo_entidad === 'proveedor') || null;
+  static async upsert(reportData: Partial<RibReporteTributario>) {
+    const { data, error } = await supabase
+      .from('rib_reporte_tributario')
+      .upsert(reportData)
+      .select()
+      .single();
 
-  return { deudorReport, proveedorReport };
-};
+    if (error) {
+      console.error('Error upserting reporte tributario:', error);
+      throw new Error('Error al guardar el reporte tributario.');
+    }
 
-export const upsertReporteTributario = async (reportData: Partial<RibReporteTributario>) => {
-  const { data, error } = await supabase
-    .from('rib_reporte_tributario')
-    .upsert(reportData)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error upserting reporte tributario:', error);
-    throw new Error('Error al guardar el reporte tributario.');
+    return data;
   }
-
-  return data;
-};
+}

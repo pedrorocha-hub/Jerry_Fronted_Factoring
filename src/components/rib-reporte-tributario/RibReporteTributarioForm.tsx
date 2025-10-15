@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, Save, XCircle } from 'lucide-react';
-import { upsertReporteTributario, RibReporteTributario } from '@/services/ribReporteTributarioService';
+import { RibReporteTributarioService, RibReporteTributario } from '@/services/ribReporteTributarioService';
 import { showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import AsyncSelect from 'react-select/async';
@@ -94,9 +94,9 @@ const RibReporteTributarioForm: React.FC<RibReporteTributarioFormProps> = ({ ini
       const deudorData = { ...initialData?.deudorReport, ...formData.deudor, ...commonData, tipo_entidad: 'deudor' as const };
       const proveedorData = { ...initialData?.proveedorReport, ...formData.proveedor, ...commonData, tipo_entidad: 'proveedor' as const };
 
-      await upsertReporteTributario(deudorData);
+      await RibReporteTributarioService.upsert(deudorData);
       if (proveedorData.ruc) { // Only save proveedor if RUC is present
-        await upsertReporteTributario(proveedorData);
+        await RibReporteTributarioService.upsert(proveedorData);
       }
 
       showSuccess('Reporte guardado exitosamente.');

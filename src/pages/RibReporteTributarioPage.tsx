@@ -3,7 +3,7 @@ import Layout from '@/components/layout/Layout';
 import { FileText, PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import RibReporteTributarioList from '@/components/rib-reporte-tributario/RibReporteTributarioList';
-import { getRibReporteTributarioSummaries, getReporteTributarioForEdit } from '@/services/ribReporteTributarioService';
+import { RibReporteTributarioService } from '@/services/ribReporteTributarioService';
 import type { RibReporteTributarioSummary, RibReporteTributario } from '@/services/ribReporteTributarioService';
 import { showError } from '@/utils/toast';
 import RibReporteTributarioForm from '@/components/rib-reporte-tributario/RibReporteTributarioForm';
@@ -22,7 +22,7 @@ const RibReporteTributarioPage = () => {
   const loadReports = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getRibReporteTributarioSummaries();
+      const data = await RibReporteTributarioService.getAllSummaries();
       setReports(data);
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error desconocido');
@@ -37,7 +37,7 @@ const RibReporteTributarioPage = () => {
 
   const handleSelectReportForEdit = async (solicitudId: string, anio: number) => {
     try {
-      const reportData = await getReporteTributarioForEdit(solicitudId, anio);
+      const reportData = await RibReporteTributarioService.getForEdit(solicitudId, anio);
       setEditingReport(reportData);
       setIsFormVisible(true);
     } catch (error) {
