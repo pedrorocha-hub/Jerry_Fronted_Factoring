@@ -37,38 +37,14 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
   solicitudId,
 }) => {
   const [localValidadoPor, setLocalValidadoPor] = useState(validadoPor || '');
-  const [selectedSolicitudLabel, setSelectedSolicitudLabel] = useState<string | null>(initialSolicitudLabel);
 
   useEffect(() => {
     setLocalValidadoPor(validadoPor || '');
   }, [validadoPor]);
 
-  useEffect(() => {
-    setSelectedSolicitudLabel(initialSolicitudLabel);
-  }, [initialSolicitudLabel]);
-
   const handleValidatedByChange = (value: string) => {
     setLocalValidadoPor(value);
     onValidatedByChange(value || null);
-  };
-
-  const handleSolicitudChange = async (value: string | null) => {
-    onSolicitudIdChange(value);
-    
-    // Si se seleccionó un valor, buscar su label
-    if (value) {
-      try {
-        const results = await searchSolicitudes('');
-        const selected = results.find(option => option.value === value);
-        if (selected) {
-          setSelectedSolicitudLabel(selected.label);
-        }
-      } catch (error) {
-        console.error('Error al buscar el label de la solicitud:', error);
-      }
-    } else {
-      setSelectedSolicitudLabel(null);
-    }
   };
 
   const getStatusIcon = () => {
@@ -140,9 +116,9 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
           <AsyncCombobox
             placeholder="Buscar solicitud..."
             onSearch={searchSolicitudes}
-            onChange={handleSolicitudChange}
-            initialDisplayValue={selectedSolicitudLabel}
-            key={solicitudId || 'no-solicitud'}
+            onChange={onSolicitudIdChange}
+            initialDisplayValue={initialSolicitudLabel}
+            key={solicitudId || 'empty'}
           />
         </div>
 
