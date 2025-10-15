@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, BarChart3, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, Edit, Trash2, Plus, ArrowLeft } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { RibReporteTributario, RibReporteTributarioService, RibReporteTributarioSummary, RibReporteTributarioStatus } from '@/services/ribReporteTributarioService';
+import { RibReporteTributario, RibReporteTributarioService, RibReporteTributarioStatus } from '@/services/ribReporteTributarioService';
 import { ProfileService } from '@/services/profileService';
 import RibReporteTributarioTable from '@/components/rib-reporte-tributario/RibReporteTributarioTable';
 import EstadosResultadosTable from '@/components/rib-reporte-tributario/EstadosResultadosTable';
@@ -23,8 +23,7 @@ import { EstadoSituacionService } from '@/services/estadoSituacionService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
-type Status = 'Borrador' | 'En revisión' | 'Completado';
-type View = 'list' | 'search_results' | 'form';
+type View = 'list' | 'search_results' | 'form' | 'detail';
 
 interface GroupedReport {
   ruc: string;
@@ -42,6 +41,7 @@ const RibReporteTributarioPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   
+  const [allRawReports, setAllRawReports] = useState<any[]>([]);
   const [existingReports, setExistingReports] = useState<RibReporteTributario[]>([]);
   const [draftReportData, setDraftReportData] = useState<Partial<RibReporteTributario> | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -54,12 +54,13 @@ const RibReporteTributarioPage = () => {
   const [loadingSummaries, setLoadingSummaries] = useState(true);
   const [selectedRuc, setSelectedRuc] = useState<string | null>(null);
 
-  const fetchSummaries = async () => {
+  const loadData = async () => {
+    setLoadingSummaries(true);
     try {
-      setLoadingSummaries(true);
-      const allRawReports = await RibReporteTributarioService.getAllWithRelations();
+      const rawReports = await RibReporteTributarioService.getAllWithRelations();
+      setAllRawReports(rawReports);
 
-      const grouped = allRawReports.reduce((acc, report) => {
+      const grouped = rawReports.reduce((acc, report) => {
         const ruc = report.ruc;
         if (!acc[ruc]) {
           acc[ruc] = {
@@ -83,13 +84,14 @@ const RibReporteTributarioPage = () => {
       setGroupedReports(Object.values(grouped).sort((a, b) => new Date(b.last_updated_at).getTime() - new Date(a.last_updated_at).getTime()));
     } catch (err) {
       showError('Error al cargar la lista de reportes.');
+      console.error(err);
     } finally {
       setLoadingSummaries(false);
     }
   };
 
   useEffect(() => {
-    fetchSummaries();
+    loadData();
   }, []);
 
   const clearState = () => {
@@ -191,7 +193,7 @@ const RibReporteTributarioPage = () => {
       await RibReporteTributarioService.upsert(draftReportData);
       setHasUnsavedChanges(false);
       showSuccess('Reporte RIB guardado exitosamente.');
-      await fetchSummaries();
+      await loadData();
       setView('list');
       clearState();
     } catch (err) {
@@ -211,7 +213,7 @@ const RibReporteTributarioPage = () => {
   const handleBack = () => {
     if (hasUnsavedChanges && !confirm('Tienes cambios sin guardar. ¿Deseas descartarlos?')) return;
     if (view === 'form') setView('search_results');
-    else if (view === 'search_results' || selectedRuc) {
+    else if (view === 'search_results' || view === 'detail') {
       setView('list');
       clearState();
       setSelectedRuc(null);
@@ -226,7 +228,7 @@ const RibReporteTributarioPage = () => {
     }
   };
 
-  const selectedCompanyReports = selectedRuc ? groupedReports.find(g => g.ruc === selectedRuc)?.reports : [];
+  const selectedCompanyReports = selectedRuc ? allRawReports.filter(r => r.ruc === selectedRuc) : [];
 
   return (
     <Layout>
@@ -240,7 +242,7 @@ const RibReporteTributarioPage = () => {
             {view !== 'list' && <Button variant="outline" onClick={handleBack} className="border-gray-700 text-gray-300">Volver</Button>}
           </div>
 
-          {view === 'list' && !selectedRuc && (
+          {view === 'list' && (
             <>
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader><CardTitle className="text-white">Buscar Empresa por RUC</CardTitle></CardHeader>
@@ -259,7 +261,7 @@ const RibReporteTributarioPage = () => {
                 <CardHeader><CardTitle className="text-white">Reportes RIB por Empresa</CardTitle></CardHeader>
                 <CardContent>
                   {loadingSummaries ? <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
-                    : <RibReporteTributarioList reports={groupedReports} onSelectReport={setSelectedRuc} />}
+                    : <RibReporteTributarioList reports={groupedReports} onSelectReport={(ruc) => { setSelectedRuc(ruc); setView('detail'); }} />}
                 </CardContent>
               </Card>
             </>
@@ -267,7 +269,7 @@ const RibReporteTributarioPage = () => {
 
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
-          {selectedRuc && (
+          {view === 'detail' && selectedRuc && (
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader>
                 <CardTitle className="text-white">Reportes para: {groupedReports.find(g => g.ruc === selectedRuc)?.nombre_empresa}</CardTitle>
