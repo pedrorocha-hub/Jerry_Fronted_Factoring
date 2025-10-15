@@ -15,9 +15,10 @@ interface DossierViewerProps {
   dossier: DossierRib;
   onSave?: () => void;
   saving?: boolean;
+  onDownload?: () => void;
 }
 
-const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving = false }) => {
+const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving = false, onDownload }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completado':
@@ -66,6 +67,7 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving =
               )}
               <Button 
                 variant="outline" 
+                onClick={onDownload}
                 className="border-gray-600 text-gray-300 hover:bg-gray-800"
               >
                 <Download className="h-4 w-4 mr-2" />
