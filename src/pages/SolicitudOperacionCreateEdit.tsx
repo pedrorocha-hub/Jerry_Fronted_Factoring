@@ -45,6 +45,7 @@ interface RiesgoRow {
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
+
 const SolicitudOperacionCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -458,6 +459,28 @@ const SolicitudOperacionCreateEditPage = () => {
                     <div><Label htmlFor="resumen_solicitud">Resumen de solicitud</Label><Textarea id="resumen_solicitud" value={solicitudFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                   </CardContent>
                 </Card>
+
+                {id && (
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-white">
+                        <FileText className="h-5 w-5 mr-2 text-[#00FF80]" />
+                        Módulos de Análisis
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-400 mb-4">
+                        Accede a los diferentes módulos de análisis para completar este expediente.
+                      </p>
+                      <div className="flex gap-4">
+                        <Button onClick={() => navigate(`/rib-eeff/manage/${id}`)}>
+                          Gestionar RIB EEFF
+                        </Button>
+                        {/* Add other module buttons here in the future */}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader><CardTitle className="flex items-center text-white"><Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Proveedor</CardTitle></CardHeader>
