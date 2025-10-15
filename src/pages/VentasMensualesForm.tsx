@@ -46,9 +46,8 @@ const VentasMensualesForm = () => {
   const [saving, setSaving] = useState(false);
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
-  // Función para obtener años únicos de los datos y agregar años recientes
+  // Función para obtener años únicos de los datos
   const getAvailableYears = (salesData: SalesData, additionalYears: number[] = []): number[] => {
-    const currentYear = new Date().getFullYear();
     const yearsSet = new Set<number>();
     
     // Agregar años de los datos existentes
@@ -58,11 +57,6 @@ const VentasMensualesForm = () => {
     
     // Agregar años adicionales (de otros reportes)
     additionalYears.forEach(year => yearsSet.add(year));
-    
-    // Agregar año actual y próximos 2 años si no existen
-    yearsSet.add(currentYear);
-    yearsSet.add(currentYear + 1);
-    yearsSet.add(currentYear + 2);
     
     // Convertir a array y ordenar
     return Array.from(yearsSet).sort((a, b) => a - b);
@@ -213,17 +207,15 @@ const VentasMensualesForm = () => {
         const salesData = extractSalesDataFromReporteTributario(reportesTributarios);
         setProveedorSalesData(salesData);
         
-        // Establecer años disponibles basados en los datos
+        // Establecer años disponibles basados en los datos existentes
         const years = getAvailableYears(salesData);
         setAvailableYears(years);
         
         showSuccess('Datos autocompletados desde reportes tributarios.');
       } else {
-        // Si no hay reportes, usar años por defecto (actual + 2 próximos)
-        const currentYear = new Date().getFullYear();
-        const defaultYears = [currentYear, currentYear + 1, currentYear + 2];
-        setAvailableYears(defaultYears);
-        setProveedorSalesData(initializeSalesData(defaultYears));
+        // Si no hay reportes, inicializar vacío
+        setProveedorSalesData({});
+        setAvailableYears([]);
         showError('No se encontraron reportes tributarios para autocompletar.');
       }
       
