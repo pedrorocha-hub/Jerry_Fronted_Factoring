@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, BarChart3, Plus, Edit } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, BarChart3, Plus, Edit, Trash2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
-import { RibReporteTributario, RibReporteTributarioService, RibReporteTributarioSummary } from '@/services/ribReporteTributarioService';
+import { RibReporteTributario, RibReporteTributarioService, RibReporteTributarioSummary, RibReporteTributarioStatus } from '@/services/ribReporteTributarioService';
 import { ProfileService } from '@/services/profileService';
 import RibReporteTributarioTable from '@/components/rib-reporte-tributario/RibReporteTributarioTable';
 import EstadosResultadosTable from '@/components/rib-reporte-tributario/EstadosResultadosTable';
@@ -26,6 +26,15 @@ import { Badge } from '@/components/ui/badge';
 type Status = 'Borrador' | 'En revisión' | 'Completado';
 type View = 'list' | 'search_results' | 'form';
 
+interface GroupedReport {
+  ruc: string;
+  nombre_empresa: string;
+  reports: any[];
+  last_updated_at: string;
+  status: RibReporteTributarioStatus;
+  creator_name: string;
+}
+
 const RibReporteTributarioPage = () => {
   const [view, setView] = useState<View>('list');
   const [rucInput, setRucInput] = useState('');
@@ -40,14 +49,38 @@ const RibReporteTributarioPage = () => {
 
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [reportSummaries, setReportSummaries] = useState<RibReporteTributarioSummary[]>([]);
+  
+  const [groupedReports, setGroupedReports] = useState<GroupedReport[]>([]);
   const [loadingSummaries, setLoadingSummaries] = useState(true);
+  const [selectedRuc, setSelectedRuc] = useState<string | null>(null);
 
   const fetchSummaries = async () => {
     try {
       setLoadingSummaries(true);
-      const summaries = await RibReporteTributarioService.getAllSummaries();
-      setReportSummaries(summaries);
+      const allRawReports = await RibReporteTributarioService.getAllWithRelations();
+
+      const grouped = allRawReports.reduce((acc, report) => {
+        const ruc = report.ruc;
+        if (!acc[ruc]) {
+          acc[ruc] = {
+            ruc: ruc,
+            nombre_empresa: report.ficha_ruc?.nombre_empresa || ruc,
+            reports: [],
+            last_updated_at: '1970-01-01T00:00:00Z',
+            status: 'Borrador',
+            creator_name: 'N/A',
+          };
+        }
+        acc[ruc].reports.push(report);
+        if (new Date(report.updated_at) > new Date(acc[ruc].last_updated_at)) {
+          acc[ruc].last_updated_at = report.updated_at;
+          acc[ruc].status = report.status;
+          acc[ruc].creator_name = report.profiles?.full_name || 'N/A';
+        }
+        return acc;
+      }, {} as Record<string, GroupedReport>);
+
+      setGroupedReports(Object.values(grouped).sort((a, b) => new Date(b.last_updated_at).getTime() - new Date(a.last_updated_at).getTime()));
     } catch (err) {
       showError('Error al cargar la lista de reportes.');
     } finally {
@@ -168,21 +201,6 @@ const RibReporteTributarioPage = () => {
     }
   };
 
-  const handleDeleteReport = async (ruc: string, solicitud_id: string | null) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este reporte?')) return;
-    try {
-      await RibReporteTributarioService.delete(ruc, solicitud_id);
-      showSuccess('Reporte eliminado exitosamente.');
-      await fetchSummaries();
-      if (searchedFicha?.ruc === ruc) {
-        const reports = await RibReporteTributarioService.getReportsByRuc(ruc);
-        setExistingReports(reports);
-      }
-    } catch (err) {
-      showError(`Error al eliminar el reporte: ${err instanceof Error ? err.message : 'Error desconocido'}`);
-    }
-  };
-
   const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     const { data, error } = await supabase.rpc('search_solicitudes', { search_term: query });
@@ -193,22 +211,22 @@ const RibReporteTributarioPage = () => {
   const handleBack = () => {
     if (hasUnsavedChanges && !confirm('Tienes cambios sin guardar. ¿Deseas descartarlos?')) return;
     if (view === 'form') setView('search_results');
-    else if (view === 'search_results') {
+    else if (view === 'search_results' || selectedRuc) {
       setView('list');
       clearState();
+      setSelectedRuc(null);
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Completado':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'En revisión':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'Completado': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'En revisión': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
+
+  const selectedCompanyReports = selectedRuc ? groupedReports.find(g => g.ruc === selectedRuc)?.reports : [];
 
   return (
     <Layout>
@@ -222,7 +240,7 @@ const RibReporteTributarioPage = () => {
             {view !== 'list' && <Button variant="outline" onClick={handleBack} className="border-gray-700 text-gray-300">Volver</Button>}
           </div>
 
-          {view === 'list' && (
+          {view === 'list' && !selectedRuc && (
             <>
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader><CardTitle className="text-white">Buscar Empresa por RUC</CardTitle></CardHeader>
@@ -238,11 +256,10 @@ const RibReporteTributarioPage = () => {
                 </CardContent>
               </Card>
               <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader><CardTitle className="text-white">Reportes RIB Guardados</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-white">Reportes RIB por Empresa</CardTitle></CardHeader>
                 <CardContent>
                   {loadingSummaries ? <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
-                    : reportSummaries.length === 0 ? <div className="text-center py-8 text-gray-400"><p>No hay reportes guardados.</p></div>
-                    : <RibReporteTributarioList reports={reportSummaries} onSelectReport={(ruc) => handleSearch(ruc)} onDeleteReport={() => {}} />}
+                    : <RibReporteTributarioList reports={groupedReports} onSelectReport={setSelectedRuc} />}
                 </CardContent>
               </Card>
             </>
@@ -250,36 +267,30 @@ const RibReporteTributarioPage = () => {
 
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
-          {view === 'search_results' && searchedFicha && (
+          {selectedRuc && (
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white">Resultados para: {searchedFicha.nombre_empresa} ({searchedFicha.ruc})</CardTitle>
+                <CardTitle className="text-white">Reportes para: {groupedReports.find(g => g.ruc === selectedRuc)?.nombre_empresa}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex justify-end mb-4">
-                  <Button onClick={handleCreateNew} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Crear Nuevo Reporte
-                  </Button>
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">Reportes Existentes ({existingReports.length})</h3>
-                {existingReports.length > 0 ? (
-                  <Table>
-                    <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha Creación</TableHead><TableHead className="text-gray-300">Solicitud Asociada</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
-                    <TableBody>
-                      {existingReports.map((report, idx) => (
-                        <TableRow key={idx} className="border-gray-800">
-                          <TableCell>{new Date(report.created_at!).toLocaleDateString()}</TableCell>
-                          <TableCell>{report.solicitud_id || 'No asociada'}</TableCell>
-                          <TableCell><Badge className={getStatusColor(report.status!)}>{report.status}</Badge></TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm" onClick={() => handleEditReport(report)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4 mr-2" />Editar</Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : <p className="text-center text-gray-400 py-4">No hay reportes previos para este RUC.</p>}
+                <Table>
+                  <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Año</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-gray-300">Última Actualización</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {selectedCompanyReports?.map((report, idx) => (
+                      <TableRow key={idx} className="border-gray-800">
+                        <TableCell>{report.anio_reporte}</TableCell>
+                        <TableCell><Badge className={getStatusColor(report.status!)}>{report.status}</Badge></TableCell>
+                        <TableCell>{new Date(report.updated_at).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            const fullReport = existingReports.find(r => (r as any)._rowIds[`deudor_${report.anio_reporte}`] === report.id);
+                            if (fullReport) handleEditReport(fullReport);
+                          }} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4 mr-2" />Editar</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           )}

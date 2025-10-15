@@ -93,6 +93,20 @@ export class RibReporteTributarioService {
     return result;
   }
 
+  static async getAllWithRelations(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('rib_reporte_tributario')
+      .select(`
+        *,
+        ficha_ruc ( nombre_empresa ),
+        profiles ( full_name )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   static async getReportsByRuc(ruc: string): Promise<RibReporteTributario[]> {
     const { data, error } = await supabase
       .from('rib_reporte_tributario')
@@ -123,15 +137,23 @@ export class RibReporteTributarioService {
       throw new Error('No hay datos válidos para guardar');
     }
 
-    const recordsToUpsert = normalizedRecords.map(record => ({
-      ...record,
-      updated_at: new Date().toISOString(),
-      ...(!record.id && { created_at: new Date().toISOString() })
-    }));
+    const recordsToUpsert = normalizedRecords.map(record => {
+      const { id, ...rest } = record;
+      const baseRecord: any = {
+        ...rest,
+        updated_at: new Date().toISOString(),
+      };
+      if (id) {
+        baseRecord.id = id;
+      } else {
+        baseRecord.created_at = new Date().toISOString();
+      }
+      return baseRecord;
+    });
 
     const { data, error } = await supabase
       .from('rib_reporte_tributario')
-      .upsert(recordsToUpsert)
+      .upsert(recordsToUpsert, { onConflict: 'id' })
       .select();
 
     if (error) {
