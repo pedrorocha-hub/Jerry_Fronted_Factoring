@@ -65,17 +65,16 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       backgroundColor: '#ffffff',
       border: 'none',
       borderRadius: '6px',
-      padding: '16px 18px',
-      marginBottom: '12px',
+      padding: '14px 16px',
+      marginBottom: '10px',
       boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
       breakInside: 'avoid' as 'avoid',
       pageBreakInside: 'avoid' as 'avoid',
-      WebkitColumnBreakInside: 'avoid' as 'avoid',
     },
     sectionHeader: {
       display: 'flex',
       alignItems: 'center',
-      marginBottom: '12px',
+      marginBottom: '10px',
       paddingBottom: '8px',
       borderBottom: '2px solid #f0f0f0',
       breakInside: 'avoid' as 'avoid',
@@ -86,32 +85,32 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     sectionNumber: {
       backgroundColor: '#00b894',
       color: '#ffffff',
-      width: '32px',
-      height: '32px',
-      borderRadius: '7px',
+      width: '30px',
+      height: '30px',
+      borderRadius: '6px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontWeight: '700' as '700',
-      fontSize: '14px',
-      marginRight: '10px',
+      fontSize: '13px',
+      marginRight: '8px',
       flexShrink: 0,
       boxShadow: '0 2px 4px rgba(0, 184, 148, 0.15)',
       WebkitPrintColorAdjust: 'exact' as 'exact',
       printColorAdjust: 'exact' as 'exact',
     },
     sectionTitle: {
-      fontSize: '16px',
+      fontSize: '15px',
       fontWeight: '600' as '600',
       color: '#1f2937',
       margin: '0',
     },
     subsectionTitle: {
-      fontSize: '13px',
+      fontSize: '12px',
       fontWeight: '600' as '600',
       color: '#374151',
-      marginTop: '14px',
-      marginBottom: '8px',
+      marginTop: '12px',
+      marginBottom: '6px',
       paddingLeft: '8px',
       borderLeft: '3px solid #00b894',
       breakInside: 'avoid' as 'avoid',
@@ -123,28 +122,41 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
       gap: '0',
-      marginTop: '8px',
+      marginTop: '6px',
       breakInside: 'avoid' as 'avoid',
       pageBreakInside: 'avoid' as 'avoid',
     },
     infoItem: {
-      padding: '8px 10px',
+      padding: '6px 8px',
       borderBottom: '1px solid #f0f0f0',
     },
     infoLabel: {
-      fontSize: '9px',
+      fontSize: '8px',
       fontWeight: '600' as '600',
       color: '#6b7280',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.6px',
-      marginBottom: '3px',
+      letterSpacing: '0.5px',
+      marginBottom: '2px',
     },
     infoValue: {
-      fontSize: '11px',
+      fontSize: '10px',
       fontWeight: '500' as '500',
       color: '#1f2937',
       wordBreak: 'break-word' as 'break-word',
       lineHeight: '1.3',
+    },
+    textBlock: {
+      backgroundColor: '#f9fafb',
+      padding: '8px 10px',
+      borderRadius: '4px',
+      marginTop: '6px',
+      border: '1px solid #e5e7eb',
+    },
+    textBlockContent: {
+      fontSize: '9px',
+      color: '#374151',
+      lineHeight: '1.4',
+      margin: '0',
     },
     tableWrapper: {
       marginTop: '8px',
@@ -155,8 +167,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     table: {
       width: '100%',
       borderCollapse: 'collapse' as 'collapse',
-      fontSize: '9px',
-      borderRadius: '0',
+      fontSize: '8px',
       border: 'none',
       tableLayout: 'auto' as 'auto',
     },
@@ -171,38 +182,34 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       printColorAdjust: 'exact' as 'exact',
     },
     th: {
-      padding: '9px 8px',
+      padding: '8px 6px',
       textAlign: 'left' as 'left',
       fontWeight: '600' as '600',
-      fontSize: '8px',
+      fontSize: '7px',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.6px',
-      borderRight: 'none',
+      letterSpacing: '0.5px',
       borderBottom: '2px solid #00b894',
     },
     thLast: {
-      padding: '9px 8px',
+      padding: '8px 6px',
       textAlign: 'left' as 'left',
       fontWeight: '600' as '600',
-      fontSize: '8px',
+      fontSize: '7px',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.6px',
-      borderRight: 'none',
+      letterSpacing: '0.5px',
       borderBottom: '2px solid #00b894',
     },
     td: {
-      padding: '7px 8px',
+      padding: '6px 6px',
       borderBottom: '1px solid #e8e8e8',
-      borderRight: 'none',
-      fontSize: '10px',
+      fontSize: '9px',
       color: '#374151',
       wordWrap: 'break-word' as 'break-word',
     },
     tdLast: {
-      padding: '7px 8px',
+      padding: '6px 6px',
       borderBottom: '1px solid #e8e8e8',
-      borderRight: 'none',
-      fontSize: '10px',
+      fontSize: '9px',
       color: '#374151',
       wordWrap: 'break-word' as 'break-word',
     },
@@ -231,6 +238,13 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       color: '#1f2937',
       marginTop: '4px',
     },
+    highlightBox: {
+      backgroundColor: '#fff7ed',
+      border: '1px solid #fed7aa',
+      borderRadius: '6px',
+      padding: '10px 12px',
+      marginBottom: '10px',
+    },
   };
 
   const nombreEmpresa = dossier.fichaRuc?.nombre_empresa || dossier.top10kData?.razon_social || 'Empresa sin nombre';
@@ -256,6 +270,15 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     <div style={styles.infoItem}>
       <div style={styles.infoLabel}>{label}</div>
       <div style={styles.infoValue}>{value || 'N/A'}</div>
+    </div>
+  );
+
+  const TextBlock: React.FC<{ label: string; value?: string | null }> = ({ label, value }) => (
+    <div style={{ marginTop: '8px' }}>
+      <div style={styles.infoLabel}>{label}</div>
+      <div style={styles.textBlock}>
+        <p style={styles.textBlockContent}>{value || 'No especificado'}</p>
+      </div>
     </div>
   );
 
@@ -376,71 +399,240 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       <div style={styles.accentBar}></div>
 
       <div style={styles.content}>
+        {/* SECCIÓN 1: SOLICITUD DE OPERACIÓN - COMPLETA */}
         <div style={styles.sectionCard}>
           <div style={styles.sectionHeader}>
             <div style={styles.sectionNumber}>1</div>
             <h2 style={styles.sectionTitle}>Solicitud de Operación</h2>
           </div>
+
+          {/* Información TOP 10K si existe */}
+          {dossier.top10kData && (
+            <div style={styles.highlightBox}>
+              <div style={{ ...styles.infoLabel, marginBottom: '6px' }}>⭐ INFORMACIÓN TOP 10K PERÚ</div>
+              <div style={styles.infoGrid}>
+                <InfoItem label="Sector" value={dossier.top10kData.sector} />
+                <InfoItem label="Ranking 2024" value={dossier.top10kData.ranking_2024 ? `#${dossier.top10kData.ranking_2024}` : 'N/A'} />
+                <InfoItem label="Facturado 2024 (Máx)" value={formatCurrency(dossier.top10kData.facturado_2024_soles_maximo)} />
+                <InfoItem label="Tamaño Empresa" value={dossier.top10kData.tamano} />
+              </div>
+            </div>
+          )}
+
+          <div style={styles.subsectionTitle}>Información Básica</div>
           <div style={styles.infoGrid}>
             <InfoItem label="Empresa" value={dossier.fichaRuc?.nombre_empresa} />
             <InfoItem label="RUC" value={dossier.solicitudOperacion.ruc} />
             <InfoItem label="Producto" value={dossier.solicitudOperacion.producto} />
             <InfoItem label="Proveedor" value={dossier.solicitudOperacion.proveedor} />
+            <InfoItem label="Deudor" value={dossier.solicitudOperacion.deudor} />
+            <InfoItem label="Moneda" value={dossier.solicitudOperacion.moneda_operacion} />
             <InfoItem label="Exposición Total" value={dossier.solicitudOperacion.exposicion_total} />
             <InfoItem label="Propuesta Comercial" value={dossier.solicitudOperacion.propuesta_comercial} />
             <InfoItem label="Riesgo Aprobado" value={dossier.solicitudOperacion.riesgo_aprobado} />
             <InfoItem label="Fecha Ficha" value={formatDate(dossier.solicitudOperacion.fecha_ficha)} />
+            <InfoItem label="L/P" value={dossier.solicitudOperacion.lp} />
+            <InfoItem label="L/P Vigente GVE" value={dossier.solicitudOperacion.lp_vigente_gve} />
+            <InfoItem label="Fianza" value={dossier.solicitudOperacion.fianza} />
+            <InfoItem label="Tipo de Cambio" value={dossier.solicitudOperacion.tipo_cambio} />
+            <InfoItem label="Orden de Servicio" value={dossier.solicitudOperacion.orden_servicio} />
+            <InfoItem label="Factura" value={dossier.solicitudOperacion.factura} />
           </div>
+
+          {dossier.solicitudOperacion.direccion && (
+            <>
+              <div style={styles.subsectionTitle}>Información del Deudor</div>
+              <div style={styles.infoGrid}>
+                <InfoItem label="Dirección" value={dossier.solicitudOperacion.direccion} />
+                <InfoItem label="Visita" value={dossier.solicitudOperacion.visita} />
+                <InfoItem label="Contacto" value={dossier.solicitudOperacion.contacto} />
+              </div>
+            </>
+          )}
+
+          {dossier.solicitudOperacion.resumen_solicitud && (
+            <TextBlock label="Resumen Solicitud" value={dossier.solicitudOperacion.resumen_solicitud} />
+          )}
+
+          {dossier.solicitudOperacion.garantias && (
+            <TextBlock label="Garantías" value={dossier.solicitudOperacion.garantias} />
+          )}
+
+          {dossier.solicitudOperacion.condiciones_desembolso && (
+            <TextBlock label="Condiciones de Desembolso" value={dossier.solicitudOperacion.condiciones_desembolso} />
+          )}
+
+          {dossier.solicitudOperacion.comentarios && (
+            <TextBlock label="Comentarios" value={dossier.solicitudOperacion.comentarios} />
+          )}
+
+          {/* Riesgos del Proveedor */}
+          {dossier.riesgos && dossier.riesgos.length > 0 && (
+            <>
+              <div style={styles.subsectionTitle}>Riesgos del Proveedor</div>
+              <div style={styles.tableWrapper}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr>
+                      <th style={styles.th}>L/P</th>
+                      <th style={styles.th}>Producto</th>
+                      <th style={styles.th}>Deudor</th>
+                      <th style={styles.th}>Riesgo Aprobado</th>
+                      <th style={styles.thLast}>Propuesta Comercial</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dossier.riesgos.map((riesgo: any, index: number) => (
+                      <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                        <td style={styles.td}>{riesgo.lp || 'N/A'}</td>
+                        <td style={styles.td}>{riesgo.producto || 'N/A'}</td>
+                        <td style={styles.td}>{riesgo.deudor || 'N/A'}</td>
+                        <td style={styles.td}>{formatCurrency(riesgo.riesgo_aprobado)}</td>
+                        <td style={styles.tdLast}>{formatCurrency(riesgo.propuesta_comercial)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
 
+        {/* SECCIÓN 2: ANÁLISIS RIB - COMPLETA */}
         {dossier.analisisRib && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
               <div style={styles.sectionNumber}>2</div>
               <h2 style={styles.sectionTitle}>Análisis RIB</h2>
             </div>
+            
+            <div style={styles.subsectionTitle}>Información de la Empresa</div>
             <div style={styles.infoGrid}>
-              <InfoItem label="Descripción Empresa" value={dossier.analisisRib.descripcion_empresa} />
               <InfoItem label="Inicio de Actividades" value={formatDate(dossier.analisisRib.inicio_actividades)} />
               <InfoItem label="Grupo Económico" value={dossier.analisisRib.grupo_economico} />
+              <InfoItem label="Cómo llegó a LCP" value={dossier.analisisRib.como_llego_lcp} />
+              <InfoItem label="Validado por" value={dossier.analisisRib.validado_por} />
               <InfoItem label="Dirección" value={dossier.analisisRib.direccion} />
               <InfoItem label="Teléfono" value={dossier.analisisRib.telefono} />
-              <InfoItem label="Visita" value={dossier.analisisRib.visita} />
+              <InfoItem label="Relación Comercial con Deudor" value={dossier.analisisRib.relacion_comercial_deudor} />
             </div>
-          </div>
-        )}
 
-        {dossier.comportamientoCrediticio && (
-          <div style={styles.sectionCard}>
-            <div style={styles.sectionHeader}>
-              <div style={styles.sectionNumber}>3</div>
-              <h2 style={styles.sectionTitle}>Comportamiento Crediticio</h2>
-            </div>
-            <div style={styles.subsectionTitle}>Proveedor</div>
-            <div style={styles.infoGrid}>
-              <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.equifax_calificacion} />
-              <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.equifax_score} />
-              <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_directa)} />
-              <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.sentinel_calificacion} />
-              <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.sentinel_score} />
-              <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_directa)} />
-            </div>
-            {dossier.comportamientoCrediticio.deudor && (
+            {dossier.analisisRib.descripcion_empresa && (
+              <TextBlock label="Descripción de la Empresa" value={dossier.analisisRib.descripcion_empresa} />
+            )}
+
+            {dossier.analisisRib.visita && (
+              <TextBlock label="Visita" value={dossier.analisisRib.visita} />
+            )}
+
+            {/* Accionistas */}
+            {dossier.accionistas && dossier.accionistas.length > 0 && (
               <>
-                <div style={styles.subsectionTitle}>Deudor</div>
-                <div style={styles.infoGrid}>
-                  <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_calificacion} />
-                  <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_score} />
-                  <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.deudor_equifax_deuda_directa)} />
-                  <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_calificacion} />
-                  <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_score} />
-                  <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.deudor_sentinel_deuda_directa)} />
+                <div style={styles.subsectionTitle}>Accionistas</div>
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead style={styles.tableHeader}>
+                      <tr>
+                        <th style={styles.th}>Nombre</th>
+                        <th style={styles.th}>DNI</th>
+                        <th style={styles.th}>%</th>
+                        <th style={styles.th}>Vínculo</th>
+                        <th style={styles.th}>Calificación</th>
+                        <th style={styles.thLast}>Comentario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dossier.accionistas.map((acc: any, index: number) => (
+                        <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                          <td style={styles.td}>{acc.nombre}</td>
+                          <td style={styles.td}>{acc.dni}</td>
+                          <td style={styles.td}>{acc.porcentaje ? `${acc.porcentaje}%` : 'N/A'}</td>
+                          <td style={styles.td}>{acc.vinculo || 'N/A'}</td>
+                          <td style={styles.td}>{acc.calificacion || 'N/A'}</td>
+                          <td style={styles.tdLast}>{acc.comentario || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+
+            {/* Gerencia */}
+            {dossier.gerencia && dossier.gerencia.length > 0 && (
+              <>
+                <div style={styles.subsectionTitle}>Gerencia</div>
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead style={styles.tableHeader}>
+                      <tr>
+                        <th style={styles.th}>Nombre</th>
+                        <th style={styles.th}>DNI</th>
+                        <th style={styles.th}>Cargo</th>
+                        <th style={styles.th}>Vínculo</th>
+                        <th style={styles.th}>Calificación</th>
+                        <th style={styles.thLast}>Comentario</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dossier.gerencia.map((ger: any, index: number) => (
+                        <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                          <td style={styles.td}>{ger.nombre}</td>
+                          <td style={styles.td}>{ger.dni}</td>
+                          <td style={styles.td}>{ger.cargo || 'N/A'}</td>
+                          <td style={styles.td}>{ger.vinculo || 'N/A'}</td>
+                          <td style={styles.td}>{ger.calificacion || 'N/A'}</td>
+                          <td style={styles.tdLast}>{ger.comentario || 'N/A'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </>
             )}
           </div>
         )}
 
+        {/* SECCIÓN 3: COMPORTAMIENTO CREDITICIO - COMPLETA */}
+        {dossier.comportamientoCrediticio && (
+          <div style={styles.sectionCard}>
+            <div style={styles.sectionHeader}>
+              <div style={styles.sectionNumber}>3</div>
+              <h2 style={styles.sectionTitle}>Comportamiento Crediticio</h2>
+            </div>
+            
+            <div style={styles.subsectionTitle}>Proveedor</div>
+            <div style={styles.infoGrid}>
+              <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.equifax_calificacion} />
+              <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.equifax_score} />
+              <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_directa)} />
+              <InfoItem label="Deuda Indirecta Equifax" value={formatCurrency(dossier.comportamientoCrediticio.equifax_deuda_indirecta)} />
+              <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.sentinel_calificacion} />
+              <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.sentinel_score} />
+              <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_directa)} />
+              <InfoItem label="Deuda Indirecta Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.sentinel_deuda_indirecta)} />
+            </div>
+
+            {dossier.comportamientoCrediticio.deudor && (
+              <>
+                <div style={styles.subsectionTitle}>Deudor</div>
+                <div style={styles.infoGrid}>
+                  <InfoItem label="Deudor" value={dossier.comportamientoCrediticio.deudor} />
+                  <InfoItem label="Calificación Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_calificacion} />
+                  <InfoItem label="Score Equifax" value={dossier.comportamientoCrediticio.deudor_equifax_score} />
+                  <InfoItem label="Deuda Directa Equifax" value={formatCurrency(dossier.comportamientoCrediticio.deudor_equifax_deuda_directa)} />
+                  <InfoItem label="Deuda Indirecta Equifax" value={formatCurrency(dossier.comportamientoCrediticio.deudor_equifax_deuda_indirecta)} />
+                  <InfoItem label="Calificación Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_calificacion} />
+                  <InfoItem label="Score Sentinel" value={dossier.comportamientoCrediticio.deudor_sentinel_score} />
+                  <InfoItem label="Deuda Directa Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.deudor_sentinel_deuda_directa)} />
+                  <InfoItem label="Deuda Indirecta Sentinel" value={formatCurrency(dossier.comportamientoCrediticio.deudor_sentinel_deuda_indirecta)} />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* SECCIÓN 4: RIB REPORTE TRIBUTARIO */}
         {dossier.ribReporteTributario && dossier.ribReporteTributario.length > 0 && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -474,6 +666,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
+        {/* SECCIÓN 5: VENTAS MENSUALES */}
         {ventasMensualesData.length > 0 && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -505,6 +698,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
+        {/* SECCIÓN 6: RIB EEFF */}
         {dossier.ribEeff && dossier.ribEeff.length > 0 && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -530,6 +724,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
+        {/* FOOTER */}
         <div style={styles.footer}>
           <p style={styles.footerText}>Documento generado el {new Date().toLocaleString('es-ES')}</p>
           <p style={styles.footerBrand}>Upgrade AI - Análisis Inteligente</p>
