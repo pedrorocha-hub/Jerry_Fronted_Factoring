@@ -8,7 +8,7 @@ const Sidebar: React.FC = () => {
 
   const navItems = [
     { to: '/', icon: Home, label: 'Dashboard' },
-    { to: '/dossiers-guardados', icon: FolderCheck, label: 'Dossiers Guardados' },
+    { to: '/dossiers-guardados', icon: FolderCheck, label: 'RIBs Guardados' },
     { to: '/upload', icon: Upload, label: 'Subir Documentos' },
   ];
 
