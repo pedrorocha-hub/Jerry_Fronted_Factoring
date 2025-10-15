@@ -11,10 +11,10 @@ import { Loader2, Save, XCircle } from 'lucide-react';
 import { RibReporteTributarioService, RibReporteTributario } from '@/services/ribReporteTributarioService';
 import { showError, showSuccess } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
-import AsyncSelect from 'react-select/async';
+import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 
 type FormData = {
-  solicitud: { value: string; label: string } | null;
+  solicitud: string | null;
   anio: number;
   deudor: Partial<RibReporteTributario>;
   proveedor: Partial<RibReporteTributario>;
@@ -22,10 +22,7 @@ type FormData = {
 
 const formSchema = z.object({
   anio: z.number().min(2000).max(2100),
-  solicitud: z.object({
-    value: z.string().uuid(),
-    label: z.string(),
-  }).nullable(),
+  solicitud: z.string().uuid().nullable(),
 });
 
 type RibReporteTributarioFormProps = {
@@ -38,6 +35,7 @@ type RibReporteTributarioFormProps = {
 
 const RibReporteTributarioForm: React.FC<RibReporteTributarioFormProps> = ({ initialData, onClose }) => {
   const [isSaving, setIsSaving] = useState(false);
+  const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
   const { control, handleSubmit, watch, setValue } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -58,14 +56,24 @@ const RibReporteTributarioForm: React.FC<RibReporteTributarioFormProps> = ({ ini
       setValue('deudor', deudor || {});
       setValue('proveedor', initialData.proveedorReport || {});
       if (deudor?.solicitud_id) {
-        // We don't have the label here, so we can't fully populate the AsyncSelect
-        // This is a limitation we can address later if needed.
-        setValue('solicitud', { value: deudor.solicitud_id, label: `ID: ${deudor.solicitud_id.substring(0,8)}...` });
+        setValue('solicitud', deudor.solicitud_id);
+        const fetchLabel = async () => {
+            const { data: solicitud } = await supabase
+                .from('solicitudes_operacion')
+                .select('id, ruc, created_at')
+                .eq('id', deudor.solicitud_id)
+                .single();
+            if (solicitud) {
+                const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
+                setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+            }
+        };
+        fetchLabel();
       }
     }
   }, [initialData, setValue]);
 
-  const searchSolicitudes = async (inputValue: string) => {
+  const searchSolicitudes = async (inputValue: string): Promise<ComboboxOption[]> => {
     if (!inputValue) return [];
     const { data, error } = await supabase.rpc('search_solicitudes', { search_term: inputValue });
     if (error) {
@@ -76,7 +84,7 @@ const RibReporteTributarioForm: React.FC<RibReporteTributarioFormProps> = ({ ini
   };
 
   const onSubmit = async (formData: FormData) => {
-    if (!solicitud) {
+    if (!formData.solicitud) {
       showError("Por favor, seleccione una solicitud de operación.");
       return;
     }
@@ -85,7 +93,7 @@ const RibReporteTributarioForm: React.FC<RibReporteTributarioFormProps> = ({ ini
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const commonData = {
-        solicitud_id: solicitud.value,
+        solicitud_id: formData.solicitud,
         anio: formData.anio,
         user_id: user?.id,
         status: 'Borrador' as const,
@@ -173,13 +181,14 @@ const RibReporteTributarioForm: React.FC<RibReporteTributarioFormProps> = ({ ini
                 name="solicitud"
                 control={control}
                 render={({ field }) => (
-                  <AsyncSelect
+                  <AsyncCombobox
                     {...field}
-                    cacheOptions
-                    defaultOptions
-                    loadOptions={searchSolicitudes}
+                    onSearch={searchSolicitudes}
                     placeholder="Buscar por RUC, nombre o ID..."
-                    isDisabled={!!initialData}
+                    searchPlaceholder="Escriba para buscar..."
+                    emptyMessage="No se encontraron solicitudes."
+                    disabled={!!initialData}
+                    initialDisplayValue={initialSolicitudLabel}
                   />
                 )}
               />
