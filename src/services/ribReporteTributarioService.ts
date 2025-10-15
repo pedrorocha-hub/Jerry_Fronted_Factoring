@@ -98,12 +98,15 @@ export class RibReporteTributarioService {
       .from('rib_reporte_tributario')
       .select(`
         *,
-        ficha_ruc ( nombre_empresa ),
-        profiles ( full_name )
+        ficha_ruc!inner(nombre_empresa),
+        profiles(full_name)
       `)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching relations for RIB reports:", error);
+      throw error;
+    }
     return data || [];
   }
 
