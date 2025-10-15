@@ -160,6 +160,39 @@ export const useDossierData = () => {
     }
   };
 
+  const deleteDossier = async (dossierId: string) => {
+    if (!window.confirm('¿Está seguro de eliminar este dossier guardado? Esta acción es irreversible.')) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('dossiers_guardados')
+        .delete()
+        .eq('id', dossierId);
+
+      if (deleteError) {
+        console.error('Error al eliminar dossier:', deleteError);
+        showError(`Error al eliminar el dossier: ${deleteError.message}`);
+        return;
+      }
+
+      showSuccess('Dossier eliminado exitosamente.');
+      await loadSavedDossiers();
+      
+      // Si el dossier eliminado era el que se estaba viendo, limpiarlo
+      if (dossier?.solicitudOperacion.id === dossierList.find(d => d.id === dossierId)?.solicitud_id) {
+        setDossier(null);
+      }
+
+    } catch (err) {
+      console.error('Error al eliminar dossier:', err);
+      showError(`Error al eliminar el dossier: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loadSavedDossiers = async () => {
     setLoading(true);
     setError(null);
@@ -255,6 +288,7 @@ export const useDossierData = () => {
     dossierList,
     searchDossierById,
     saveDossier,
+    deleteDossier, // Exportar la nueva función
     loadSavedDossiers,
     loadDossierFromSaved,
     setError

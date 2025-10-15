@@ -22,6 +22,7 @@ const DossiersGuardadosPage = () => {
     dossierList,
     searchDossierById,
     saveDossier,
+    deleteDossier,
     loadSavedDossiers,
     loadDossierFromSaved,
     setError
@@ -162,6 +163,7 @@ const DossiersGuardadosPage = () => {
             dossiers={dossierList}
             loading={loading}
             onViewDossier={handleViewDossier}
+            onDeleteDossier={deleteDossier}
           />
 
           {dossier && !showPdfPreview && (
