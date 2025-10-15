@@ -12,6 +12,7 @@ export interface RibEeff {
   proveedor_ruc?: string | null; // Columna para vincular deudor con proveedor
   anio_reporte?: number | null;
   status?: RibEeffStatus | null;
+  solicitud_id?: string | null;
 
   // Activos
   activo_caja_inversiones_disponible?: number | null;
