@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Building2, Calendar, User, TrendingUp } from 'lucide-react';
+import { Eye, Building2, Calendar, User, TrendingUp, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +9,10 @@ interface DossierTableProps {
   dossiers: DossierSummary[];
   loading: boolean;
   onViewDossier: (solicitudId: string) => void;
+  onDeleteDossier: (dossierId: string) => void;
 }
 
-const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDossier }) => {
+const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDossier, onDeleteDossier }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completado':
@@ -138,14 +139,24 @@ const DossierTable: React.FC<DossierTableProps> = ({ dossiers, loading, onViewDo
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <Button
-                      size="sm"
-                      onClick={() => onViewDossier(dossier.solicitud_id)}
-                      className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        onClick={() => onViewDossier(dossier.solicitud_id)}
+                        className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Ver
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onDeleteDossier(dossier.id)}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
