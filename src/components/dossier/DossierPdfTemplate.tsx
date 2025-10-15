@@ -65,6 +65,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       padding: '20px',
       marginBottom: '20px',
       boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      pageBreakInside: 'avoid' as 'avoid',
     },
     sectionHeader: {
       display: 'flex',
@@ -128,10 +129,13 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       color: '#1a1a1a',
       wordBreak: 'break-word' as 'break-word',
     },
+    tableWrapper: {
+      pageBreakInside: 'avoid' as 'avoid',
+      marginTop: '12px',
+    },
     table: {
       width: '100%',
       borderCollapse: 'collapse' as 'collapse',
-      marginTop: '12px',
       fontSize: '11px',
       borderRadius: '7px',
       overflow: 'hidden',
@@ -288,7 +292,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
   const proveedorEeff = getRibEeffData('proveedor');
 
   const FinancialTable: React.FC<{ title: string, fields: Record<string, string>, years: number[], data: Record<number, Partial<RibEeff>> }> = ({ title, fields, years, data }) => (
-    <>
+    <div style={styles.tableWrapper}>
       <div style={styles.subsectionTitle}>{title}</div>
       <table style={styles.table}>
         <thead style={styles.tableHeader}>
@@ -312,7 +316,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           ))}
         </tbody>
       </table>
-    </>
+    </div>
   );
 
   return (
@@ -403,28 +407,30 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
               <div style={styles.sectionNumber}>4</div>
               <h2 style={styles.sectionTitle}>RIB - Reporte Tributario</h2>
             </div>
-            <table style={styles.table}>
-              <thead style={styles.tableHeader}>
-                <tr>
-                  <th style={styles.th}>Año</th>
-                  <th style={styles.th}>Tipo</th>
-                  <th style={styles.th}>Total Activos</th>
-                  <th style={styles.th}>Total Pasivos</th>
-                  <th style={styles.thLast}>Ingreso Ventas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {dossier.ribReporteTributario.map((reporte: any, index: number) => (
-                  <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                    <td style={styles.td}>{reporte.anio}</td>
-                    <td style={styles.td}>{reporte.tipo_entidad}</td>
-                    <td style={styles.td}>{formatCurrency(reporte.total_activos)}</td>
-                    <td style={styles.td}>{formatCurrency(reporte.total_pasivos)}</td>
-                    <td style={styles.tdLast}>{formatCurrency(reporte.ingreso_ventas)}</td>
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr>
+                    <th style={styles.th}>Año</th>
+                    <th style={styles.th}>Tipo</th>
+                    <th style={styles.th}>Total Activos</th>
+                    <th style={styles.th}>Total Pasivos</th>
+                    <th style={styles.thLast}>Ingreso Ventas</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {dossier.ribReporteTributario.map((reporte: any, index: number) => (
+                    <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                      <td style={styles.td}>{reporte.anio}</td>
+                      <td style={styles.td}>{reporte.tipo_entidad}</td>
+                      <td style={styles.td}>{formatCurrency(reporte.total_activos)}</td>
+                      <td style={styles.td}>{formatCurrency(reporte.total_pasivos)}</td>
+                      <td style={styles.tdLast}>{formatCurrency(reporte.ingreso_ventas)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
@@ -435,26 +441,28 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
               <div style={styles.sectionNumber}>5</div>
               <h2 style={styles.sectionTitle}>Ventas Mensuales</h2>
             </div>
-            <table style={styles.table}>
-              <thead style={styles.tableHeader}>
-                <tr>
-                  <th style={styles.th}>Año</th>
-                  <th style={styles.th}>Mes</th>
-                  <th style={styles.th}>Ventas Proveedor</th>
-                  <th style={styles.thLast}>Ventas Deudor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ventasMensualesData.map((row, index) => (
-                  <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
-                    <td style={styles.td}>{row.year}</td>
-                    <td style={{...styles.td, textTransform: 'capitalize'}}>{row.month}</td>
-                    <td style={styles.td}>{formatCurrency(row.proveedorVenta)}</td>
-                    <td style={styles.tdLast}>{formatCurrency(row.deudorVenta)}</td>
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr>
+                    <th style={styles.th}>Año</th>
+                    <th style={styles.th}>Mes</th>
+                    <th style={styles.th}>Ventas Proveedor</th>
+                    <th style={styles.thLast}>Ventas Deudor</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {ventasMensualesData.map((row, index) => (
+                    <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                      <td style={styles.td}>{row.year}</td>
+                      <td style={{...styles.td, textTransform: 'capitalize'}}>{row.month}</td>
+                      <td style={styles.td}>{formatCurrency(row.proveedorVenta)}</td>
+                      <td style={styles.tdLast}>{formatCurrency(row.deudorVenta)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
