@@ -17,8 +17,7 @@ import SentinelPage from './pages/SentinelPage';
 import SentinelCreatePage from './pages/SentinelCreatePage';
 import Upload from './pages/Upload';
 import ReporteTributarioPage from './pages/ReporteTributario';
-import RibReporteTributarioPage from './pages/RibReporteTributario';
-import RibReporteTributarioForm from './pages/RibReporteTributarioForm';
+import RibReporteTributarioPage from './pages/RibReporteTributarioPage';
 import VentasMensualesPage from './pages/VentasMensuales';
 import VentasMensualesForm from './pages/VentasMensualesForm';
 import Rib from './pages/Rib';
@@ -60,8 +59,6 @@ function App() {
           <Route path="/reporte-tributario" element={<ProtectedRoute><ReporteTributarioPage /></ProtectedRoute>} />
           
           <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributarioPage /></ProtectedRoute>} />
-          <Route path="/rib-reporte-tributario/new" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
-          <Route path="/rib-reporte-tributario/edit/:id" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
 
           <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensualesPage /></ProtectedRoute>} />
           <Route path="/ventas-mensuales/new" element={<ProtectedRoute><VentasMensualesForm /></ProtectedRoute>} />
