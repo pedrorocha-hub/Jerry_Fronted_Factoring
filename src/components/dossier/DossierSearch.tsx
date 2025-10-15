@@ -41,7 +41,7 @@ const DossierSearch: React.FC<DossierSearchProps> = ({ onSearch, searching, erro
             className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
           >
             {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-            Buscar Dossier
+            Buscar RIB
           </Button>
         </CardContent>
       </Card>
