@@ -9,6 +9,7 @@ import DossierViewer from '@/components/dossier/DossierViewer';
 import DossierPdfTemplate from '@/components/dossier/DossierPdfTemplate';
 import { showLoading, dismissToast, showSuccess, showError } from '@/utils/toast';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { DossierRib } from '@/types/dossier';
 
 const DossiersGuardadosPage = () => {
@@ -45,15 +46,19 @@ const DossiersGuardadosPage = () => {
     saveDossier();
   };
 
-  const handleDownload = () => {
-    if (!dossier) return;
-    const toastId = showLoading('Generando PDF...');
+  const handleDownload = async () => {
+    if (!dossier) {
+      showError('No hay dossier cargado para descargar.');
+      return;
+    }
+
+    const toastId = showLoading('Generando PDF de alta calidad...');
     
     // Render the template off-screen to be captured
     setPdfData(dossier);
 
     // Use a timeout to ensure the template is rendered in the DOM before capturing
-    setTimeout(() => {
+    setTimeout(async () => {
       const element = pdfTemplateRef.current;
       if (!element) {
         dismissToast(toastId);
@@ -62,23 +67,64 @@ const DossiersGuardadosPage = () => {
         return;
       }
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      pdf.html(element, {
-        callback: function (doc) {
-          doc.save(`Dossier_RIB_${dossier.solicitudOperacion.ruc}.pdf`);
-          dismissToast(toastId);
-          showSuccess('PDF generado exitosamente.');
-          setPdfData(null); // Clean up the rendered template from the DOM
-        },
-        x: 0,
-        y: 0,
-        width: 210, // A4 width in mm
-        windowWidth: element.scrollWidth,
-        autoPaging: 'text',
-        margin: [15, 15, 15, 15]
-      });
-    }, 500); // A small delay to ensure the component has rendered
+      try {
+        // Configuración optimizada de html2canvas
+        const canvas = await html2canvas(element, {
+          scale: 2, // Alta calidad (2x)
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#f8f9fa',
+          windowWidth: 794, // 210mm en pixels (A4 width)
+          windowHeight: element.scrollHeight,
+          onclone: (clonedDoc) => {
+            const clonedElement = clonedDoc.body.querySelector('[data-pdf-template]');
+            if (clonedElement) {
+              (clonedElement as HTMLElement).style.display = 'block';
+            }
+          },
+        });
+
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+          compress: true,
+        });
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgWidth = pdfWidth;
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        // Primera página
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+        heightLeft -= pdfHeight;
+
+        // Páginas adicionales
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+          heightLeft -= pdfHeight;
+        }
+
+        const fileName = `Dossier_RIB_${dossier.solicitudOperacion.ruc}_${new Date().toISOString().split('T')[0]}.pdf`;
+        pdf.save(fileName);
+        
+        dismissToast(toastId);
+        showSuccess('PDF generado exitosamente.');
+      } catch (error) {
+        console.error('Error generando PDF:', error);
+        dismissToast(toastId);
+        showError('Error al generar el PDF. Por favor, intenta nuevamente.');
+      } finally {
+        setPdfData(null);
+      }
+    }, 500);
   };
 
   return (
