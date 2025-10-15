@@ -61,7 +61,6 @@ export class RibReporteTributarioService {
         const id = rowIds[key];
         
         const record: Partial<RibReporteTributarioData> = {
-          id: id,
           ruc: legacyData.ruc!,
           proveedor_ruc: legacyData.proveedor_ruc,
           anio: year,
@@ -70,6 +69,10 @@ export class RibReporteTributarioService {
           status: legacyData.status,
           solicitud_id: legacyData.solicitud_id,
         };
+
+        if (id) {
+          record.id = id;
+        }
 
         let hasData = false;
         fields.forEach(field => {
