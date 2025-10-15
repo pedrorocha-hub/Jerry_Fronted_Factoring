@@ -1,6 +1,38 @@
 import React, { forwardRef } from 'react';
-import { DossierRib } from '@/types/dossier';
-import { RibEeff } from '@/types/rib-eeff';
+
+// Tipos simulados para el ejemplo
+interface DossierRib {
+  solicitudOperacion: any;
+  fichaRuc?: any;
+  top10kData?: any;
+  analisisRib?: any;
+  comportamientoCrediticio?: any;
+  ribReporteTributario?: any[];
+  ventasMensuales?: any;
+  ribEeff?: any[];
+}
+
+interface RibEeff {
+  tipo_entidad: string;
+  anio_reporte?: number;
+  [key: string]: any;
+}
+interface DossierRib {
+  solicitudOperacion: any;
+  fichaRuc?: any;
+  top10kData?: any;
+  analisisRib?: any;
+  comportamientoCrediticio?: any;
+  ribReporteTributario?: any[];
+  ventasMensuales?: any;
+  ribEeff?: any[];
+}
+
+interface RibEeff {
+  tipo_entidad: string;
+  anio_reporte?: number;
+  [key: string]: any;
+}
 
 interface DossierPdfTemplateProps {
   dossier: DossierRib;
@@ -10,9 +42,9 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
   const styles = {
     page: {
       padding: '0',
-      backgroundColor: '#ffffff',
-      color: '#1a1a1a',
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      backgroundColor: '#f8f9fa',
+      color: '#1f2937',
+      fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       width: '210mm',
       minHeight: '297mm',
       boxSizing: 'border-box' as 'border-box',
@@ -20,8 +52,8 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       overflow: 'hidden',
     },
     headerBanner: {
-      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-      padding: '25px 0',
+      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d3748 100%)',
+      padding: '32px 0',
       color: 'white',
       marginBottom: '0',
     },
@@ -31,183 +63,186 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       padding: '0 10mm',
     },
     headerTitle: {
-      fontSize: '28px',
+      fontSize: '32px',
       fontWeight: '700' as '700',
-      margin: '0 0 6px 0',
+      margin: '0 0 8px 0',
       letterSpacing: '-0.5px',
     },
     headerSubtitle: {
-      fontSize: '16px',
+      fontSize: '18px',
       fontWeight: '400' as '400',
-      margin: '0 0 3px 0',
+      margin: '0 0 4px 0',
       opacity: 0.95,
     },
     headerRuc: {
-      fontSize: '13px',
+      fontSize: '14px',
       fontWeight: '300' as '300',
       margin: '0',
-      opacity: 0.8,
-      letterSpacing: '1px',
+      opacity: 0.85,
+      letterSpacing: '0.5px',
     },
     accentBar: {
-      height: '5px',
-      background: 'linear-gradient(90deg, #00FF80 0%, #00cc66 100%)',
-      marginBottom: '20px',
+      height: '4px',
+      background: 'linear-gradient(90deg, #00b894 0%, #00cec9 100%)',
+      marginBottom: '0',
     },
     content: {
       maxWidth: '190mm',
       margin: '0 auto',
-      padding: '0 10mm 30px 10mm',
+      padding: '24px 10mm 30px 10mm',
     },
     sectionCard: {
       backgroundColor: '#ffffff',
-      border: '1px solid #e5e7eb',
-      borderRadius: '10px',
-      padding: '20px',
+      border: 'none',
+      borderRadius: '12px',
+      padding: '28px',
       marginBottom: '20px',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
       pageBreakInside: 'avoid' as 'avoid',
       overflow: 'hidden',
     },
     sectionHeader: {
       display: 'flex',
       alignItems: 'center',
-      marginBottom: '16px',
-      paddingBottom: '10px',
-      borderBottom: '2px solid #00FF80',
+      marginBottom: '20px',
+      paddingBottom: '16px',
+      borderBottom: '2px solid #f0f0f0',
     },
     sectionNumber: {
-      backgroundColor: '#00FF80',
-      color: '#000',
-      width: '30px',
-      height: '30px',
-      borderRadius: '7px',
+      backgroundColor: '#00b894',
+      color: '#ffffff',
+      width: '40px',
+      height: '40px',
+      borderRadius: '10px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontWeight: '700' as '700',
-      fontSize: '15px',
-      marginRight: '10px',
+      fontSize: '18px',
+      marginRight: '14px',
       flexShrink: 0,
+      boxShadow: '0 2px 8px rgba(0, 184, 148, 0.25)',
     },
     sectionTitle: {
-      fontSize: '18px',
+      fontSize: '20px',
       fontWeight: '600' as '600',
-      color: '#1a1a1a',
+      color: '#1f2937',
       margin: '0',
     },
     subsectionTitle: {
-      fontSize: '15px',
+      fontSize: '16px',
       fontWeight: '600' as '600',
-      color: '#2d2d2d',
-      marginTop: '16px',
-      marginBottom: '10px',
-      paddingLeft: '10px',
-      borderLeft: '3px solid #00FF80',
+      color: '#374151',
+      marginTop: '24px',
+      marginBottom: '14px',
+      paddingLeft: '12px',
+      borderLeft: '4px solid #00b894',
     },
     infoGrid: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '12px',
-      marginTop: '12px',
+      gap: '0',
+      marginTop: '16px',
     },
     infoItem: {
-      backgroundColor: '#f9fafb',
-      padding: '10px 14px',
-      borderRadius: '7px',
-      border: '1px solid #e5e7eb',
+      padding: '14px 16px',
+      borderBottom: '1px solid #f0f0f0',
     },
     infoLabel: {
-      fontSize: '10px',
+      fontSize: '11px',
       fontWeight: '600' as '600',
       color: '#6b7280',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.5px',
-      marginBottom: '3px',
+      letterSpacing: '0.8px',
+      marginBottom: '6px',
     },
     infoValue: {
-      fontSize: '13px',
+      fontSize: '14px',
       fontWeight: '500' as '500',
-      color: '#1a1a1a',
+      color: '#1f2937',
       wordBreak: 'break-word' as 'break-word',
+      lineHeight: '1.5',
     },
     tableWrapper: {
       pageBreakInside: 'avoid' as 'avoid',
-      marginTop: '12px',
+      marginTop: '16px',
       overflowX: 'auto' as 'auto',
       width: '100%',
     },
     table: {
       width: '100%',
-      borderCollapse: 'collapse' as 'collapse',
-      fontSize: '11px',
-      borderRadius: '7px',
+      borderCollapse: 'separate' as 'separate',
+      borderSpacing: '0',
+      fontSize: '12px',
+      borderRadius: '8px',
       overflow: 'hidden',
-      border: '1px solid #e5e7eb',
-      tableLayout: 'fixed' as 'fixed',
+      border: 'none',
+      tableLayout: 'auto' as 'auto',
     },
     tableHeader: {
-      backgroundColor: '#1a1a1a',
+      backgroundColor: '#374151',
       color: 'white',
     },
     th: {
-      padding: '10px 12px',
+      padding: '14px 16px',
       textAlign: 'left' as 'left',
       fontWeight: '600' as '600',
-      fontSize: '10px',
+      fontSize: '11px',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.5px',
-      borderRight: '1px solid rgba(255,255,255,0.1)',
+      letterSpacing: '0.8px',
+      borderRight: 'none',
+      borderBottom: '3px solid #00b894',
     },
     thLast: {
-      padding: '10px 12px',
+      padding: '14px 16px',
       textAlign: 'left' as 'left',
       fontWeight: '600' as '600',
-      fontSize: '10px',
+      fontSize: '11px',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.5px',
+      letterSpacing: '0.8px',
       borderRight: 'none',
+      borderBottom: '3px solid #00b894',
     },
     td: {
-      padding: '9px 12px',
-      borderBottom: '1px solid #e5e7eb',
-      borderRight: '1px solid #e5e7eb',
-      fontSize: '11px',
+      padding: '12px 16px',
+      borderBottom: '1px solid #f0f0f0',
+      borderRight: 'none',
+      fontSize: '13px',
       color: '#374151',
       wordWrap: 'break-word' as 'break-word',
       overflow: 'hidden',
     },
     tdLast: {
-      padding: '9px 12px',
-      borderBottom: '1px solid #e5e7eb',
+      padding: '12px 16px',
+      borderBottom: '1px solid #f0f0f0',
       borderRight: 'none',
-      fontSize: '11px',
+      fontSize: '13px',
       color: '#374151',
       wordWrap: 'break-word' as 'break-word',
       overflow: 'hidden',
     },
     tableRowEven: {
-      backgroundColor: '#f9fafb',
+      backgroundColor: '#fafbfc',
     },
     tableRowOdd: {
       backgroundColor: '#ffffff',
     },
     footer: {
-      marginTop: '30px',
-      paddingTop: '16px',
+      marginTop: '32px',
+      paddingTop: '20px',
       borderTop: '2px solid #e5e7eb',
       textAlign: 'center' as 'center',
       color: '#6b7280',
     },
     footerText: {
-      fontSize: '10px',
-      margin: '3px 0',
+      fontSize: '11px',
+      margin: '4px 0',
     },
     footerBrand: {
-      fontSize: '11px',
+      fontSize: '12px',
       fontWeight: '600' as '600',
-      color: '#1a1a1a',
-      marginTop: '6px',
+      color: '#1f2937',
+      marginTop: '8px',
     },
   };
 
@@ -237,7 +272,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     </div>
   );
 
-  // --- Ventas Mensuales Data Processing ---
   const getVentasMensualesData = () => {
     if (!dossier.ventasMensuales) return [];
     const salesData: { year: number; month: string; proveedorVenta: number | null; deudorVenta: number | null }[] = [];
@@ -259,7 +293,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
   };
   const ventasMensualesData = getVentasMensualesData();
 
-  // --- RIB EEFF Data Processing ---
   const ribEeffFields = {
     activoFields: {
       activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
@@ -330,7 +363,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
 
   return (
     <div ref={ref} style={styles.page}>
-      {/* Header Banner */}
       <div style={styles.headerBanner}>
         <div style={styles.headerContent}>
           <h1 style={styles.headerTitle}>Dossier RIB</h1>
@@ -341,7 +373,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       <div style={styles.accentBar}></div>
 
       <div style={styles.content}>
-        {/* Section 1: Solicitud de Operación */}
         <div style={styles.sectionCard}>
           <div style={styles.sectionHeader}>
             <div style={styles.sectionNumber}>1</div>
@@ -359,7 +390,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         </div>
 
-        {/* Section 2: Análisis RIB */}
         {dossier.analisisRib && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -377,7 +407,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
-        {/* Section 3: Comportamiento Crediticio */}
         {dossier.comportamientoCrediticio && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -409,7 +438,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
-        {/* Section 4: RIB Reporte Tributario */}
         {dossier.ribReporteTributario && dossier.ribReporteTributario.length > 0 && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -443,7 +471,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
-        {/* Section 5: Ventas Mensuales */}
         {ventasMensualesData.length > 0 && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -475,7 +502,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
-        {/* Section 6: RIB EEFF */}
         {dossier.ribEeff && dossier.ribEeff.length > 0 && (
           <div style={styles.sectionCard}>
             <div style={styles.sectionHeader}>
@@ -501,7 +527,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           </div>
         )}
 
-        {/* Footer */}
         <div style={styles.footer}>
           <p style={styles.footerText}>Documento generado el {new Date().toLocaleString('es-ES')}</p>
           <p style={styles.footerBrand}>Upgrade AI - Análisis Inteligente</p>
