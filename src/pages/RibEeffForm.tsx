@@ -18,13 +18,102 @@ import { toast } from 'sonner';
 import { Combobox } from '@/components/ui/combobox';
 import { useSession } from '@/contexts/SessionContext';
 
+const sum = (...args: (number | null | undefined)[]): number => {
+  return args.reduce((acc, val) => acc + (val || 0), 0);
+};
+
 const transformEeffToRibEeff = (eeff: Eeff): Partial<RibEeff> => {
     const transformed: Partial<RibEeff> = {};
-    for (const key in eeff) {
-        if (key.startsWith('activo_') || key.startsWith('pasivo_') || key.startsWith('patrimonio_')) {
-            transformed[key as keyof RibEeff] = eeff[key as keyof Eeff] as number | null;
-        }
-    }
+
+    // ACTIVO
+    transformed.activo_caja_inversiones_disponible = sum(eeff.activo_efectivo_y_equivalentes_de_efectivo, eeff.activo_inversiones_financieras);
+    transformed.activo_cuentas_por_cobrar_del_giro = eeff.activo_ctas_por_cobrar_comerciales_terceros;
+    transformed.activo_cuentas_por_cobrar_relacionadas_no_comerciales = sum(eeff.activo_ctas_por_cobrar_comerciales_relacionadas, eeff.activo_ctas_por_cobrar_diversas_relacionadas);
+    transformed.activo_cuentas_por_cobrar_personal_accionistas_directores = eeff.activo_cuentas_por_cobrar_al_personal_socios_y_directores;
+    transformed.activo_otras_cuentas_por_cobrar_diversas = eeff.activo_ctas_por_cobrar_diversas_terceros;
+    transformed.activo_existencias = sum(
+        eeff.activo_mercaderias,
+        eeff.activo_productos_terminados,
+        eeff.activo_subproductos_desechos_y_desperdicios,
+        eeff.activo_productos_en_proceso,
+        eeff.activo_materias_primas,
+        eeff.activo_materiales_aux_suministros_y_repuestos,
+        eeff.activo_envases_y_embalajes,
+        eeff.activo_inventarios_por_recibir
+    ) - (eeff.activo_desvalorizacion_de_inventarios || 0);
+    transformed.activo_gastos_pagados_por_anticipado = eeff.activo_serv_y_otros_contratados_por_anticipado;
+    transformed.activo_otros_activos_corrientes = sum(eeff.activo_activos_no_ctes_mantenidos_para_la_venta, eeff.activo_otro_activos_corrientes);
+    
+    transformed.activo_total_activo_circulante = sum(
+        transformed.activo_caja_inversiones_disponible,
+        transformed.activo_cuentas_por_cobrar_del_giro,
+        transformed.activo_cuentas_por_cobrar_relacionadas_no_comerciales,
+        transformed.activo_cuentas_por_cobrar_personal_accionistas_directores,
+        transformed.activo_otras_cuentas_por_cobrar_diversas,
+        transformed.activo_existencias,
+        transformed.activo_gastos_pagados_por_anticipado,
+        transformed.activo_otros_activos_corrientes
+    );
+
+    transformed.activo_cuentas_por_cobrar_comerciales_lp = eeff.activo_ctas_por_cobrar_comerciales_terceros;
+    transformed.activo_otras_cuentas_por_cobrar_diversas_lp = eeff.activo_ctas_por_cobrar_diversas_terceros;
+    transformed.activo_activo_fijo_neto = sum(eeff.activo_propiedades_planta_y_equipo) - (eeff.activo_depreciacion_de_1_2_y_ppe_acumulados || 0);
+    transformed.activo_inversiones_en_valores = sum(eeff.activo_inversiones_mobiliarias, eeff.activo_propiedades_de_inversion, eeff.activo_activos_por_derecho_de_uso);
+    transformed.activo_intangibles = eeff.activo_intangibles;
+    transformed.activo_activo_diferido_y_otros = sum(eeff.activo_activo_diferido, eeff.activo_otros_activos_no_corrientes);
+
+    transformed.activo_total_activos_no_circulantes = sum(
+        transformed.activo_cuentas_por_cobrar_comerciales_lp,
+        transformed.activo_otras_cuentas_por_cobrar_diversas_lp,
+        transformed.activo_activo_fijo_neto,
+        transformed.activo_inversiones_en_valores,
+        transformed.activo_intangibles,
+        transformed.activo_activo_diferido_y_otros
+    );
+    
+    transformed.activo_total_activos = eeff.activo_total_activo_neto;
+
+    // PASIVO
+    transformed.pasivo_sobregiro_bancos_y_obligaciones_corto_plazo = eeff.pasivo_sobregiros_bancarios;
+    transformed.pasivo_parte_corriente_obligaciones_bancos_y_leasing = eeff.pasivo_obligaciones_financieras;
+    transformed.pasivo_cuentas_por_pagar_del_giro = eeff.pasivo_ctas_por_pagar_comerciales_terceros;
+    transformed.pasivo_cuentas_por_pagar_relacionadas_no_comerciales = sum(eeff.pasivo_ctas_por_pagar_comerciales_relacionadas, eeff.pasivo_ctas_por_pagar_diversas_relacionadas);
+    transformed.pasivo_otras_cuentas_por_pagar_diversas = eeff.pasivo_ctas_por_pagar_diversas_terceros;
+    transformed.pasivo_dividendos_por_pagar = eeff.pasivo_ctas_por_pagar_accionistas_socios_participantes_y_direct;
+
+    transformed.pasivo_total_pasivos_circulantes = sum(
+        transformed.pasivo_sobregiro_bancos_y_obligaciones_corto_plazo,
+        transformed.pasivo_parte_corriente_obligaciones_bancos_y_leasing,
+        transformed.pasivo_cuentas_por_pagar_del_giro,
+        transformed.pasivo_cuentas_por_pagar_relacionadas_no_comerciales,
+        transformed.pasivo_otras_cuentas_por_pagar_diversas,
+        transformed.pasivo_dividendos_por_pagar
+    );
+
+    transformed.pasivo_parte_no_corriente_obligaciones_bancos_y_leasing = eeff.pasivo_obligaciones_financieras;
+    transformed.pasivo_cuentas_por_pagar_comerciales_lp = eeff.pasivo_ctas_por_pagar_comerciales_terceros;
+    transformed.pasivo_otras_cuentas_por_pagar_diversas_lp = eeff.pasivo_ctas_por_pagar_diversas_terceros;
+    transformed.pasivo_otros_pasivos = sum(eeff.pasivo_provisiones, eeff.pasivo_pasivo_diferido);
+
+    transformed.pasivo_total_pasivos_no_circulantes = sum(
+        transformed.pasivo_parte_no_corriente_obligaciones_bancos_y_leasing,
+        transformed.pasivo_cuentas_por_pagar_comerciales_lp,
+        transformed.pasivo_otras_cuentas_por_pagar_diversas_lp,
+        transformed.pasivo_otros_pasivos
+    );
+
+    transformed.pasivo_total_pasivos = eeff.pasivo_total_pasivo;
+
+    // PATRIMONIO NETO
+    transformed.patrimonio_neto_capital_pagado = eeff.patrimonio_capital;
+    transformed.patrimonio_neto_capital_adicional = sum(eeff.patrimonio_capital_adicional_positivo, eeff.patrimonio_capital_adicional_negativo);
+    transformed.patrimonio_neto_excedente_de_revaluacion = eeff.patrimonio_excedente_de_revaluacion;
+    transformed.patrimonio_neto_reserva_legal = eeff.patrimonio_reservas;
+    transformed.patrimonio_neto_utilidad_perdida_acumulada = sum(eeff.patrimonio_resultados_acumulados_positivos, eeff.patrimonio_resultados_acumulados_negativos);
+    transformed.patrimonio_neto_utilidad_perdida_del_ejercicio = sum(eeff.patrimonio_utilidad_de_ejercicio, eeff.patrimonio_perdida_de_ejercicio);
+    transformed.patrimonio_neto_total_patrimonio = eeff.patrimonio_total_patrimonio;
+    transformed.patrimonio_neto_total_pasivos_y_patrimonio = eeff.patrimonio_total_pasivo_y_patrimonio;
+
     return transformed;
 };
 
@@ -242,7 +331,6 @@ const RibEeffForm = () => {
           const yearData = yearsData[entityType as 'proveedor' | 'deudor'][year];
           if (yearData && Object.keys(yearData).length > 0) {
             
-            // Destructure to remove problematic fields before spreading
             const { created_at, ...restOfYearData } = yearData;
 
             const record: Partial<RibEeff> = {
