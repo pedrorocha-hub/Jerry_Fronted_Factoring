@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, Building2, Loader2, AlertCircle, X, BarChart3, ArrowLeft } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, BarChart3, ArrowLeft } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { VentasMensualesService } from '@/services/ventasMensualesService';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
-import { VentasMensuales, VentasStatus } from '@/types/ventasMensuales';
+import { VentasMensuales } from '@/types/ventasMensuales';
 import VentasMensualesTable from '@/components/ventas-mensuales/VentasMensualesTable';
 import VentasStatusManager from '@/components/ventas-mensuales/VentasStatusManager';
 import { showSuccess, showError } from '@/utils/toast';
-import { useSession } from '@/contexts/SessionContext';
 import { ProfileService } from '@/services/profileService';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
 import { SalesData } from '@/types/salesData';
+
+const AVAILABLE_YEARS = [2023, 2024, 2025];
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
 
 const VentasMensualesForm = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,40 +37,47 @@ const VentasMensualesForm = () => {
   const [proveedorSalesData, setProveedorSalesData] = useState<SalesData>({});
   const [deudorSalesData, setDeudorSalesData] = useState<SalesData>({});
 
-  const [report, setReport] = useState<Partial<VentasMensuales> | null>(null);
+  const [status, setStatus] = useState<string>('Borrador');
+  const [validadoPor, setValidadoPor] = useState<string | null>(null);
+  const [solicitudId, setSolicitudId] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState<string | null>(null);
   
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
-  const extractSalesData = (report: Partial<VentasMensuales> | null, type: 'proveedor' | 'deudor'): SalesData => {
-    const salesData: SalesData = {};
-    const years = [2023, 2024, 2025];
-    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
-
-    years.forEach(year => {
-      salesData[year] = {};
-      months.forEach(month => {
-        const key = `${month}_${year}_${type}`;
-        salesData[year][month] = report?.[key] as number | null ?? null;
+  const initializeSalesData = (): SalesData => {
+    const data: SalesData = {};
+    AVAILABLE_YEARS.forEach(year => {
+      data[year] = {};
+      MONTHS.forEach(month => {
+        data[year][month] = null;
       });
+    });
+    return data;
+  };
+
+  const extractSalesDataFromReports = (reports: VentasMensuales[]): SalesData => {
+    const salesData = initializeSalesData();
+    reports.forEach(report => {
+      if (salesData[report.anio]) {
+        MONTHS.forEach(month => {
+          const value = report[month as keyof VentasMensuales] as number | null;
+          if (value !== null && value !== undefined) {
+            salesData[report.anio][month] = value;
+          }
+        });
+      }
     });
     return salesData;
   };
 
   const extractSalesDataFromReporteTributario = (reportes: any[]): SalesData => {
-    const salesData: SalesData = {};
-    [2023, 2024, 2025].forEach(year => {
-      salesData[year] = {};
-      ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'].forEach(month => {
-        salesData[year][month] = null;
-      });
-    });
+    const salesData = initializeSalesData();
     reportes.forEach(reporte => {
       const year = reporte.anio_reporte;
       if (salesData[year]) {
-        Object.keys(salesData[year]).forEach(month => {
+        MONTHS.forEach(month => {
           const ingresosKey = `ingresos_${month}`;
           if (reporte[ingresosKey] !== null && reporte[ingresosKey] !== undefined) {
             const value = Number(reporte[ingresosKey]);
@@ -90,31 +98,50 @@ const VentasMensualesForm = () => {
         navigate('/ventas-mensuales');
         return;
       }
-      setReport(reportData);
-      setRucInput(reportData.proveedor_ruc);
 
-      const [provFicha, deudorFichaData] = await Promise.all([
+      setRucInput(reportData.proveedor_ruc);
+      setStatus(reportData.status);
+      setValidadoPor(reportData.validado_por);
+      setSolicitudId(reportData.solicitud_id);
+
+      const [provFicha, deudorFichaData, allReports] = await Promise.all([
         FichaRucService.getByRuc(reportData.proveedor_ruc),
-        reportData.deudor_ruc ? FichaRucService.getByRuc(reportData.deudor_ruc) : Promise.resolve(null)
+        reportData.deudor_ruc ? FichaRucService.getByRuc(reportData.deudor_ruc) : Promise.resolve(null),
+        VentasMensualesService.getByProveedorRuc(reportData.proveedor_ruc)
       ]);
+
       setProveedorFicha(provFicha);
       setDeudorFicha(deudorFichaData);
 
-      setProveedorSalesData(extractSalesData(reportData, 'proveedor'));
-      setDeudorSalesData(extractSalesData(reportData, 'deudor'));
+      const proveedorReports = allReports.filter(r => r.tipo_entidad === 'proveedor');
+      const deudorReports = allReports.filter(r => r.tipo_entidad === 'deudor');
+
+      setProveedorSalesData(extractSalesDataFromReports(proveedorReports));
+      setDeudorSalesData(extractSalesDataFromReports(deudorReports));
 
       if (reportData.user_id) {
         const profile = await ProfileService.getProfileById(reportData.user_id);
         setCreatorName(profile?.full_name || 'Desconocido');
       }
+
       if (reportData.solicitud_id) {
-        const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', reportData.solicitud_id).single();
+        const { data: solicitud } = await supabase
+          .from('solicitudes_operacion')
+          .select('id, ruc, created_at')
+          .eq('id', reportData.solicitud_id)
+          .single();
+        
         if (solicitud) {
-            const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
-            setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+          const { data: ficha } = await supabase
+            .from('ficha_ruc')
+            .select('nombre_empresa')
+            .eq('ruc', solicitud.ruc)
+            .single();
+          setInitialSolicitudLabel(
+            `${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`
+          );
         }
       }
-
     } catch (err) {
       showError('Error al cargar el reporte para editar.');
     } finally {
@@ -149,9 +176,11 @@ const VentasMensualesForm = () => {
         setProveedorSalesData(extractSalesDataFromReporteTributario(reportesTributarios));
         showSuccess('Datos autocompletados desde reportes tributarios.');
       } else {
+        setProveedorSalesData(initializeSalesData());
         showError('No se encontraron reportes tributarios para autocompletar.');
       }
-      setReport({ proveedor_ruc: rucInput, status: 'Borrador' });
+      
+      setStatus('Borrador');
       setIsDirty(true);
     } catch (err) {
       setError('Ocurrió un error al buscar la información.');
@@ -161,34 +190,56 @@ const VentasMensualesForm = () => {
   };
 
   const handleSave = async () => {
-    if (!report || !report.proveedor_ruc) return;
+    if (!proveedorFicha) return;
     setSaving(true);
     try {
-      const dataToSave: Partial<VentasMensuales> = {
-        ...report,
-        proveedor_ruc: report.proveedor_ruc,
-        deudor_ruc: deudorFicha?.ruc || null,
+      const metadata = {
+        status,
+        validado_por: validadoPor,
+        solicitud_id: solicitudId,
       };
 
-      const years = [2023, 2024, 2025];
-      const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
+      // Guardar datos del proveedor para cada año
+      for (const year of AVAILABLE_YEARS) {
+        const yearData = proveedorSalesData[year] || {};
+        const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
+        
+        if (hasData) {
+          await VentasMensualesService.saveReport(
+            proveedorFicha.ruc,
+            deudorFicha?.ruc || null,
+            year,
+            'proveedor',
+            yearData,
+            metadata
+          );
+        }
+      }
 
-      years.forEach(year => {
-        months.forEach(month => {
-          const provKey = `${month}_${year}_proveedor`;
-          (dataToSave as any)[provKey] = proveedorSalesData[year]?.[month] ?? null;
-          if (deudorFicha) {
-            const deudorKey = `${month}_${year}_deudor`;
-            (dataToSave as any)[deudorKey] = deudorSalesData[year]?.[month] ?? null;
+      // Guardar datos del deudor si existe
+      if (deudorFicha) {
+        for (const year of AVAILABLE_YEARS) {
+          const yearData = deudorSalesData[year] || {};
+          const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
+          
+          if (hasData) {
+            await VentasMensualesService.saveReport(
+              proveedorFicha.ruc,
+              deudorFicha.ruc,
+              year,
+              'deudor',
+              yearData,
+              metadata
+            );
           }
-        });
-      });
+        }
+      }
 
-      await VentasMensualesService.saveReport(dataToSave);
       showSuccess('Cambios guardados exitosamente.');
       setIsDirty(false);
       navigate('/ventas-mensuales');
     } catch (err) {
+      console.error('Error saving:', err);
       showError('Error al guardar los cambios.');
     } finally {
       setSaving(false);
@@ -198,7 +249,10 @@ const VentasMensualesForm = () => {
   const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     const { data, error } = await supabase.rpc('search_solicitudes', { search_term: query });
-    if (error) { console.error('Error searching solicitudes:', error); return []; }
+    if (error) {
+      console.error('Error searching solicitudes:', error);
+      return [];
+    }
     return data || [];
   };
 
@@ -211,44 +265,96 @@ const VentasMensualesForm = () => {
               <BarChart3 className="h-6 w-6 mr-3 text-[#00FF80]" />
               {isEditMode ? 'Editar' : 'Nuevo'} Reporte de Ventas
             </h1>
-            <Button variant="outline" onClick={() => navigate('/ventas-mensuales')} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/ventas-mensuales')}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" /> Volver a la lista
             </Button>
           </div>
 
           {!isEditMode && (
             <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="text-white">Buscar Proveedor por RUC</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="text-white">Buscar Proveedor por RUC</CardTitle>
+              </CardHeader>
               <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
                 <div className="relative flex-1 w-full">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input placeholder="RUC del Proveedor" value={rucInput} onChange={(e) => setRucInput(e.target.value)} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+                  <Input
+                    placeholder="RUC del Proveedor"
+                    value={rucInput}
+                    onChange={(e) => setRucInput(e.target.value)}
+                    maxLength={11}
+                    className="pl-10 bg-gray-900/50 border-gray-700"
+                  />
                 </div>
-                <Button onClick={handleSearch} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                  {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                <Button
+                  onClick={handleSearch}
+                  disabled={searching}
+                  className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                >
+                  {searching ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4 mr-2" />
+                  )}
                   Buscar y Autocompletar
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
+          {error && (
+            <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-          {proveedorFicha && report && (
+          {proveedorFicha && (
             <div className="space-y-6">
               <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader><CardTitle className="flex items-center text-white"><Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />Ventas del Proveedor: {proveedorFicha.nombre_empresa}</CardTitle></CardHeader>
-                <CardContent><VentasMensualesTable data={proveedorSalesData} onDataChange={(y, m, v) => { setProveedorSalesData(p => ({...p, [y]: {...p[y], [m]: v}})); setIsDirty(true); }} /></CardContent>
+                <CardHeader>
+                  <CardTitle className="flex items-center text-white">
+                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
+                    Ventas del Proveedor: {proveedorFicha.nombre_empresa}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <VentasMensualesTable
+                    data={proveedorSalesData}
+                    onDataChange={(y, m, v) => {
+                      setProveedorSalesData(p => ({
+                        ...p,
+                        [y]: { ...p[y], [m]: v }
+                      }));
+                      setIsDirty(true);
+                    }}
+                  />
+                </CardContent>
               </Card>
+
               <VentasStatusManager
-                report={report}
+                status={status}
+                validadoPor={validadoPor}
                 creatorName={creatorName}
-                onStatusChange={(s) => { setReport(p => p ? {...p, status: s} : null); setIsDirty(true); }}
-                onValidatedByChange={(n) => { setReport(p => p ? {...p, validado_por: n} : null); setIsDirty(true); }}
+                onStatusChange={(s) => {
+                  setStatus(s);
+                  setIsDirty(true);
+                }}
+                onValidatedByChange={(n) => {
+                  setValidadoPor(n);
+                  setIsDirty(true);
+                }}
                 onSave={handleSave}
                 isSaving={saving}
                 hasUnsavedChanges={isDirty}
-                onSolicitudIdChange={(solicitudId) => { setReport(p => p ? {...p, solicitud_id: solicitudId} : null); setIsDirty(true); }}
+                onSolicitudIdChange={(id) => {
+                  setSolicitudId(id);
+                  setIsDirty(true);
+                }}
                 searchSolicitudes={searchSolicitudes}
                 initialSolicitudLabel={initialSolicitudLabel}
               />
