@@ -1,61 +1,36 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/types/supabase';
-
-export type RibReporteTributario = Tables<'rib_reporte_tributario'>;
 
 export interface RibReporteTributarioSummary {
   id: string;
   ruc: string;
-  nombre_empresa: string | null;
-  updated_at: string | null;
+  nombre_empresa: string;
+  updated_at: string;
   status: string | null;
   creator_name: string | null;
-  solicitud_id: string | null;
-  anio: number;
+  solicitud_id?: string | null;
 }
 
-export class RibReporteTributarioService {
-  static async getAllSummaries(): Promise<RibReporteTributarioSummary[]> {
+export const RibReporteTributarioService = {
+  async getAllSummaries(): Promise<RibReporteTributarioSummary[]> {
     const { data, error } = await supabase.rpc('get_rib_reporte_tributario_summaries');
 
     if (error) {
-      console.error('Error fetching RIB reporte tributario summaries:', error);
-      throw new Error('No se pudieron cargar los resúmenes de reportes tributarios.');
+      console.error('Error fetching RIB Reporte Tributario summaries:', error);
+      throw new Error(error.message);
     }
 
     return data || [];
-  }
+  },
 
-  static async getForEdit(solicitudId: string, anio: number) {
-    const { data, error } = await supabase
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
       .from('rib_reporte_tributario')
-      .select('*')
-      .eq('solicitud_id', solicitudId)
-      .eq('anio', anio);
+      .delete()
+      .eq('id', id);
 
     if (error) {
-      console.error('Error fetching reporte tributario for edit:', error);
-      throw new Error('Error al cargar el reporte para editar.');
+      console.error('Error deleting RIB Reporte Tributario:', error);
+      throw new Error(error.message);
     }
-
-    const deudorReport = data.find(r => r.tipo_entidad === 'deudor') || null;
-    const proveedorReport = data.find(r => r.tipo_entidad === 'proveedor') || null;
-
-    return { deudorReport, proveedorReport };
-  }
-
-  static async upsert(reportData: Partial<RibReporteTributario>) {
-    const { data, error } = await supabase
-      .from('rib_reporte_tributario')
-      .upsert(reportData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error upserting reporte tributario:', error);
-      throw new Error('Error al guardar el reporte tributario.');
-    }
-
-    return data;
-  }
-}
+  },
+};

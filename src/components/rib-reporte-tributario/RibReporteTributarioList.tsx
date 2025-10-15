@@ -15,7 +15,7 @@ import { RibReporteTributarioSummary } from '@/services/ribReporteTributarioServ
 
 interface RibReporteTributarioListProps {
   reports: RibReporteTributarioSummary[];
-  onSelectReport: (solicitudId: string, anio: number) => void;
+  onSelectReport: (id: string) => void;
   onDeleteReport: (id: string) => void;
 }
 
@@ -45,7 +45,6 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({ rep
       <TableHeader>
         <TableRow className="border-gray-800">
           <TableHead className="text-gray-400">Empresa (RUC)</TableHead>
-          <TableHead className="text-gray-400">Año</TableHead>
           <TableHead className="text-gray-400">Creador</TableHead>
           <TableHead className="text-gray-400">Solicitud Asociada</TableHead>
           <TableHead className="text-gray-400">Estado</TableHead>
@@ -59,7 +58,6 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({ rep
             <TableCell className="text-white font-medium">
               {report.nombre_empresa || 'N/A'} ({report.ruc})
             </TableCell>
-            <TableCell className="text-white">{report.anio}</TableCell>
             <TableCell className="text-white">{report.creator_name || 'N/A'}</TableCell>
             <TableCell>
               {report.solicitud_id ? (
@@ -83,9 +81,7 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({ rep
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => report.solicitud_id && onSelectReport(report.solicitud_id, report.anio)}
-                  disabled={!report.solicitud_id}
-                  title={!report.solicitud_id ? "Se requiere un ID de solicitud para editar" : "Editar reporte"}
+                  onClick={() => onSelectReport(report.id)}
                 >
                   <Edit className="h-4 w-4 text-gray-400" />
                 </Button>
