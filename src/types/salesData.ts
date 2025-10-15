@@ -1,3 +1,7 @@
+export interface MonthlySales {
+  [month: string]: number | null;
+}
+
 export interface SalesData {
-  [key: string]: any;
+  [year: number]: MonthlySales;
 }
