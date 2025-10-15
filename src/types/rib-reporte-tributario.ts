@@ -130,6 +130,7 @@ export interface RibReporteTributario {
 }
 
 export interface RibReporteTributarioSummary {
+  id: string;
   ruc: string;
   nombre_empresa: string;
   updated_at: string;

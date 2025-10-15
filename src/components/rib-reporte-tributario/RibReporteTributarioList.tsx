@@ -6,8 +6,8 @@ import { RibReporteTributarioSummary } from '@/services/ribReporteTributarioServ
 
 interface RibReporteTributarioListProps {
   reports: RibReporteTributarioSummary[];
-  onSelectReport: (ruc: string) => void;
-  onDeleteReport?: (ruc: string) => void;
+  onSelectReport: (id: string) => void;
+  onDeleteReport?: (id: string) => void;
 }
 
 const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({ 
@@ -39,16 +39,16 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({
     });
   };
 
-  const handleDelete = (e: React.MouseEvent, ruc: string) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (onDeleteReport) {
-      onDeleteReport(ruc);
+      onDeleteReport(id);
     }
   };
 
-  const handleEdit = (e: React.MouseEvent, ruc: string) => {
+  const handleEdit = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    onSelectReport(ruc);
+    onSelectReport(id);
   };
 
   if (reports.length === 0) {
@@ -56,7 +56,7 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({
       <div className="text-center py-12 text-gray-400">
         <Building2 className="h-16 w-16 mx-auto mb-4 opacity-30" />
         <h3 className="text-lg font-medium mb-2">No hay reportes RIB guardados</h3>
-        <p className="text-sm">Busca una empresa por RUC para crear su reporte tributario</p>
+        <p className="text-sm">Crea un nuevo reporte para empezar</p>
       </div>
     );
   }
@@ -65,7 +65,7 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({
     <div className="space-y-2">
       {reports.map((report) => (
         <div 
-          key={report.ruc}
+          key={report.id}
           className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 hover:border-[#00FF80]/50 transition-all duration-200 hover:bg-gray-900/70"
         >
           <div className="flex items-center justify-between">
@@ -128,7 +128,7 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={(e) => handleEdit(e, report.ruc)}
+                onClick={(e) => handleEdit(e, report.id)}
                 className="bg-blue-500/10 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/50"
               >
                 <Edit className="h-4 w-4 mr-1" />
@@ -139,7 +139,7 @@ const RibReporteTributarioList: React.FC<RibReporteTributarioListProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={(e) => handleDelete(e, report.ruc)}
+                  onClick={(e) => handleDelete(e, report.id)}
                   className="bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:border-red-500/50"
                 >
                   <Trash2 className="h-4 w-4" />

@@ -60,7 +60,7 @@ function App() {
           
           <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributarioPage /></ProtectedRoute>} />
           <Route path="/rib-reporte-tributario/new" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
-          <Route path="/rib-reporte-tributario/edit/:ruc" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
+          <Route path="/rib-reporte-tributario/edit/:id" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
 
           <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensualesPage /></ProtectedRoute>} />
           <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />

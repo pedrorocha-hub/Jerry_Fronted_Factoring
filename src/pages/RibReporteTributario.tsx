@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RibReporteTributarioService, RibReporteTributarioSummary } from '@/services/ribReporteTributarioService';
 import RibReporteTributarioList from '@/components/rib-reporte-tributario/RibReporteTributarioList';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
 
 const RibReporteTributarioPage = () => {
   const navigate = useNavigate();
@@ -29,15 +29,15 @@ const RibReporteTributarioPage = () => {
     }
   };
 
-  const handleSelectReport = (ruc: string) => {
-    navigate(`/rib-reporte-tributario/edit/${ruc}`);
+  const handleSelectReport = (id: string) => {
+    navigate(`/rib-reporte-tributario/edit/${id}`);
   };
 
-  const handleDeleteReport = async (ruc: string) => {
+  const handleDeleteReport = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar este reporte? Esta acción no se puede deshacer.')) return;
     try {
-      await RibReporteTributarioService.delete(ruc);
-      showError('Reporte eliminado exitosamente.');
+      await RibReporteTributarioService.delete(id);
+      showSuccess('Reporte eliminado exitosamente.');
       await fetchSummaries();
     } catch (err) {
       showError(`Error al eliminar el reporte: ${err instanceof Error ? err.message : 'Error desconocido'}`);

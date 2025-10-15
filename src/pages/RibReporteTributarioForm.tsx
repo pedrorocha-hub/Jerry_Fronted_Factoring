@@ -24,11 +24,11 @@ import { EstadoSituacionService } from '@/services/estadoSituacionService';
 type Status = 'Borrador' | 'En revisión' | 'Completado';
 
 const RibReporteTributarioForm = () => {
-  const { ruc } = useParams<{ ruc: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const isEditMode = !!ruc;
+  const isEditMode = !!id;
 
-  const [rucInput, setRucInput] = useState(ruc || '');
+  const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
@@ -42,14 +42,45 @@ const RibReporteTributarioForm = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (isEditMode && ruc) {
-      handleSearch(ruc);
+    if (isEditMode && id) {
+      handleLoadForEdit(id);
     }
-  }, [isEditMode, ruc]);
+  }, [isEditMode, id]);
 
-  const handleSearch = async (rucToSearch?: string) => {
-    const currentRuc = rucToSearch || rucInput;
-    if (!currentRuc || currentRuc.length !== 11) {
+  const handleLoadForEdit = async (reportId: string) => {
+    setSearching(true);
+    try {
+      const existingReport = await RibReporteTributarioService.getById(reportId);
+      if (existingReport) {
+        const fichaData = await FichaRucService.getByRuc(existingReport.ruc);
+        setSearchedFicha(fichaData);
+        setRucInput(existingReport.ruc);
+        setSavedReportData(existingReport);
+        setDraftReportData(existingReport);
+        if (existingReport.user_id) {
+          const profile = await ProfileService.getProfileById(existingReport.user_id);
+          setCreatorName(profile?.full_name || 'Desconocido');
+        }
+        if (existingReport.solicitud_id) {
+          const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingReport.solicitud_id).single();
+          if (solicitud) {
+            const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
+            setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+          }
+        }
+      } else {
+        showError('No se encontró el reporte para editar.');
+        navigate('/rib-reporte-tributario');
+      }
+    } catch (err) {
+      showError('Error al cargar el reporte para editar.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSearchForNew = async () => {
+    if (!rucInput || rucInput.length !== 11) {
       setError('Por favor, ingrese un RUC válido de 11 dígitos.');
       return;
     }
@@ -58,48 +89,27 @@ const RibReporteTributarioForm = () => {
     setSearchedFicha(null);
     setSavedReportData(null);
     setDraftReportData(null);
-    setCreatorName(null);
     setHasUnsavedChanges(false);
-    setInitialSolicitudLabel(null);
 
     try {
-      const fichaData = await FichaRucService.getByRuc(currentRuc);
+      const fichaData = await FichaRucService.getByRuc(rucInput);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const existingReport = await RibReporteTributarioService.getByRuc(currentRuc);
-        
-        if (existingReport) {
-          setSavedReportData(existingReport);
-          setDraftReportData(existingReport);
-          if (existingReport.user_id) {
-            const profile = await ProfileService.getProfileById(existingReport.user_id);
-            setCreatorName(profile?.full_name || 'Desconocido');
-          }
-          if (existingReport.solicitud_id) {
-            const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingReport.solicitud_id).single();
-            if (solicitud) {
-              const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
-              setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
-            }
-          }
-        } else {
-          const situacion = await EstadoSituacionService.getEstadoSituacion(currentRuc);
-          const newDraft: Partial<RibReporteTributario> = { ruc: currentRuc, status: 'Borrador' };
-          [2022, 2023, 2024].forEach(year => {
-            const yearData = situacion[`data_${year}` as keyof typeof situacion];
-            (newDraft as any)[`cuentas_por_cobrar_giro_${year}`] = yearData.cuentas_por_cobrar_del_giro;
-            (newDraft as any)[`total_activos_${year}`] = yearData.total_activos;
-            (newDraft as any)[`cuentas_por_pagar_giro_${year}`] = yearData.cuentas_por_pagar_del_giro;
-            (newDraft as any)[`total_pasivos_${year}`] = yearData.total_pasivos;
-            (newDraft as any)[`capital_pagado_${year}`] = yearData.capital_pagado;
-            (newDraft as any)[`total_patrimonio_${year}`] = yearData.total_patrimonio;
-            (newDraft as any)[`total_pasivo_patrimonio_${year}`] = yearData.total_pasivo_y_patrimonio;
-          });
-          setDraftReportData(newDraft);
-          setSavedReportData(null);
-          setHasUnsavedChanges(true);
-          showSuccess('Datos autocompletados desde Reportes Tributarios.');
-        }
+        const situacion = await EstadoSituacionService.getEstadoSituacion(rucInput);
+        const newDraft: Partial<RibReporteTributario> = { ruc: rucInput, status: 'Borrador' };
+        [2022, 2023, 2024].forEach(year => {
+          const yearData = situacion[`data_${year}` as keyof typeof situacion];
+          (newDraft as any)[`cuentas_por_cobrar_giro_${year}`] = yearData.cuentas_por_cobrar_del_giro;
+          (newDraft as any)[`total_activos_${year}`] = yearData.total_activos;
+          (newDraft as any)[`cuentas_por_pagar_giro_${year}`] = yearData.cuentas_por_pagar_del_giro;
+          (newDraft as any)[`total_pasivos_${year}`] = yearData.total_pasivos;
+          (newDraft as any)[`capital_pagado_${year}`] = yearData.capital_pagado;
+          (newDraft as any)[`total_patrimonio_${year}`] = yearData.total_patrimonio;
+          (newDraft as any)[`total_pasivo_patrimonio_${year}`] = yearData.total_pasivo_y_patrimonio;
+        });
+        setDraftReportData(newDraft);
+        setHasUnsavedChanges(true);
+        showSuccess('Datos autocompletados desde Reportes Tributarios. Puede editar y guardar como un nuevo reporte.');
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un reporte.');
         showError('Ficha RUC no encontrada.');
@@ -134,13 +144,17 @@ const RibReporteTributarioForm = () => {
       showError('No hay datos para guardar');
       return;
     }
+    if (!draftReportData.solicitud_id) {
+      showError('Debe asociar el reporte a una Solicitud de Operación antes de guardar.');
+      return;
+    }
     setIsSaving(true);
     try {
-      const savedData = await RibReporteTributarioService.upsert(draftReportData as any);
+      const savedData = await RibReporteTributarioService.save(draftReportData as RibReporteTributario);
       setSavedReportData(savedData);
       setDraftReportData(savedData);
       setHasUnsavedChanges(false);
-      showSuccess('Reporte RIB actualizado exitosamente.');
+      showSuccess('Reporte RIB guardado exitosamente.');
       navigate('/rib-reporte-tributario');
     } catch (err) {
       showError(`Error al guardar el reporte RIB: ${err instanceof Error ? err.message : 'Error desconocido'}`);
@@ -180,11 +194,11 @@ const RibReporteTributarioForm = () => {
               <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
                 <div className="relative flex-1 w-full">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+                  <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearchForNew()} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
                 </div>
-                <Button onClick={() => handleSearch()} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                <Button onClick={handleSearchForNew} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
                   {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                  Buscar
+                  Buscar y Autocompletar
                 </Button>
               </CardContent>
             </Card>
