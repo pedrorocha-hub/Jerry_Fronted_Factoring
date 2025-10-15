@@ -288,9 +288,30 @@ const RibPage = () => {
     }
   };
 
-  const handleEditFromList = (rib: RibWithDetails) => {
-    setRucInput(rib.ruc);
-    handleSearch(rib.ruc);
+  const handleEditFromList = async (rib: RibWithDetails) => {
+    setSearching(true);
+    setError(null);
+    try {
+      const fichaData = await FichaRucService.getByRuc(rib.ruc);
+      if (fichaData) {
+        setSearchedFicha(fichaData);
+        const [accionistasData, gerentesData] = await Promise.all([
+          AccionistaService.getByRuc(rib.ruc),
+          GerenciaService.getAllByRuc(rib.ruc)
+        ]);
+        setAccionistas(accionistasData);
+        setGerentes(gerentesData);
+        await handleSelectRibForEdit(rib);
+      } else {
+        setError('Ficha RUC no encontrada. No se puede editar el análisis RIB.');
+        showError('Ficha RUC no encontrada.');
+      }
+    } catch (err) {
+      setError('Ocurrió un error al cargar el análisis para editar.');
+      showError('Error al cargar el análisis.');
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleCreateNew = () => {
@@ -334,6 +355,14 @@ const RibPage = () => {
 
           {view === 'list' && (
             <div className="space-y-6">
+              {searching && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+                    <span className="text-white">Cargando editor...</span>
+                  </div>
+                </div>
+              )}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">Buscar Empresa por RUC</CardTitle>
