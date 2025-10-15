@@ -28,6 +28,7 @@ export interface SolicitudOperacion {
   garantias: string | null;
   condiciones_desembolso: string | null;
   user_id: string | null;
+  validado_por: string | null; // <-- Nuevo campo
 }
 
 export interface SolicitudOperacionRiesgo {
