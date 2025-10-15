@@ -139,7 +139,7 @@ const DossiersGuardadosPage = () => {
             <div>
               <h1 className="text-2xl font-bold text-white flex items-center">
                 <FolderCheck className="h-6 w-6 mr-3 text-[#00FF80]" />
-                Dossiers Guardados
+                Reportes finales RIB guardados
               </h1>
               <p className="text-gray-400">Busca, visualiza y gestiona los dossiers de empresas</p>
             </div>
