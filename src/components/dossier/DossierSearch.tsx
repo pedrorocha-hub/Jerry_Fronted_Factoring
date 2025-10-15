@@ -22,7 +22,7 @@ const DossierSearch: React.FC<DossierSearchProps> = ({ onSearch, searching, erro
     <>
       <Card className="bg-[#121212] border border-gray-800">
         <CardHeader>
-          <CardTitle className="text-white">Buscar Dossier por ID de Solicitud</CardTitle>
+          <CardTitle className="text-white">Buscar Rib por ID de Solicitud</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
