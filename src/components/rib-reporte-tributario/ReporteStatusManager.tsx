@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RibReporteTributario } from '@/services/ribReporteTributarioService';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 
 interface ReporteStatusManagerProps {
-  report: RibReporteTributario;
+  solicitudId: string | null;
+  status: 'Borrador' | 'En revisión' | 'Completado';
+  createdAt?: string;
+  updatedAt?: string;
   creatorName: string | null;
   onStatusChange: (status: 'Borrador' | 'En revisión' | 'Completado') => void;
   onSave: () => void;
@@ -20,7 +22,10 @@ interface ReporteStatusManagerProps {
 }
 
 const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
-  report,
+  solicitudId,
+  status,
+  createdAt,
+  updatedAt,
   creatorName,
   onStatusChange,
   onSave,
@@ -52,7 +57,8 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('es-PE', {
       year: 'numeric',
       month: 'long',
@@ -67,9 +73,9 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
       <CardHeader>
         <CardTitle className="text-white flex items-center justify-between">
           <span>Estado del Reporte</span>
-          <Badge className={getStatusColor(report.status || 'Borrador')}>
-            {getStatusIcon(report.status || 'Borrador')}
-            <span className="ml-2">{report.status || 'Borrador'}</span>
+          <Badge className={getStatusColor(status || 'Borrador')}>
+            {getStatusIcon(status || 'Borrador')}
+            <span className="ml-2">{status || 'Borrador'}</span>
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -78,7 +84,7 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300">Asociar a Solicitud de Operación</label>
             <AsyncCombobox
-              value={report.solicitud_id || null}
+              value={solicitudId}
               onChange={onSolicitudIdChange}
               onSearch={searchSolicitudes}
               placeholder="Buscar por RUC, empresa o ID..."
@@ -90,7 +96,7 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-300">Cambiar Estado</label>
             <Select
-              value={report.status || 'Borrador'}
+              value={status || 'Borrador'}
               onValueChange={(value: 'Borrador' | 'En revisión' | 'Completado') => onStatusChange(value)}
             >
               <SelectTrigger className="w-full bg-gray-900/50 border-gray-700">
@@ -124,11 +130,11 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
             <User className="h-4 w-4 mr-2" />
             <span>Creado por: {creatorName || 'Sistema'}</span>
           </div>
-          {report.created_at && (
-            <div>Creado: {formatDate(report.created_at)}</div>
+          {createdAt && (
+            <div>Creado: {formatDate(createdAt)}</div>
           )}
-          {report.updated_at && (
-            <div>Actualizado: {formatDate(report.updated_at)}</div>
+          {updatedAt && (
+            <div>Actualizado: {formatDate(updatedAt)}</div>
           )}
         </div>
 

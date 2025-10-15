@@ -26,6 +26,8 @@ export interface RibReporteTributarioDocument {
   solicitud_id: string | null;
   status: string;
   user_id: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // "Tall" format for a single database row
@@ -91,7 +93,9 @@ export class RibReporteTributarioService {
       proveedor: hasProveedor ? proveedorData : null,
       solicitud_id: data[0].solicitud_id,
       status: data[0].status || 'Borrador',
-      user_id: data[0].user_id
+      user_id: data[0].user_id,
+      created_at: data[0].created_at,
+      updated_at: data[0].updated_at,
     };
   }
 
