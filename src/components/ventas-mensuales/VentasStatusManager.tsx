@@ -117,7 +117,7 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
             value={solicitudId} // <-- Conectado al valor actual
             placeholder="Buscar solicitud..."
             onSearch={searchSolicitudes}
-            onSelect={(option) => onSolicitudIdChange(option?.value || null)}
+            onChange={(option) => onSolicitudIdChange(option?.value || null)}
             initialLabel={initialSolicitudLabel}
           />
         </div>
