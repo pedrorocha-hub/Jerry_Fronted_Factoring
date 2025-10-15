@@ -1,7 +1,10 @@
-import * as React from "react";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+"use client"
+
+import * as React from "react"
+import { Check, ChevronsUpDown } from "lucide-react"
+
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -9,96 +12,68 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Loader2 } from "lucide-react"
 
-// Definición de tipos para las opciones
-export type ComboboxOption = {
-  value: string; // UUID o valor real
-  label: string; // Texto a mostrar
-};
+export interface ComboboxOption {
+  value: string;
+  label: string;
+}
 
-// Definición de tipos para las props
 interface AsyncComboboxProps {
-  placeholder: string;
+  value: string | null;
+  onChange: (value: string | null) => void;
   onSearch: (query: string) => Promise<ComboboxOption[]>;
-  onValueChange: (value: string) => void;
-  initialValue?: string; // El UUID del valor seleccionado
-  initialDisplayValue?: string; // El label a mostrar inicialmente
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyMessage?: string;
   disabled?: boolean;
-  value?: string | null; // Prop para controlar el valor desde fuera
+  initialDisplayValue?: string | null;
 }
 
 export function AsyncCombobox({
-  placeholder,
+  value,
+  onChange,
   onSearch,
-  onValueChange,
-  initialValue,
-  initialDisplayValue,
+  placeholder = "Select an option...",
+  searchPlaceholder = "Search...",
+  emptyMessage = "No results found.",
   disabled = false,
-  value: controlledValue,
+  initialDisplayValue,
 }: AsyncComboboxProps) {
-  const [open, setOpen] = React.useState(false);
-  const [options, setOptions] = React.useState<ComboboxOption[]>([]);
-  const [loading, setLoading] = React.useState(false);
-  const [searchTerm, setSearchTerm] = React.useState("");
-  
-  // Estado para el valor real (UUID)
-  const [selectedValue, setSelectedValue] = React.useState(controlledValue || initialValue || "");
-  // Estado para el label que se muestra en el botón
-  const [displayLabel, setDisplayLabel] = React.useState(initialDisplayValue || "");
+  const [open, setOpen] = React.useState(false)
+  const [options, setOptions] = React.useState<ComboboxOption[]>([])
+  const [loading, setLoading] = React.useState(false)
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [selectedLabel, setSelectedLabel] = React.useState<string | null>(initialDisplayValue || null)
 
-  // Sincronizar props externas con el estado interno
   React.useEffect(() => {
-    const newValue = controlledValue || initialValue || "";
-    setSelectedValue(newValue);
     if (initialDisplayValue) {
-      setDisplayLabel(initialDisplayValue);
+      setSelectedLabel(initialDisplayValue);
     }
-  }, [controlledValue, initialValue, initialDisplayValue]);
+  }, [initialDisplayValue]);
 
-  // Efecto para manejar la búsqueda asíncrona
   React.useEffect(() => {
-    if (searchTerm.length > 2) {
-      setLoading(true);
-      onSearch(searchTerm)
-        .then((newOptions) => {
-          setOptions(newOptions);
-        })
-        .catch((error) => {
-          console.error("Error fetching search results:", error);
-          setOptions([]);
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    } else if (searchTerm.length === 0) {
-      // Limpiar opciones si el término de búsqueda es muy corto
-      setOptions([]);
+    if (open) {
+      setLoading(true)
+      onSearch(searchQuery).then((newOptions) => {
+        setOptions(newOptions)
+        setLoading(false)
+      })
     }
-  }, [searchTerm, onSearch]);
+  }, [open, searchQuery, onSearch])
 
-  const handleSelect = (currentLabel: string) => {
-    // Buscar la opción completa usando el label (que es el valor del CommandItem)
-    const selectedOption = options.find(
-      (option) => option.label.toLowerCase() === currentLabel.toLowerCase()
-    );
-
-    if (selectedOption) {
-      // Si la opción seleccionada es la misma que ya está, deseleccionar
-      if (selectedValue === selectedOption.value) {
-        setSelectedValue("");
-        setDisplayLabel("");
-        onValueChange("");
-      } else {
-        // Seleccionar la nueva opción
-        setSelectedValue(selectedOption.value);
-        setDisplayLabel(selectedOption.label);
-        onValueChange(selectedOption.value);
-      }
-      setOpen(false);
-    }
-  };
+  const handleSelect = (currentValue: string) => {
+    const selectedOption = options.find(option => option.value === currentValue);
+    onChange(currentValue === value ? null : currentValue)
+    setSelectedLabel(selectedOption ? selectedOption.label : null);
+    setOpen(false)
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -107,44 +82,42 @@ export function AsyncCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn(
-            "w-full justify-between bg-gray-900/50 border-gray-700 text-white hover:bg-gray-800",
-            !displayLabel && "text-muted-foreground"
-          )}
+          className="w-full justify-between bg-gray-900/50 border-gray-700"
           disabled={disabled}
         >
-          {displayLabel || placeholder}
+          <span className="truncate">
+            {value
+              ? selectedLabel || options.find((option) => option.value === value)?.label || value
+              : placeholder}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-[#121212] border-gray-700">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
-          <CommandInput
-            placeholder={placeholder}
-            onValueChange={setSearchTerm}
-            className="bg-gray-900/50 border-gray-700 text-white"
+          <CommandInput 
+            placeholder={searchPlaceholder} 
+            onValueChange={setSearchQuery}
           />
           <CommandList>
             {loading ? (
               <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-4 w-4 animate-spin text-[#00FF80]" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               </div>
             ) : (
               <>
-                <CommandEmpty>No se encontraron resultados.</CommandEmpty>
+                <CommandEmpty>{emptyMessage}</CommandEmpty>
                 <CommandGroup>
                   {options.map((option) => (
                     <CommandItem
                       key={option.value}
-                      // Usamos el label como valor para que la búsqueda de Command funcione
-                      value={option.label} 
-                      onSelect={() => handleSelect(option.label)} // Pasamos el label a handleSelect
-                      className="text-white hover:bg-gray-800"
+                      value={option.value}
+                      onSelect={handleSelect}
                     >
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          selectedValue === option.value ? "opacity-100" : "opacity-0"
+                          value === option.value ? "opacity-100" : "opacity-0"
                         )}
                       />
                       {option.label}
@@ -157,5 +130,5 @@ export function AsyncCombobox({
         </Command>
       </PopoverContent>
     </Popover>
-  );
+  )
 }
