@@ -19,103 +19,103 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     },
     headerBanner: {
       background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-      padding: '30px 40px',
+      padding: '25px 30px',
       color: 'white',
       marginBottom: '0',
     },
     headerTitle: {
-      fontSize: '32px',
+      fontSize: '28px',
       fontWeight: '700' as '700',
-      margin: '0 0 8px 0',
+      margin: '0 0 6px 0',
       letterSpacing: '-0.5px',
     },
     headerSubtitle: {
-      fontSize: '18px',
+      fontSize: '16px',
       fontWeight: '400' as '400',
-      margin: '0 0 4px 0',
+      margin: '0 0 3px 0',
       opacity: 0.95,
     },
     headerRuc: {
-      fontSize: '14px',
+      fontSize: '13px',
       fontWeight: '300' as '300',
       margin: '0',
       opacity: 0.8,
       letterSpacing: '1px',
     },
     accentBar: {
-      height: '6px',
+      height: '5px',
       background: 'linear-gradient(90deg, #00FF80 0%, #00cc66 100%)',
-      marginBottom: '30px',
+      marginBottom: '20px',
     },
     content: {
-      padding: '0 40px 40px 40px',
+      padding: '0 30px 30px 30px',
     },
     sectionCard: {
       backgroundColor: '#ffffff',
       border: '1px solid #e5e7eb',
-      borderRadius: '12px',
-      padding: '24px',
-      marginBottom: '24px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+      borderRadius: '10px',
+      padding: '20px',
+      marginBottom: '20px',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
     },
     sectionHeader: {
       display: 'flex',
       alignItems: 'center',
-      marginBottom: '20px',
-      paddingBottom: '12px',
+      marginBottom: '16px',
+      paddingBottom: '10px',
       borderBottom: '2px solid #00FF80',
     },
     sectionNumber: {
       backgroundColor: '#00FF80',
       color: '#000',
-      width: '32px',
-      height: '32px',
-      borderRadius: '8px',
+      width: '30px',
+      height: '30px',
+      borderRadius: '7px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontWeight: '700' as '700',
-      fontSize: '16px',
-      marginRight: '12px',
+      fontSize: '15px',
+      marginRight: '10px',
       flexShrink: 0,
     },
     sectionTitle: {
-      fontSize: '20px',
+      fontSize: '18px',
       fontWeight: '600' as '600',
       color: '#1a1a1a',
       margin: '0',
     },
     subsectionTitle: {
-      fontSize: '16px',
+      fontSize: '15px',
       fontWeight: '600' as '600',
       color: '#2d2d2d',
-      marginTop: '20px',
-      marginBottom: '12px',
-      paddingLeft: '12px',
-      borderLeft: '4px solid #00FF80',
+      marginTop: '16px',
+      marginBottom: '10px',
+      paddingLeft: '10px',
+      borderLeft: '3px solid #00FF80',
     },
     infoGrid: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '16px',
-      marginTop: '16px',
+      gap: '12px',
+      marginTop: '12px',
     },
     infoItem: {
       backgroundColor: '#f9fafb',
-      padding: '12px 16px',
-      borderRadius: '8px',
+      padding: '10px 14px',
+      borderRadius: '7px',
       border: '1px solid #e5e7eb',
     },
     infoLabel: {
-      fontSize: '11px',
+      fontSize: '10px',
       fontWeight: '600' as '600',
       color: '#6b7280',
       textTransform: 'uppercase' as 'uppercase',
       letterSpacing: '0.5px',
-      marginBottom: '4px',
+      marginBottom: '3px',
     },
     infoValue: {
-      fontSize: '14px',
+      fontSize: '13px',
       fontWeight: '500' as '500',
       color: '#1a1a1a',
       wordBreak: 'break-word' as 'break-word',
@@ -123,28 +123,46 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     table: {
       width: '100%',
       borderCollapse: 'collapse' as 'collapse',
-      marginTop: '16px',
-      fontSize: '12px',
-      borderRadius: '8px',
+      marginTop: '12px',
+      fontSize: '11px',
+      borderRadius: '7px',
       overflow: 'hidden',
+      border: '1px solid #e5e7eb',
     },
     tableHeader: {
       backgroundColor: '#1a1a1a',
       color: 'white',
     },
     th: {
-      padding: '12px 16px',
+      padding: '10px 12px',
       textAlign: 'left' as 'left',
       fontWeight: '600' as '600',
-      fontSize: '11px',
+      fontSize: '10px',
       textTransform: 'uppercase' as 'uppercase',
       letterSpacing: '0.5px',
       borderRight: '1px solid rgba(255,255,255,0.1)',
     },
+    thLast: {
+      padding: '10px 12px',
+      textAlign: 'left' as 'left',
+      fontWeight: '600' as '600',
+      fontSize: '10px',
+      textTransform: 'uppercase' as 'uppercase',
+      letterSpacing: '0.5px',
+      borderRight: 'none',
+    },
     td: {
-      padding: '12px 16px',
+      padding: '9px 12px',
       borderBottom: '1px solid #e5e7eb',
-      fontSize: '12px',
+      borderRight: '1px solid #e5e7eb',
+      fontSize: '11px',
+      color: '#374151',
+    },
+    tdLast: {
+      padding: '9px 12px',
+      borderBottom: '1px solid #e5e7eb',
+      borderRight: 'none',
+      fontSize: '11px',
       color: '#374151',
     },
     tableRowEven: {
@@ -154,42 +172,21 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       backgroundColor: '#ffffff',
     },
     footer: {
-      marginTop: '40px',
-      paddingTop: '20px',
+      marginTop: '30px',
+      paddingTop: '16px',
       borderTop: '2px solid #e5e7eb',
       textAlign: 'center' as 'center',
       color: '#6b7280',
     },
     footerText: {
-      fontSize: '11px',
-      margin: '4px 0',
+      fontSize: '10px',
+      margin: '3px 0',
     },
     footerBrand: {
-      fontSize: '12px',
-      fontWeight: '600' as '600',
-      color: '#1a1a1a',
-      marginTop: '8px',
-    },
-    badge: {
-      display: 'inline-block',
-      padding: '4px 12px',
-      borderRadius: '6px',
       fontSize: '11px',
       fontWeight: '600' as '600',
-      textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.5px',
-    },
-    badgeSuccess: {
-      backgroundColor: '#d1fae5',
-      color: '#065f46',
-    },
-    badgeWarning: {
-      backgroundColor: '#fef3c7',
-      color: '#92400e',
-    },
-    badgeInfo: {
-      backgroundColor: '#dbeafe',
-      color: '#1e40af',
+      color: '#1a1a1a',
+      marginTop: '6px',
     },
   };
 
@@ -289,15 +286,17 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
         <thead style={styles.tableHeader}>
           <tr>
             <th style={styles.th}>Concepto</th>
-            {years.map(year => <th key={year} style={styles.th}>{year}</th>)}
+            {years.map((year, index) => (
+              <th key={year} style={index === years.length - 1 ? styles.thLast : styles.th}>{year}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
           {Object.entries(fields).map(([name, label], index) => (
             <tr key={name} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
               <td style={styles.td}>{label}</td>
-              {years.map(year => (
-                <td key={year} style={styles.td}>
+              {years.map((year, yearIndex) => (
+                <td key={year} style={yearIndex === years.length - 1 ? styles.tdLast : styles.td}>
                   {formatCurrency(data[year]?.[name as keyof RibEeff] as number)}
                 </td>
               ))}
@@ -401,7 +400,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
                   <th style={styles.th}>Tipo</th>
                   <th style={styles.th}>Total Activos</th>
                   <th style={styles.th}>Total Pasivos</th>
-                  <th style={styles.th}>Ingreso Ventas</th>
+                  <th style={styles.thLast}>Ingreso Ventas</th>
                 </tr>
               </thead>
               <tbody>
@@ -411,7 +410,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
                     <td style={styles.td}>{reporte.tipo_entidad}</td>
                     <td style={styles.td}>{formatCurrency(reporte.total_activos)}</td>
                     <td style={styles.td}>{formatCurrency(reporte.total_pasivos)}</td>
-                    <td style={styles.td}>{formatCurrency(reporte.ingreso_ventas)}</td>
+                    <td style={styles.tdLast}>{formatCurrency(reporte.ingreso_ventas)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -432,16 +431,16 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
                   <th style={styles.th}>Año</th>
                   <th style={styles.th}>Mes</th>
                   <th style={styles.th}>Ventas Proveedor</th>
-                  <th style={styles.th}>Ventas Deudor</th>
+                  <th style={styles.thLast}>Ventas Deudor</th>
                 </tr>
               </thead>
               <tbody>
                 {ventasMensualesData.map((row, index) => (
                   <tr key={index} style={index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
                     <td style={styles.td}>{row.year}</td>
-                    <td style={styles.td} style={{...styles.td, textTransform: 'capitalize'}}>{row.month}</td>
+                    <td style={{...styles.td, textTransform: 'capitalize'}}>{row.month}</td>
                     <td style={styles.td}>{formatCurrency(row.proveedorVenta)}</td>
-                    <td style={styles.td}>{formatCurrency(row.deudorVenta)}</td>
+                    <td style={styles.tdLast}>{formatCurrency(row.deudorVenta)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -465,7 +464,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
               </div>
             )}
             {proveedorEeff.years.length > 0 && (
-              <div style={{marginTop: '24px'}}>
+              <div style={{marginTop: '20px'}}>
                 <div style={styles.subsectionTitle}>Proveedor</div>
                 <FinancialTable title="Activos" fields={ribEeffFields.activoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
                 <FinancialTable title="Pasivos" fields={ribEeffFields.pasivoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
