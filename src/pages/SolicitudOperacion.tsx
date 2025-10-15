@@ -98,6 +98,7 @@ const SolicitudOperacion = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="border-gray-800 hover:bg-gray-900/50">
+                        <TableHead className="text-gray-300">ID Solicitud</TableHead>
                         <TableHead className="text-gray-300">RUC</TableHead>
                         <TableHead className="text-gray-300">Empresa</TableHead>
                         <TableHead className="text-gray-300">Proveedor</TableHead>
@@ -114,6 +115,9 @@ const SolicitudOperacion = () => {
                         const primerRiesgo = solicitud.riesgos?.[0];
                         return (
                           <TableRow key={solicitud.id} className="border-gray-800 hover:bg-gray-900/30">
+                            <TableCell className="font-mono text-white text-xs">
+                              {solicitud.id.substring(0, 8)}...
+                            </TableCell>
                             <TableCell className="font-mono text-white">{solicitud.ruc}</TableCell>
                             <TableCell className="text-white">{solicitud.empresa_nombre}</TableCell>
                             <TableCell className="text-white">{solicitud.proveedor || primerRiesgo?.deudor || '-'}</TableCell>
