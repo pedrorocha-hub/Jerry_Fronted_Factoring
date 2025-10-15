@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, BarChart3 } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, X, TrendingUp, Calculator, BarChart3, Plus, Edit } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,16 +20,19 @@ import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
 import { EstadoSituacionService } from '@/services/estadoSituacionService';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
+type View = 'list' | 'search_results' | 'form';
 
 const RibReporteTributarioPage = () => {
+  const [view, setView] = useState<View>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchedFicha, setSearchedFicha] = useState<FichaRuc | null>(null);
   
-  const [savedReportData, setSavedReportData] = useState<RibReporteTributario | null>(null);
+  const [existingReports, setExistingReports] = useState<RibReporteTributario[]>([]);
   const [draftReportData, setDraftReportData] = useState<Partial<RibReporteTributario> | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
@@ -55,24 +58,11 @@ const RibReporteTributarioPage = () => {
     fetchSummaries();
   }, []);
 
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [hasUnsavedChanges]);
-
-  const clearSearch = () => {
+  const clearState = () => {
     setRucInput('');
     setError(null);
     setSearchedFicha(null);
-    setSavedReportData(null);
+    setExistingReports([]);
     setDraftReportData(null);
     setCreatorName(null);
     setHasUnsavedChanges(false);
@@ -86,48 +76,16 @@ const RibReporteTributarioPage = () => {
       return;
     }
     setSearching(true);
-    clearSearch();
+    clearState();
     setRucInput(ruc);
 
     try {
       const fichaData = await FichaRucService.getByRuc(ruc);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        const existingReport = await RibReporteTributarioService.getByRuc(ruc);
-        
-        if (existingReport) {
-          setSavedReportData(existingReport);
-          setDraftReportData(existingReport);
-          if (existingReport.user_id) {
-            const profile = await ProfileService.getProfileById(existingReport.user_id);
-            setCreatorName(profile?.full_name || 'Desconocido');
-          }
-          if (existingReport.solicitud_id) {
-            const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingReport.solicitud_id).single();
-            if (solicitud) {
-              const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
-              setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
-            }
-          }
-        } else {
-          // Autocomplete from reporte_tributario
-          const situacion = await EstadoSituacionService.getEstadoSituacion(ruc);
-          const newDraft: Partial<RibReporteTributario> = { ruc, status: 'Borrador' };
-          [2022, 2023, 2024].forEach(year => {
-            const yearData = situacion[`data_${year}` as keyof typeof situacion];
-            (newDraft as any)[`cuentas_por_cobrar_giro_${year}`] = yearData.cuentas_por_cobrar_del_giro;
-            (newDraft as any)[`total_activos_${year}`] = yearData.total_activos;
-            (newDraft as any)[`cuentas_por_pagar_giro_${year}`] = yearData.cuentas_por_pagar_del_giro;
-            (newDraft as any)[`total_pasivos_${year}`] = yearData.total_pasivos;
-            (newDraft as any)[`capital_pagado_${year}`] = yearData.capital_pagado;
-            (newDraft as any)[`total_patrimonio_${year}`] = yearData.total_patrimonio;
-            (newDraft as any)[`total_pasivo_patrimonio_${year}`] = yearData.total_pasivo_y_patrimonio;
-          });
-          setDraftReportData(newDraft);
-          setSavedReportData(null);
-          setHasUnsavedChanges(true);
-          showSuccess('Datos autocompletados desde Reportes Tributarios.');
-        }
+        const reports = await RibReporteTributarioService.getReportsByRuc(ruc);
+        setExistingReports(reports);
+        setView('search_results');
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un reporte.');
         showError('Ficha RUC no encontrada.');
@@ -140,21 +98,53 @@ const RibReporteTributarioPage = () => {
     }
   };
 
+  const handleCreateNew = async () => {
+    if (!searchedFicha) return;
+    const situacion = await EstadoSituacionService.getEstadoSituacion(searchedFicha.ruc);
+    const newDraft: Partial<RibReporteTributario> = { ruc: searchedFicha.ruc, status: 'Borrador' };
+    [2022, 2023, 2024].forEach(year => {
+      const yearData = situacion[`data_${year}` as keyof typeof situacion];
+      (newDraft as any)[`cuentas_por_cobrar_giro_${year}`] = yearData.cuentas_por_cobrar_del_giro;
+      (newDraft as any)[`total_activos_${year}`] = yearData.total_activos;
+      (newDraft as any)[`cuentas_por_pagar_giro_${year}`] = yearData.cuentas_por_pagar_del_giro;
+      (newDraft as any)[`total_pasivos_${year}`] = yearData.total_pasivos;
+      (newDraft as any)[`capital_pagado_${year}`] = yearData.capital_pagado;
+      (newDraft as any)[`total_patrimonio_${year}`] = yearData.total_patrimonio;
+      (newDraft as any)[`total_pasivo_patrimonio_${year}`] = yearData.total_pasivo_y_patrimonio;
+    });
+    setDraftReportData(newDraft);
+    setHasUnsavedChanges(true);
+    setView('form');
+    showSuccess('Formulario nuevo autocompletado desde Reportes Tributarios.');
+  };
+
+  const handleEditReport = async (report: RibReporteTributario) => {
+    setDraftReportData(report);
+    if (report.user_id) {
+      const profile = await ProfileService.getProfileById(report.user_id);
+      setCreatorName(profile?.full_name || 'Desconocido');
+    }
+    if (report.solicitud_id) {
+      const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', report.solicitud_id).single();
+      if (solicitud) {
+        const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
+        setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+      }
+    }
+    setView('form');
+  };
+
   const handleDataChange = (updatedData: Partial<RibReporteTributario>) => {
     setDraftReportData(updatedData);
     setHasUnsavedChanges(true);
   };
 
   const handleStatusChange = (newStatus: Status) => {
-    if (draftReportData) {
-      handleDataChange({ ...draftReportData, status: newStatus });
-    }
+    if (draftReportData) handleDataChange({ ...draftReportData, status: newStatus });
   };
 
   const handleSolicitudIdChange = (solicitudId: string | null) => {
-    if (draftReportData) {
-      handleDataChange({ ...draftReportData, solicitud_id: solicitudId });
-    }
+    if (draftReportData) handleDataChange({ ...draftReportData, solicitud_id: solicitudId });
   };
 
   const handleSave = async () => {
@@ -164,12 +154,12 @@ const RibReporteTributarioPage = () => {
     }
     setIsSaving(true);
     try {
-      const savedData = await RibReporteTributarioService.upsert(draftReportData as any);
-      setSavedReportData(savedData);
-      setDraftReportData(savedData);
+      await RibReporteTributarioService.upsert(draftReportData);
       setHasUnsavedChanges(false);
-      showSuccess('Reporte RIB actualizado exitosamente.');
+      showSuccess('Reporte RIB guardado exitosamente.');
       await fetchSummaries();
+      setView('list');
+      clearState();
     } catch (err) {
       showError(`Error al guardar el reporte RIB: ${err instanceof Error ? err.message : 'Error desconocido'}`);
     } finally {
@@ -177,19 +167,16 @@ const RibReporteTributarioPage = () => {
     }
   };
 
-  const handleSelectReport = (ruc: string) => {
-    setRucInput(ruc);
-    handleSearch(ruc);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleDeleteReport = async (ruc: string) => {
-    if (!confirm('¿Estás seguro de que quieres eliminar este reporte? Esta acción no se puede deshacer.')) return;
+  const handleDeleteReport = async (ruc: string, solicitud_id: string | null) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este reporte?')) return;
     try {
-      await RibReporteTributarioService.delete(ruc);
+      await RibReporteTributarioService.delete(ruc, solicitud_id);
       showSuccess('Reporte eliminado exitosamente.');
       await fetchSummaries();
-      if (searchedFicha?.ruc === ruc) clearSearch();
+      if (searchedFicha?.ruc === ruc) {
+        const reports = await RibReporteTributarioService.getReportsByRuc(ruc);
+        setExistingReports(reports);
+      }
     } catch (err) {
       showError(`Error al eliminar el reporte: ${err instanceof Error ? err.message : 'Error desconocido'}`);
     }
@@ -198,40 +185,94 @@ const RibReporteTributarioPage = () => {
   const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     const { data, error } = await supabase.rpc('search_solicitudes', { search_term: query });
-    if (error) {
-      console.error('Error searching solicitudes:', error);
-      return [];
-    }
+    if (error) { console.error('Error searching solicitudes:', error); return []; }
     return data || [];
+  };
+
+  const handleBack = () => {
+    if (hasUnsavedChanges && !confirm('Tienes cambios sin guardar. ¿Deseas descartarlos?')) return;
+    if (view === 'form') setView('search_results');
+    else if (view === 'search_results') {
+      setView('list');
+      clearState();
+    }
   };
 
   return (
     <Layout>
       <div className="min-h-screen bg-black">
         <div className="space-y-6 p-6">
-          <h1 className="text-2xl font-bold text-white flex items-center">
-            <ClipboardList className="h-6 w-6 mr-3 text-[#00FF80]" />
-            RIB - Reporte Tributario
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-white flex items-center">
+              <ClipboardList className="h-6 w-6 mr-3 text-[#00FF80]" />
+              RIB - Reporte Tributario
+            </h1>
+            {view !== 'list' && <Button variant="outline" onClick={handleBack} className="border-gray-700 text-gray-300">Volver</Button>}
+          </div>
 
-          <Card className="bg-[#121212] border border-gray-800">
-            <CardHeader><CardTitle className="text-white">Buscar o Editar Empresa por RUC</CardTitle></CardHeader>
-            <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
-              </div>
-              <Button onClick={() => handleSearch()} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
-                {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
-                Buscar
-              </Button>
-              {searchedFicha && <Button onClick={clearSearch} variant="outline" className="w-full sm:w-auto"><X className="h-4 w-4 mr-2" />Limpiar</Button>}
-            </CardContent>
-          </Card>
+          {view === 'list' && (
+            <>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader><CardTitle className="text-white">Buscar Empresa por RUC</CardTitle></CardHeader>
+                <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
+                  <div className="relative flex-1 w-full">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input placeholder="Ingrese RUC de 11 dígitos" value={rucInput} onChange={(e) => setRucInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} maxLength={11} className="pl-10 bg-gray-900/50 border-gray-700" />
+                  </div>
+                  <Button onClick={() => handleSearch()} disabled={searching} className="w-full sm:w-auto bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                    {searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+                    Buscar
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader><CardTitle className="text-white">Reportes RIB Guardados</CardTitle></CardHeader>
+                <CardContent>
+                  {loadingSummaries ? <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
+                    : reportSummaries.length === 0 ? <div className="text-center py-8 text-gray-400"><p>No hay reportes guardados.</p></div>
+                    : <RibReporteTributarioList reports={reportSummaries} onSelectReport={(ruc) => handleSearch(ruc)} onDeleteReport={() => {}} />}
+                </CardContent>
+              </Card>
+            </>
+          )}
 
           {error && <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
 
-          {searchedFicha ? (
+          {view === 'search_results' && searchedFicha && (
+            <Card className="bg-[#121212] border border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white">Resultados para: {searchedFicha.nombre_empresa} ({searchedFicha.ruc})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-end mb-4">
+                  <Button onClick={handleCreateNew} className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Nuevo Reporte
+                  </Button>
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-2">Reportes Existentes ({existingReports.length})</h3>
+                {existingReports.length > 0 ? (
+                  <Table>
+                    <TableHeader><TableRow className="border-gray-800"><TableHead className="text-gray-300">Fecha Creación</TableHead><TableHead className="text-gray-300">Solicitud Asociada</TableHead><TableHead className="text-gray-300">Estado</TableHead><TableHead className="text-right text-gray-300">Acciones</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {existingReports.map((report, idx) => (
+                        <TableRow key={idx} className="border-gray-800">
+                          <TableCell>{new Date(report.created_at!).toLocaleDateString()}</TableCell>
+                          <TableCell>{report.solicitud_id || 'No asociada'}</TableCell>
+                          <TableCell><Badge className={getStatusColor(report.status!)}>{report.status}</Badge></TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => handleEditReport(report)} className="text-gray-400 hover:text-white"><Edit className="h-4 w-4 mr-2" />Editar</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : <p className="text-center text-gray-400 py-4">No hay reportes previos para este RUC.</p>}
+              </CardContent>
+            </Card>
+          )}
+
+          {view === 'form' && searchedFicha && draftReportData && (
             <div className="space-y-8">
               <div className="space-y-6">
                 <div className="border-l-4 border-[#00FF80] pl-4">
@@ -248,33 +289,18 @@ const RibReporteTributarioPage = () => {
                 <div className="border-l-4 border-blue-500 pl-4"><h2 className="text-xl font-bold text-white mb-2">DATOS DEL PROVEEDOR</h2><p className="text-gray-400 text-sm">Información financiera del proveedor (opcional)</p></div>
                 <ProveedorSection data={draftReportData} onDataChange={handleDataChange} />
               </div>
-              {draftReportData && (
-                <ReporteStatusManager
-                  report={draftReportData as RibReporteTributario}
-                  creatorName={creatorName}
-                  onStatusChange={handleStatusChange}
-                  onSave={handleSave}
-                  isSaving={isSaving}
-                  hasUnsavedChanges={hasUnsavedChanges}
-                  onSolicitudIdChange={handleSolicitudIdChange}
-                  searchSolicitudes={searchSolicitudes}
-                  initialSolicitudLabel={initialSolicitudLabel}
-                />
-              )}
+              <ReporteStatusManager
+                report={draftReportData as RibReporteTributario}
+                creatorName={creatorName}
+                onStatusChange={handleStatusChange}
+                onSave={handleSave}
+                isSaving={isSaving}
+                hasUnsavedChanges={hasUnsavedChanges}
+                onSolicitudIdChange={handleSolicitudIdChange}
+                searchSolicitudes={searchSolicitudes}
+                initialSolicitudLabel={initialSolicitudLabel}
+              />
             </div>
-          ) : (
-            <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="text-white">Reportes RIB Guardados</CardTitle></CardHeader>
-              <CardContent>
-                {loadingSummaries ? (
-                  <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" /></div>
-                ) : reportSummaries.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400"><ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" /><p>No hay reportes RIB guardados</p><p className="text-sm mt-2">Busca una empresa para crear su reporte tributario</p></div>
-                ) : (
-                  <RibReporteTributarioList reports={reportSummaries} onSelectReport={handleSelectReport} onDeleteReport={handleDeleteReport} />
-                )}
-              </CardContent>
-            </Card>
           )}
         </div>
       </div>
