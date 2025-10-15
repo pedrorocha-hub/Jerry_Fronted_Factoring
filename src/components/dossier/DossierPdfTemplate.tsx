@@ -16,12 +16,18 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       width: '210mm',
       minHeight: '297mm',
       boxSizing: 'border-box' as 'border-box',
+      margin: '0 auto',
     },
     headerBanner: {
       background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-      padding: '25px 30px',
+      padding: '25px 0',
       color: 'white',
       marginBottom: '0',
+    },
+    headerContent: {
+      maxWidth: '180mm',
+      margin: '0 auto',
+      padding: '0 15mm',
     },
     headerTitle: {
       fontSize: '28px',
@@ -48,7 +54,9 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       marginBottom: '20px',
     },
     content: {
-      padding: '0 30px 30px 30px',
+      maxWidth: '180mm',
+      margin: '0 auto',
+      padding: '0 15mm 30px 15mm',
     },
     sectionCard: {
       backgroundColor: '#ffffff',
@@ -311,9 +319,11 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     <div ref={ref} style={styles.page}>
       {/* Header Banner */}
       <div style={styles.headerBanner}>
-        <h1 style={styles.headerTitle}>Dossier RIB</h1>
-        <p style={styles.headerSubtitle}>{nombreEmpresa}</p>
-        <p style={styles.headerRuc}>RUC: {dossier.solicitudOperacion.ruc}</p>
+        <div style={styles.headerContent}>
+          <h1 style={styles.headerTitle}>Dossier RIB</h1>
+          <p style={styles.headerSubtitle}>{nombreEmpresa}</p>
+          <p style={styles.headerRuc}>RUC: {dossier.solicitudOperacion.ruc}</p>
+        </div>
       </div>
       <div style={styles.accentBar}></div>
 
