@@ -11,6 +11,7 @@ interface VentasStatusManagerProps {
   status: string;
   validadoPor: string | null;
   creatorName: string | null;
+  solicitudId: string | null; // <-- Añadido
   onStatusChange: (status: string) => void;
   onValidatedByChange: (name: string | null) => void;
   onSave: () => void;
@@ -25,6 +26,7 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
   status,
   validadoPor,
   creatorName,
+  solicitudId, // <-- Desestructurado
   onStatusChange,
   onValidatedByChange,
   onSave,
@@ -112,6 +114,7 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
         <div className="space-y-2">
           <Label htmlFor="solicitud" className="text-gray-300">Solicitud de Operación</Label>
           <AsyncCombobox
+            value={solicitudId} // <-- Conectado al valor actual
             placeholder="Buscar solicitud..."
             searchFunction={searchSolicitudes}
             onSelect={(option) => onSolicitudIdChange(option?.value || null)}

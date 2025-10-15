@@ -379,6 +379,7 @@ const VentasMensualesForm = () => {
                 status={status}
                 validadoPor={validadoPor}
                 creatorName={creatorName}
+                solicitudId={solicitudId} // <-- Pasando la prop corregida
                 onStatusChange={(s) => {
                   setStatus(s);
                   setIsDirty(true);
@@ -392,6 +393,7 @@ const VentasMensualesForm = () => {
                 hasUnsavedChanges={isDirty}
                 onSolicitudIdChange={(id) => {
                   setSolicitudId(id);
+                  setInitialSolicitudLabel(null); // Clear initial label on manual change
                   setIsDirty(true);
                 }}
                 searchSolicitudes={searchSolicitudes}
