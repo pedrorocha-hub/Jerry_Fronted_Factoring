@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardEdit, Plus, Edit, Trash2, Eye, Loader2 } from 'lucide-react';
+import { ClipboardEdit, Plus, Edit, Trash2, Eye, Loader2, Copy } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +42,16 @@ const SolicitudOperacion = () => {
         showError('No se pudo eliminar la solicitud.');
         console.error(err);
       }
+    }
+  };
+
+  const handleCopyId = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      showSuccess('ID de solicitud copiado al portapapeles');
+    } catch (err) {
+      showError('No se pudo copiar el ID');
+      console.error(err);
     }
   };
 
@@ -115,8 +125,17 @@ const SolicitudOperacion = () => {
                         const primerRiesgo = solicitud.riesgos?.[0];
                         return (
                           <TableRow key={solicitud.id} className="border-gray-800 hover:bg-gray-900/30">
-                            <TableCell className="font-mono text-white text-xs">
-                              {solicitud.id.substring(0, 8)}...
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopyId(solicitud.id)}
+                                className="font-mono text-white text-xs hover:bg-[#00FF80]/10 hover:text-[#00FF80] flex items-center gap-2"
+                                title="Copiar ID completo"
+                              >
+                                {solicitud.id.substring(0, 8)}...
+                                <Copy className="h-3 w-3" />
+                              </Button>
                             </TableCell>
                             <TableCell className="font-mono text-white">{solicitud.ruc}</TableCell>
                             <TableCell className="text-white">{solicitud.empresa_nombre}</TableCell>
