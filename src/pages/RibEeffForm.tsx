@@ -13,9 +13,10 @@ import { FichaRucService } from '@/services/fichaRucService';
 import { EeffService } from '@/services/eeffService';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { Eeff } from '@/types/eeff';
-import { CreateRibEeffDto, UpdateRibEeffDto, RibEeff } from '@/types/rib-eeff';
+import { RibEeff } from '@/types/rib-eeff';
 import { toast } from 'sonner';
 import { Combobox } from '@/components/ui/combobox';
+import { useSession } from '@/contexts/SessionContext';
 
 const transformEeffToRibEeff = (eeff: Eeff): Partial<RibEeff> => {
     const transformed: Partial<RibEeff> = {};
@@ -65,8 +66,11 @@ const FinancialTable = ({ title, fields, years, yearsData, handleChange, icon, e
 );
 
 const RibEeffForm = () => {
-  const { ruc: urlRuc } = useParams<{ ruc: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useSession();
+  const isEditMode = !!id;
+
   const [fichas, setFichas] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,9 +136,30 @@ const RibEeffForm = () => {
         const fichasData = await FichaRucService.getAll();
         setFichas(fichasData);
 
-        if (urlRuc) {
-          setProveedorRuc(urlRuc);
-          await loadDataForRuc(urlRuc, 'proveedor');
+        if (isEditMode && id) {
+          const existingData = await RibEeffService.getById(id);
+          if (existingData.length > 0) {
+            const loadedYears = [...new Set(existingData.map(d => d.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
+            setYears(loadedYears);
+
+            const proveedorData = existingData.find(d => d.tipo_entidad === 'proveedor');
+            const deudorData = existingData.find(d => d.tipo_entidad === 'deudor');
+
+            if (proveedorData) setProveedorRuc(proveedorData.ruc);
+            if (deudorData) setDeudorRuc(deudorData.ruc);
+
+            const loadedYearsData = existingData.reduce((acc, record) => {
+              if (record.anio_reporte) {
+                const entityType = record.tipo_entidad === 'proveedor' ? 'proveedor' : 'deudor';
+                if (!acc[entityType]) acc[entityType] = {};
+                acc[entityType][record.anio_reporte] = record;
+              }
+              return acc;
+            }, { proveedor: {}, deudor: {} } as any);
+
+            setYearsData(loadedYearsData);
+            setStatus(existingData[0].status || 'Borrador');
+          }
         }
       } catch (error) {
         toast.error('No se pudieron cargar los datos iniciales.');
@@ -143,26 +168,7 @@ const RibEeffForm = () => {
       }
     };
     fetchInitialData();
-  }, [urlRuc]);
-
-  const loadDataForRuc = async (ruc: string, entityType: 'proveedor' | 'deudor') => {
-    const existingData = await RibEeffService.getByRuc(ruc);
-    if (existingData.length > 0) {
-      const loadedYears = [...new Set(existingData.map(d => d.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
-      setYears(prev => [...new Set([...prev, ...loadedYears])].sort((a, b) => b - a));
-
-      const loadedYearsData = existingData.reduce((acc, record) => {
-        if (record.anio_reporte) acc[record.anio_reporte] = record;
-        return acc;
-      }, {} as { [key: number]: Partial<RibEeff> });
-
-      setYearsData(prev => ({ ...prev, [entityType]: loadedYearsData }));
-      
-      if (entityType === 'proveedor' && existingData[0].status) {
-        setStatus(existingData[0].status);
-      }
-    }
-  };
+  }, [id, isEditMode]);
 
   const handleLoadEeffData = async () => {
     if (!proveedorRuc) {
@@ -185,7 +191,6 @@ const RibEeffForm = () => {
 
       setYearsData(prevYearsData => {
         const updatedYearsData = JSON.parse(JSON.stringify(prevYearsData));
-
         for (const record of eeffRecords) {
           const entityType = record.ruc === proveedorRuc ? 'proveedor' : 'deudor';
           if (record.anio_reporte) {
@@ -226,36 +231,29 @@ const RibEeffForm = () => {
     }
     setIsSubmitting(true);
     try {
+      const reportId = id || crypto.randomUUID();
       const recordsToUpsert: Partial<RibEeff>[] = [];
       
-      // Proveedor
-      years.forEach(year => {
-        if (yearsData.proveedor[year]) {
-          recordsToUpsert.push({
-            ...yearsData.proveedor[year],
-            ruc: proveedorRuc,
-            tipo_entidad: 'proveedor',
-            status: status,
-            anio_reporte: year,
-          });
-        }
-      });
+      ['proveedor', 'deudor'].forEach(entityType => {
+        const ruc = entityType === 'proveedor' ? proveedorRuc : deudorRuc;
+        if (!ruc) return;
 
-      // Deudor
-      if (deudorRuc) {
         years.forEach(year => {
-          if (yearsData.deudor[year]) {
+          const yearData = yearsData[entityType as 'proveedor' | 'deudor'][year];
+          if (yearData && Object.keys(yearData).length > 0) {
             recordsToUpsert.push({
-              ...yearsData.deudor[year],
-              ruc: deudorRuc,
-              proveedor_ruc: proveedorRuc,
-              tipo_entidad: 'deudor',
+              ...yearData,
+              id: reportId,
+              ruc: ruc,
+              tipo_entidad: entityType as 'proveedor' | 'deudor',
               status: status,
               anio_reporte: year,
+              user_id: user?.id,
+              updated_at: new Date().toISOString(),
             });
           }
         });
-      }
+      });
 
       await RibEeffService.upsertMultiple(recordsToUpsert);
       toast.success('Datos de RIB EEFF guardados correctamente.');
@@ -274,7 +272,7 @@ const RibEeffForm = () => {
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">Gestión de RIB EEFF</h1>
+            <h1 className="text-3xl font-bold">{isEditMode ? 'Editar' : 'Nuevo'} RIB EEFF</h1>
             <Button variant="outline" onClick={() => navigate('/rib-eeff')}><ArrowLeft className="h-4 w-4 mr-2" /> Volver</Button>
           </div>
 

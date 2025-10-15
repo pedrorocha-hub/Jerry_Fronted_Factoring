@@ -4,38 +4,24 @@ import { RibEeff, CreateRibEeffDto, UpdateRibEeffDto } from '@/types/rib-eeff';
 const TABLE_NAME = 'rib_eeff';
 
 export const RibEeffService = {
-  async getAll(): Promise<RibEeff[]> {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').order('created_at', { ascending: false });
+  async getAllSummaries(): Promise<any[]> {
+    const { data, error } = await supabase.rpc('get_rib_eeff_summaries');
     if (error) throw new Error(error.message);
     return data || [];
   },
 
-  async getById(id: string): Promise<RibEeff | null> {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').eq('id', id).single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
-  async getByRuc(ruc: string): Promise<RibEeff[]> {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').eq('ruc', ruc);
+  async getById(id: string): Promise<RibEeff[]> {
+    const { data, error } = await supabase.from(TABLE_NAME).select('*').eq('id', id);
     if (error) throw new Error(error.message);
     return data || [];
   },
 
-  async getByRucAndYears(ruc: string, years: number[]): Promise<RibEeff[]> {
-    const { data, error } = await supabase.from(TABLE_NAME).select('*').eq('ruc', ruc).in('anio_reporte', years);
-    if (error) throw new Error(error.message);
-    return data || [];
-  },
-
-  async create(dto: CreateRibEeffDto): Promise<RibEeff> {
-    const { data, error } = await supabase.from(TABLE_NAME).insert(dto).select().single();
-    if (error) throw new Error(error.message);
-    return data;
-  },
-
-  async update(id: string, dto: UpdateRibEeffDto): Promise<RibEeff> {
-    const { data, error } = await supabase.from(TABLE_NAME).update(dto).eq('id', id).select().single();
+  async upsertMultiple(records: Partial<RibEeff>[]): Promise<RibEeff[]> {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .upsert(records, { onConflict: 'id,anio_reporte,tipo_entidad' })
+      .select();
+      
     if (error) throw new Error(error.message);
     return data;
   },

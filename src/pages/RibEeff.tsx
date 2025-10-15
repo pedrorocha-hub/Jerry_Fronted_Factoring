@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -15,16 +14,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { RibEeffService } from '@/services/ribEeffService';
-import { FichaRucService } from '@/services/fichaRucService';
-import { RibEeff } from '@/types/rib-eeff';
-import { FichaRuc } from '@/types/ficha-ruc';
 import { toast } from 'sonner';
 
 const RibEeffPage = () => {
-  const [ribEeffs, setRibEeffs] = useState<RibEeff[]>([]);
-  const [fichas, setFichas] = useState<FichaRuc[]>([]);
+  const [summaries, setSummaries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,35 +28,26 @@ const RibEeffPage = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [ribEeffsData, fichasData] = await Promise.all([
-        RibEeffService.getAll(),
-        FichaRucService.getAll()
-      ]);
-      setRibEeffs(ribEeffsData);
-      setFichas(fichasData);
+      const summariesData = await RibEeffService.getAllSummaries();
+      setSummaries(summariesData);
     } catch (error: any) {
       console.error('Error al cargar datos:', error);
-      toast.error('Error al cargar los datos de RIB EEFF');
+      toast.error('Error al cargar los resúmenes de RIB EEFF');
     } finally {
       setLoading(false);
     }
   };
 
-  const getEmpresaNombre = (ruc: string) => {
-    const ficha = fichas.find(f => f.ruc === ruc);
-    return ficha?.nombre_empresa || ruc;
-  };
-
-  const handleDeleteGroup = async (ruc: string, ids: string[]) => {
-    if (!confirm(`¿Está seguro de eliminar todos los registros de RIB EEFF para el RUC ${ruc}?`)) return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Está seguro de eliminar este reporte de RIB EEFF?')) return;
 
     try {
-      await Promise.all(ids.map(id => RibEeffService.delete(id)));
-      toast.success(`Registros de RIB EEFF para ${ruc} eliminados correctamente`);
+      await RibEeffService.delete(id);
+      toast.success('Reporte eliminado correctamente');
       loadData();
     } catch (error: any) {
       console.error('Error al eliminar:', error);
-      toast.error('Error al eliminar los registros de RIB EEFF');
+      toast.error('Error al eliminar el reporte');
     }
   };
 
@@ -77,40 +62,6 @@ const RibEeffPage = () => {
         return <Badge variant="outline">Borrador</Badge>;
     }
   };
-
-  const groupedRibEeffs = useMemo(() => {
-    const grouped = ribEeffs.reduce((acc, item) => {
-      if (!acc[item.ruc]) {
-        acc[item.ruc] = {
-          ruc: item.ruc,
-          tipo_entidad: item.tipo_entidad,
-          status: item.status,
-          created_at: item.created_at,
-          years: new Set<number>(),
-          ids: [],
-        };
-      }
-      if (item.anio_reporte) {
-        acc[item.ruc].years.add(item.anio_reporte);
-      }
-      acc[item.ruc].ids.push(item.id);
-      if (item.created_at && (!acc[item.ruc].created_at || new Date(item.created_at) > new Date(acc[item.ruc].created_at!))) {
-        acc[item.ruc].status = item.status;
-        acc[item.ruc].created_at = item.created_at;
-      }
-      return acc;
-    }, {} as Record<string, { ruc: string; tipo_entidad: any; status: any; created_at?: string; years: Set<number>; ids: string[] }>);
-    
-    return Object.values(grouped).map(item => ({
-        ...item,
-        years: Array.from(item.years).sort((a, b) => b - a),
-    }));
-  }, [ribEeffs]);
-
-  const filteredRibEeffs = groupedRibEeffs.filter(item => {
-    const empresaNombre = getEmpresaNombre(item.ruc);
-    return empresaNombre.toLowerCase().includes(searchTerm.toLowerCase()) || item.ruc.includes(searchTerm);
-  });
 
   if (loading) {
     return (
@@ -146,69 +97,47 @@ const RibEeffPage = () => {
 
         <Card className="bg-[#121212] border border-gray-800">
           <CardContent className="pt-6">
-            <div className="flex items-center space-x-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por empresa o RUC..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-900 border-gray-700 text-white"
-                />
-              </div>
-              <Button variant="outline" className="border-gray-700">
-                <Filter className="h-4 w-4 mr-2" />
-                Filtros
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#121212] border border-gray-800">
-          <CardContent className="pt-6">
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-800">
                   <TableHead className="text-gray-400">Empresa (RUC)</TableHead>
-                  <TableHead className="text-gray-400">Tipo</TableHead>
-                  <TableHead className="text-gray-400">Años</TableHead>
+                  <TableHead className="text-gray-400">Creador</TableHead>
                   <TableHead className="text-gray-400">Estado</TableHead>
                   <TableHead className="text-gray-400">Última Actualización</TableHead>
                   <TableHead className="text-gray-400 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRibEeffs.length === 0 ? (
+                {summaries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-400">
-                      No se encontraron registros
+                    <TableCell colSpan={5} className="text-center py-8 text-gray-400">
+                      No se encontraron reportes
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredRibEeffs.map((item) => (
-                    <TableRow key={item.ruc} className="border-gray-800">
+                  summaries.map((item) => (
+                    <TableRow key={item.id} className="border-gray-800">
                       <TableCell className="text-white font-medium">
-                        {getEmpresaNombre(item.ruc)}
+                        {item.nombre_empresa} ({item.ruc})
                       </TableCell>
-                      <TableCell className="text-white capitalize">{item.tipo_entidad}</TableCell>
-                      <TableCell className="text-white">{item.years.join(', ') || '-'}</TableCell>
+                      <TableCell className="text-white">{item.creator_name || 'N/A'}</TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
                       <TableCell className="text-gray-400">
-                        {item.created_at ? new Date(item.created_at).toLocaleDateString('es-ES') : '-'}
+                        {item.updated_at ? new Date(item.updated_at).toLocaleDateString('es-ES') : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => navigate(`/rib-eeff/manage/${item.ruc}`)}
+                            onClick={() => navigate(`/rib-eeff/edit/${item.id}`)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteGroup(item.ruc, item.ids)}
+                            onClick={() => handleDelete(item.id)}
                             className="text-red-400 hover:text-red-300"
                           >
                             <Trash2 className="h-4 w-4" />
