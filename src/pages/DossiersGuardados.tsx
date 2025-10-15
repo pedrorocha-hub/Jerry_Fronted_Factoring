@@ -1,5 +1,3 @@
-// En DossiersGuardadosPage.tsx - REEMPLAZA TODO
-
 import React, { useEffect, useState, useRef } from 'react';
 import { FolderCheck, RefreshCw, Download, X } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -30,6 +28,7 @@ const DossiersGuardadosPage = () => {
   } = useDossierData();
 
   const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<'multipage' | 'continuous'>('multipage');
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,11 +52,12 @@ const DossiersGuardadosPage = () => {
     setShowPdfPreview(true);
   };
 
-  // Descargar PDF
+  // Descargar PDF con formato seleccionado
   const handleDownloadPDF = async () => {
     if (!dossier) return;
     
-    const toastId = showLoading('Generando PDF de alta calidad...');
+    const formatLabel = downloadFormat === 'continuous' ? 'continuo' : 'multipágina';
+    const toastId = showLoading(`Generando PDF ${formatLabel}...`);
 
     setTimeout(async () => {
       const element = pdfTemplateRef.current;
@@ -78,36 +78,50 @@ const DossiersGuardadosPage = () => {
         });
 
         const imgData = canvas.toDataURL('image/png', 1.0);
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-          compress: true,
-        });
+        const imgWidth = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = pdfWidth;
-        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-        
-        let heightLeft = imgHeight;
-        let position = 0;
+        let pdf;
 
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
-        heightLeft -= pdfHeight;
+        if (downloadFormat === 'continuous') {
+          // FORMATO CONTINUO - UNA SOLA PÁGINA LARGA
+          pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: [imgWidth, imgHeight], // Página con altura dinámica
+            compress: true,
+          });
+          pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, '', 'FAST');
+        } else {
+          // FORMATO MULTIPÁGINA - A4 ESTÁNDAR
+          pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+            compress: true,
+          });
 
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          let heightLeft = imgHeight;
+          let position = 0;
+
           pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
           heightLeft -= pdfHeight;
+
+          while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
+            heightLeft -= pdfHeight;
+          }
         }
 
-        const fileName = `Dossier_RIB_${dossier.solicitudOperacion.ruc}_${new Date().toISOString().split('T')[0]}.pdf`;
+        const formatSuffix = downloadFormat === 'continuous' ? 'continuo' : 'multipage';
+        const fileName = `Dossier_RIB_${dossier.solicitudOperacion.ruc}_${formatSuffix}_${new Date().toISOString().split('T')[0]}.pdf`;
         pdf.save(fileName);
         
         dismissToast(toastId);
-        showSuccess('PDF generado exitosamente.');
+        showSuccess(`PDF ${formatLabel} generado exitosamente.`);
       } catch (error) {
         console.error('Error generando PDF:', error);
         dismissToast(toastId);
@@ -161,29 +175,67 @@ const DossiersGuardadosPage = () => {
 
           {/* PREVIEW DEL PDF EN PANTALLA CON SCROLL */}
           {dossier && showPdfPreview && (
-            <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
+            <div className="fixed inset-0 bg-black/95 z-50 overflow-y-auto">
               <div className="min-h-screen py-8">
                 {/* Botones de acción flotantes */}
-                <div className="fixed top-4 right-4 z-50 flex gap-2">
-                  <Button
-                    onClick={handleDownloadPDF}
-                    className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Descargar PDF
-                  </Button>
-                  <Button
-                    onClick={() => setShowPdfPreview(false)}
-                    variant="outline"
-                    className="border-gray-600 text-white hover:bg-gray-800"
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cerrar
-                  </Button>
+                <div className="fixed top-4 right-4 z-50 flex flex-col gap-3">
+                  {/* Selector de Formato */}
+                  <div className="bg-gray-900 border border-gray-700 rounded-lg p-3">
+                    <p className="text-xs text-gray-400 mb-2 font-medium">Formato de descarga:</p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setDownloadFormat('multipage')}
+                        variant={downloadFormat === 'multipage' ? 'default' : 'outline'}
+                        size="sm"
+                        className={downloadFormat === 'multipage' 
+                          ? 'bg-[#00FF80] hover:bg-[#00FF80]/90 text-black' 
+                          : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                        }
+                      >
+                        📄 Multipágina
+                      </Button>
+                      <Button
+                        onClick={() => setDownloadFormat('continuous')}
+                        variant={downloadFormat === 'continuous' ? 'default' : 'outline'}
+                        size="sm"
+                        className={downloadFormat === 'continuous' 
+                          ? 'bg-[#00FF80] hover:bg-[#00FF80]/90 text-black' 
+                          : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                        }
+                      >
+                        📜 Continuo
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {downloadFormat === 'multipage' 
+                        ? '✓ Ideal para imprimir (páginas A4)' 
+                        : '✓ Ideal para lectura digital (scroll continuo)'
+                      }
+                    </p>
+                  </div>
+
+                  {/* Botones de Acción */}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleDownloadPDF}
+                      className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Descargar PDF
+                    </Button>
+                    <Button
+                      onClick={() => setShowPdfPreview(false)}
+                      variant="outline"
+                      className="border-gray-600 text-white hover:bg-gray-800"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cerrar
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Contenedor del PDF con scroll */}
-                <div className="max-w-[210mm] mx-auto">
+                <div className="max-w-[210mm] mx-auto shadow-2xl">
                   <DossierPdfTemplate ref={pdfTemplateRef} dossier={dossier} />
                 </div>
               </div>
