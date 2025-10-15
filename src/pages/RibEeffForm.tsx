@@ -17,6 +17,8 @@ import { RibEeff } from '@/types/rib-eeff';
 import { toast } from 'sonner';
 import { Combobox } from '@/components/ui/combobox';
 import { useSession } from '@/contexts/SessionContext';
+import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
+import { supabase } from '@/integrations/supabase/client';
 
 const sum = (...args: (number | null | undefined)[]): number => {
   return args.reduce((acc, val) => acc + (val || 0), 0);
@@ -170,6 +172,8 @@ const RibEeffForm = () => {
   const [yearsData, setYearsData] = useState<{ proveedor: { [key: number]: Partial<RibEeff> }, deudor: { [key: number]: Partial<RibEeff> } }>({ proveedor: {}, deudor: {} });
   const [years, setYears] = useState<number[]>([]);
   const [status, setStatus] = useState<'Borrador' | 'En revision' | 'Completado'>('Borrador');
+  const [solicitudId, setSolicitudId] = useState<string | null>(null);
+  const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
   const activoFields = {
     activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
@@ -248,6 +252,15 @@ const RibEeffForm = () => {
 
             setYearsData(loadedYearsData);
             setStatus(existingData[0].status || 'Borrador');
+            setSolicitudId(existingData[0].solicitud_id || null);
+
+            if (existingData[0].solicitud_id) {
+              const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingData[0].solicitud_id).single();
+              if (solicitud) {
+                const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
+                setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+              }
+            }
           }
         }
       } catch (error) {
@@ -346,6 +359,7 @@ const RibEeffForm = () => {
               anio_reporte: year,
               user_id: user?.id,
               updated_at: new Date().toISOString(),
+              solicitud_id: solicitudId,
             };
 
             recordsToUpsert.push(record);
@@ -370,6 +384,16 @@ const RibEeffForm = () => {
     }
   };
 
+  const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
+    if (query.length < 2) return [];
+    const { data, error } = await supabase.rpc('search_solicitudes', { search_term: query });
+    if (error) {
+      console.error('Error searching solicitudes:', error);
+      return [];
+    }
+    return data || [];
+  };
+
   const rucOptions = fichas.map(ficha => ({ value: ficha.ruc, label: `${ficha.nombre_empresa} (${ficha.ruc})` }));
 
   return (
@@ -383,7 +407,7 @@ const RibEeffForm = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <Card className="bg-[#121212] border border-gray-800">
-              <CardHeader><CardTitle className="flex items-center"><Users className="h-5 w-5 mr-2 text-[#00FF80]" />Selección de Empresas</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="flex items-center"><Users className="h-5 w-5 mr-2 text-[#00FF80]" />Selección de Empresas y Solicitud</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 <div>
                   <Label htmlFor="proveedorRuc">Proveedor</Label>
@@ -392,6 +416,18 @@ const RibEeffForm = () => {
                 <div>
                   <Label htmlFor="deudorRuc">Deudor</Label>
                   <Combobox options={rucOptions} value={deudorRuc || ''} onChange={setDeudorRuc} placeholder="Seleccione un deudor..." searchPlaceholder="Buscar deudor..." />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="solicitud_id">Asociar a Solicitud de Operación</Label>
+                  <AsyncCombobox
+                    value={solicitudId}
+                    onChange={setSolicitudId}
+                    onSearch={searchSolicitudes}
+                    placeholder="Buscar por RUC, empresa o ID de solicitud..."
+                    searchPlaceholder="Escriba para buscar..."
+                    emptyMessage="No se encontraron solicitudes."
+                    initialDisplayValue={initialSolicitudLabel}
+                  />
                 </div>
                 <div className="md:col-span-2 flex justify-between items-end">
                   <div>
