@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
+// Summary for the list view
 export interface RibReporteTributarioSummary {
   id: string;
   ruc: string;
@@ -11,167 +12,170 @@ export interface RibReporteTributarioSummary {
   anio: number;
 }
 
+// "Wide" format used by the form state
 export interface RibReporteTributario {
   id?: string;
   ruc: string;
-  proveedor_ruc?: string | null;
-  anio: number;
-  tipo_entidad: 'proveedor' | 'deudor';
-  cuentas_por_cobrar_giro?: number | null;
-  total_activos?: number | null;
-  cuentas_por_pagar_giro?: number | null;
-  total_pasivos?: number | null;
-  capital_pagado?: number | null;
-  total_patrimonio?: number | null;
-  total_pasivo_patrimonio?: number | null;
-  ingreso_ventas?: number | null;
-  utilidad_bruta?: number | null;
-  utilidad_antes_impuesto?: number | null;
-  solvencia?: number | null;
-  gestion?: number | null;
-  user_id?: string | null;
-  status?: string;
-  solicitud_id?: string | null;
-  created_at?: string;
-  updated_at?: string;
+  [key: string]: any; // Allows for year-suffixed fields
 }
 
+// Document structure passed between form and service
 export interface RibReporteTributarioDocument {
-  deudor: RibReporteTributario;
-  proveedor?: RibReporteTributario | null;
+  deudor: Partial<RibReporteTributario>;
+  proveedor?: Partial<RibReporteTributario> | null;
   solicitud_id: string | null;
   status: string;
   user_id: string | null;
 }
 
+// "Tall" format for a single database row
+interface RibReporteTributarioDataRow {
+  id?: string;
+  ruc: string;
+  anio: number;
+  tipo_entidad: 'deudor' | 'proveedor';
+  [key: string]: any;
+}
+
 export class RibReporteTributarioService {
   static async getAllSummaries(): Promise<RibReporteTributarioSummary[]> {
     const { data, error } = await supabase.rpc('get_rib_reporte_tributario_summaries');
-    
     if (error) {
       console.error('Error fetching RIB reporte tributario summaries:', error);
       throw new Error(`Error al obtener los reportes: ${error.message}`);
     }
-    
     return data || [];
   }
 
-  static async getById(id: string): Promise<RibReporteTributarioDocument> {
-    // Obtener todos los registros relacionados (deudor y proveedor)
+  static async getById(id: string): Promise<RibReporteTributarioDocument | null> {
     const { data, error } = await supabase
       .from('rib_reporte_tributario')
       .select('*')
       .eq('id', id);
-    
+
     if (error) {
       console.error('Error fetching RIB reporte tributario by ID:', error);
       throw new Error(`Error al obtener el reporte: ${error.message}`);
     }
-    
+
     if (!data || data.length === 0) {
-      throw new Error('Reporte no encontrado');
+      return null;
     }
 
-    // Separar deudor y proveedor
-    const deudorRecord = data.find(r => r.tipo_entidad === 'deudor');
-    const proveedorRecord = data.find(r => r.tipo_entidad === 'proveedor');
+    const deudorData: Partial<RibReporteTributario> = { id: id, ruc: data.find(r => r.tipo_entidad === 'deudor')?.ruc };
+    const proveedorData: Partial<RibReporteTributario> = { id: id, ruc: data.find(r => r.tipo_entidad === 'proveedor')?.ruc };
+    let hasProveedor = false;
 
-    if (!deudorRecord) {
-      throw new Error('No se encontró el registro del deudor');
+    const fields = [
+      'cuentas_por_cobrar_giro', 'total_activos', 'cuentas_por_pagar_giro',
+      'total_pasivos', 'capital_pagado', 'total_patrimonio', 'total_pasivo_patrimonio',
+      'ingreso_ventas', 'utilidad_bruta', 'utilidad_antes_impuesto',
+      'solvencia', 'gestion'
+    ];
+
+    for (const row of data) {
+      const isProveedor = row.tipo_entidad === 'proveedor';
+      const target = isProveedor ? proveedorData : deudorData;
+      if (isProveedor) hasProveedor = true;
+      
+      for (const field of fields) {
+        if (row[field] !== null && row[field] !== undefined) {
+          const key = `${field}_${row.anio}${isProveedor ? '_proveedor' : ''}`;
+          target[key as keyof RibReporteTributario] = row[field];
+        }
+      }
     }
 
     return {
-      deudor: deudorRecord,
-      proveedor: proveedorRecord || null,
-      solicitud_id: deudorRecord.solicitud_id,
-      status: deudorRecord.status || 'Borrador',
-      user_id: deudorRecord.user_id
+      deudor: deudorData,
+      proveedor: hasProveedor ? proveedorData : null,
+      solicitud_id: data[0].solicitud_id,
+      status: data[0].status || 'Borrador',
+      user_id: data[0].user_id
     };
   }
 
   static async save(document: RibReporteTributarioDocument): Promise<RibReporteTributarioDocument> {
     const { data: { user } } = await supabase.auth.getUser();
-    
-    // Preparar el registro del deudor
-    const deudorData = {
-      ...document.deudor,
-      user_id: user?.id,
-      status: document.status || 'Borrador',
-      solicitud_id: document.solicitud_id,
-      tipo_entidad: 'deudor' as const
-    };
+    const reportId = document.deudor.id || crypto.randomUUID();
 
-    // Si existe ID, actualizar; si no, crear
-    if (document.deudor.id) {
-      const { data: updatedDeudor, error: deudorError } = await supabase
-        .from('rib_reporte_tributario')
-        .update(deudorData)
-        .eq('id', document.deudor.id)
-        .select()
-        .single();
+    const transform = (wideData: Partial<RibReporteTributario>, tipo: 'deudor' | 'proveedor'): RibReporteTributarioDataRow[] => {
+      if (!wideData || !wideData.ruc) return [];
 
-      if (deudorError) {
-        console.error('Error updating deudor:', deudorError);
-        throw new Error(`Error al actualizar el deudor: ${deudorError.message}`);
-      }
+      const years = [2022, 2023, 2024];
+      const fields = [
+        'cuentas_por_cobrar_giro', 'total_activos', 'cuentas_por_pagar_giro',
+        'total_pasivos', 'capital_pagado', 'total_patrimonio', 'total_pasivo_patrimonio',
+        'ingreso_ventas', 'utilidad_bruta', 'utilidad_antes_impuesto',
+        'solvencia', 'gestion'
+      ];
 
-      // Actualizar o crear proveedor si existe
-      if (document.proveedor) {
-        const proveedorData = {
-          ...document.proveedor,
+      const tallRecords: RibReporteTributarioDataRow[] = [];
+
+      for (const year of years) {
+        const record: RibReporteTributarioDataRow = {
+          id: reportId,
+          ruc: wideData.ruc,
+          anio: year,
+          tipo_entidad: tipo,
           user_id: user?.id,
-          status: document.status || 'Borrador',
+          status: document.status,
           solicitud_id: document.solicitud_id,
-          tipo_entidad: 'proveedor' as const
         };
 
-        if (document.proveedor.id) {
-          await supabase
-            .from('rib_reporte_tributario')
-            .update(proveedorData)
-            .eq('id', document.proveedor.id);
-        } else {
-          await supabase
-            .from('rib_reporte_tributario')
-            .insert(proveedorData);
+        let hasDataForYear = false;
+        for (const field of fields) {
+          const wideFieldKey = `${field}_${year}${tipo === 'proveedor' ? '_proveedor' : ''}`;
+          const value = wideData[wideFieldKey as keyof RibReporteTributario];
+          if (value !== null && value !== undefined && value !== '') {
+            record[field] = value;
+            hasDataForYear = true;
+          }
+        }
+
+        if (hasDataForYear) {
+          tallRecords.push(record);
         }
       }
+      return tallRecords;
+    };
 
-      return await this.getById(document.deudor.id);
-    } else {
-      // Crear nuevo registro de deudor
-      const { data: newDeudor, error: deudorError } = await supabase
-        .from('rib_reporte_tributario')
-        .insert(deudorData)
-        .select()
-        .single();
+    const deudorRecords = transform(document.deudor, 'deudor');
+    const proveedorRecords = document.proveedor ? transform(document.proveedor, 'proveedor') : [];
+    const allRecords = [...deudorRecords, ...proveedorRecords];
 
-      if (deudorError) {
-        console.error('Error creating deudor:', deudorError);
-        throw new Error(`Error al crear el deudor: ${deudorError.message}`);
-      }
-
-      // Crear proveedor si existe
-      if (document.proveedor) {
-        const proveedorData = {
-          ...document.proveedor,
-          user_id: user?.id,
-          status: document.status || 'Borrador',
-          solicitud_id: document.solicitud_id,
-          tipo_entidad: 'proveedor' as const
-        };
-
-        await supabase
-          .from('rib_reporte_tributario')
-          .insert(proveedorData);
-      }
-
-      return await this.getById(newDeudor.id);
+    if (allRecords.length === 0) {
+      console.warn("No data to save.");
+      return document;
     }
+
+    const { error: deleteError } = await supabase
+      .from('rib_reporte_tributario')
+      .delete()
+      .eq('id', reportId);
+
+    if (deleteError) {
+      console.error('Error deleting old RIB records:', deleteError);
+      throw new Error(`Error al actualizar el reporte: ${deleteError.message}`);
+    }
+
+    const { error: insertError } = await supabase
+      .from('rib_reporte_tributario')
+      .insert(allRecords);
+
+    if (insertError) {
+      console.error('Error inserting new RIB records:', insertError);
+      throw new Error(`Error al guardar el reporte: ${insertError.message}`);
+    }
+
+    const savedDocument = await this.getById(reportId);
+    if (!savedDocument) {
+      throw new Error("Failed to retrieve document after saving.");
+    }
+    return savedDocument;
   }
 
   static async delete(id: string): Promise<void> {
-    // Eliminar todos los registros relacionados (deudor y proveedor)
     const { error } = await supabase
       .from('rib_reporte_tributario')
       .delete()
