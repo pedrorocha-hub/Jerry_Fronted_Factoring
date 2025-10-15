@@ -1,6 +1,17 @@
-import { Card, CardContent } from '@/components/ui/card';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Edit, Trash2, ClipboardList } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { VentasMensualesSummary } from '@/types/ventasMensuales';
-import { FilePenLine, Calendar, User, Building2, Trash2 } from 'lucide-react';
 
 interface VentasMensualesListProps {
   items: VentasMensualesSummary[];
@@ -8,32 +19,86 @@ interface VentasMensualesListProps {
   onDeleteReport: (id: string) => void;
 }
 
-const VentasMensualesList = ({ items, onSelectReport, onDeleteReport }: VentasMensualesListProps) => {
-  if (!items || items.length === 0) {
-    return <p className="text-gray-400">No hay registros de ventas mensuales.</p>;
+const getStatusBadge = (status: string | null | undefined) => {
+  switch (status) {
+    case 'Completado':
+      return <Badge className="bg-green-600 hover:bg-green-700 text-white border-transparent">Completado</Badge>;
+    case 'En revision':
+      return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black border-transparent">En Revisión</Badge>;
+    case 'Borrador':
+    default:
+      return <Badge variant="outline">Borrador</Badge>;
+  }
+};
+
+const VentasMensualesList: React.FC<VentasMensualesListProps> = ({ items, onSelectReport, onDeleteReport }) => {
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-400">
+        No se encontraron reportes de ventas.
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <Card key={item.id} className="bg-[#121212] border-gray-800 text-white">
-          <CardContent className="p-4 flex justify-between items-center">
-            <div>
-              <p className="font-bold flex items-center"><Building2 className="w-4 h-4 mr-2" />{item.nombre_empresa} ({item.ruc})</p>
-              <p className="text-sm text-gray-400 flex items-center"><User className="w-4 h-4 mr-2" />Creado por: {item.creator_name}</p>
-              <p className="text-sm text-gray-400 flex items-center"><Calendar className="w-4 h-4 mr-2" />Última actualización: {new Date(item.last_updated_at).toLocaleDateString()}</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${item.status === 'Completado' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                {item.status}
-              </span>
-              <button onClick={() => onSelectReport(item.id)} className="text-gray-400 hover:text-white"><FilePenLine className="w-5 h-5" /></button>
-              <button onClick={() => onDeleteReport(item.id)} className="text-gray-400 hover:text-red-500"><Trash2 className="w-5 h-5" /></button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow className="border-gray-800">
+          <TableHead className="text-gray-400">Empresa (RUC)</TableHead>
+          <TableHead className="text-gray-400">Creador</TableHead>
+          <TableHead className="text-gray-400">Solicitud Asociada</TableHead>
+          <TableHead className="text-gray-400">Estado</TableHead>
+          <TableHead className="text-gray-400">Última Actualización</TableHead>
+          <TableHead className="text-gray-400 text-right">Acciones</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={item.id} className="border-gray-800">
+            <TableCell className="text-white font-medium">
+              {item.nombre_empresa || 'N/A'} ({item.ruc})
+            </TableCell>
+            <TableCell className="text-white">{item.creator_name || 'N/A'}</TableCell>
+            <TableCell>
+              {item.solicitud_id ? (
+                <Link 
+                  to={`/solicitudes-operacion/editar/${item.solicitud_id}`} 
+                  className="text-blue-400 hover:text-blue-300 hover:underline font-mono text-xs flex items-center"
+                >
+                  <ClipboardList className="h-3 w-3 mr-1.5" />
+                  {item.solicitud_id.substring(0, 8)}...
+                </Link>
+              ) : (
+                <span className="text-gray-500 text-xs">N/A</span>
+              )}
+            </TableCell>
+            <TableCell>{getStatusBadge(item.status)}</TableCell>
+            <TableCell className="text-gray-400">
+              {item.last_updated_at ? new Date(item.last_updated_at).toLocaleDateString('es-ES') : '-'}
+            </TableCell>
+            <TableCell className="text-right">
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onSelectReport(item.id)}
+                >
+                  <Edit className="h-4 w-4 text-gray-400" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDeleteReport(item.id)}
+                  className="text-red-400 hover:text-red-300"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 };
 
