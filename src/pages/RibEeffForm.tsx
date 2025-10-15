@@ -271,6 +271,8 @@ const RibEeffForm = () => {
       
       if (eeffRecords.length === 0) {
         toast.info('No se encontraron registros de EEFF para las empresas seleccionadas.');
+        setYearsData({ proveedor: {}, deudor: {} }); // Limpiar datos si no se encuentra nada
+        setYears([]);
         setLoading(false);
         return;
       }
@@ -278,20 +280,22 @@ const RibEeffForm = () => {
       const allYears = [...new Set(eeffRecords.map(r => r.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
       setYears(allYears);
 
-      setYearsData(prevYearsData => {
-        const updatedYearsData = JSON.parse(JSON.stringify(prevYearsData));
-        for (const record of eeffRecords) {
-          const entityType = record.ruc === proveedorRuc ? 'proveedor' : 'deudor';
-          if (record.anio_reporte) {
-            const transformedData = transformEeffToRibEeff(record);
-            updatedYearsData[entityType][record.anio_reporte] = {
-              ...(updatedYearsData[entityType][record.anio_reporte] || {}),
-              ...transformedData,
-            };
+      const newYearsData: { proveedor: { [key: number]: Partial<RibEeff> }, deudor: { [key: number]: Partial<RibEeff> } } = { proveedor: {}, deudor: {} };
+
+      for (const record of eeffRecords) {
+        const entityType = record.ruc === proveedorRuc ? 'proveedor' : (record.ruc === deudorRuc ? 'deudor' : null);
+        if (entityType && record.anio_reporte) {
+          const transformedData = transformEeffToRibEeff(record);
+          if (!newYearsData[entityType][record.anio_reporte]) {
+            newYearsData[entityType][record.anio_reporte] = {};
           }
+          newYearsData[entityType][record.anio_reporte] = {
+            ...newYearsData[entityType][record.anio_reporte],
+            ...transformedData,
+          };
         }
-        return updatedYearsData;
-      });
+      }
+      setYearsData(newYearsData);
       
       toast.success(`Datos de ${allYears.length} año(s) cargados desde EEFF.`);
     } catch (error) {
