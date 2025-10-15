@@ -73,14 +73,17 @@ export class RibReporteTributarioService {
     const normalizedRecords = this.legacyToNormalized({ ...reportData, user_id: user?.id });
     if (normalizedRecords.length === 0) throw new Error('No hay datos válidos para guardar');
     
-    if (reportData.id) { // Update
-      const { error: deleteError } = await supabase.from('rib_reporte_tributario').delete().eq('id', reportData.id);
-      if (deleteError) throw new Error(`Error eliminando datos existentes: ${deleteError.message}`);
+    const isUpdate = !!reportData.id;
+    const reportId = reportData.id || crypto.randomUUID();
+
+    if (isUpdate) {
+      const { error: deleteError } = await supabase.from('rib_reporte_tributario').delete().eq('id', reportId);
+      if (deleteError) throw new Error(`Error eliminando datos existentes para actualizar: ${deleteError.message}`);
     }
     
     const recordsToInsert = normalizedRecords.map(record => ({
       ...record,
-      id: reportData.id || undefined, // Use existing ID for all rows on update
+      id: reportId,
       created_at: reportData.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }));
