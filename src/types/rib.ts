@@ -16,6 +16,7 @@ export interface Rib {
   user_id: string | null;
   created_at: string;
   updated_at: string;
+  solicitud_id: string | null;
 }
 
 export interface RibWithDetails extends Rib {

@@ -1,9 +1,10 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Calendar } from 'lucide-react';
+import { Edit, Trash2, Calendar, ClipboardList } from 'lucide-react';
 import { RibWithDetails, RibStatus } from '@/types/rib';
 import { useSession } from '@/contexts/SessionContext';
+import { Link } from 'react-router-dom';
 
 interface RibTableProps {
   ribs: RibWithDetails[];
@@ -33,6 +34,7 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete }) => {
           <TableRow className="border-gray-800 hover:bg-gray-900/50">
             <TableHead className="text-gray-300">Empresa</TableHead>
             <TableHead className="text-gray-300">Ejecutivo</TableHead>
+            <TableHead className="text-gray-300">Solicitud Asociada</TableHead>
             <TableHead className="text-gray-300">Estado</TableHead>
             <TableHead className="text-right text-gray-300">Acciones</TableHead>
           </TableRow>
@@ -50,6 +52,19 @@ const RibTable: React.FC<RibTableProps> = ({ ribs, onEdit, onDelete }) => {
                   <Calendar className="h-3 w-3 mr-1.5" />
                   {new Date(rib.created_at).toLocaleDateString('es-ES')}
                 </div>
+              </TableCell>
+              <TableCell>
+                {rib.solicitud_id ? (
+                  <Link 
+                    to={`/solicitudes-operacion/editar/${rib.solicitud_id}`} 
+                    className="text-blue-400 hover:text-blue-300 hover:underline font-mono text-xs flex items-center"
+                  >
+                    <ClipboardList className="h-3 w-3 mr-1.5" />
+                    {rib.solicitud_id.substring(0, 8)}...
+                  </Link>
+                ) : (
+                  <span className="text-gray-500 text-xs">N/A</span>
+                )}
               </TableCell>
               <TableCell>
                 <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(rib.status)}`}>

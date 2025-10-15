@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { Rib, RibStatus, RibWithDetails } from '@/types/rib';
@@ -22,6 +22,7 @@ import { useSession } from '@/contexts/SessionContext';
 import RibTable from '@/components/rib/RibTable';
 import { supabase } from '@/integrations/supabase/client';
 import { DatePicker } from '@/components/ui/date-picker';
+import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 
 const getStatusColor = (status: RibStatus | null | undefined) => {
   switch (status) {
@@ -51,6 +52,7 @@ const RibPage = () => {
   const [creatorDetails, setCreatorDetails] = useState<{ fullName: string | null; email: string | null } | null>(null);
   const [accionistas, setAccionistas] = useState<Accionista[]>([]);
   const [gerentes, setGerentes] = useState<Gerente[]>([]);
+  const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
   
   const emptyForm = {
     direccion: '',
@@ -63,6 +65,7 @@ const RibPage = () => {
     inicio_actividades: null as string | null,
     relacion_comercial_deudor: '',
     validado_por: '',
+    solicitud_id: null as string | null,
   };
 
   const [formData, setFormData] = useState(emptyForm);
@@ -139,6 +142,7 @@ const RibPage = () => {
     setInitialFormData(emptyForm);
     setSelectedRib(null);
     setCreatorDetails(null);
+    setInitialSolicitudLabel(null);
   };
 
   const handleSearch = async (rucToSearch: string = rucInput) => {
@@ -194,6 +198,10 @@ const RibPage = () => {
 
   const handleSave = async () => {
     if (!searchedFicha) return;
+    if (!formData.solicitud_id) {
+      showError('Debe asociar el análisis a una Solicitud de Operación antes de guardar.');
+      return;
+    }
     setSaving(true);
     try {
       let savedData;
@@ -234,9 +242,27 @@ const RibPage = () => {
       inicio_actividades: rib.inicio_actividades || null,
       relacion_comercial_deudor: rib.relacion_comercial_deudor || '',
       validado_por: rib.validado_por || '',
+      solicitud_id: rib.solicitud_id || null,
     };
     setFormData(newFormData);
     setInitialFormData(newFormData);
+
+    setInitialSolicitudLabel(null);
+    if (rib.solicitud_id) {
+      try {
+        const { data: solicitud } = await supabase
+          .from('solicitudes_operacion')
+          .select('id, ruc, created_at')
+          .eq('id', rib.solicitud_id)
+          .single();
+        if (solicitud) {
+          const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
+          setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+        }
+      } catch (err) {
+        console.error("Error fetching solicitud label:", err);
+      }
+    }
 
     setCreatorDetails(null);
     if (rib.user_id) {
@@ -291,6 +317,18 @@ const RibPage = () => {
     resetForm();
     setAccionistas([]);
     setGerentes([]);
+  };
+
+  const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
+    if (query.length < 2) return [];
+    const { data, error } = await supabase.rpc('search_solicitudes', {
+      search_term: query,
+    });
+    if (error) {
+      console.error('Error searching solicitudes:', error);
+      return [];
+    }
+    return data || [];
   };
 
   const totalPorcentaje = accionistas.reduce((sum, acc) => sum + (Number(acc.porcentaje) || 0), 0);
@@ -582,6 +620,19 @@ const RibPage = () => {
                         <strong className="text-gray-400">Última modificación:</strong>{' '}
                         {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
                       </div>
+                    </div>
+                    <div className="w-full pt-2">
+                      <Label htmlFor="solicitud_id" className="font-semibold text-white">Asociar a Solicitud de Operación</Label>
+                      <AsyncCombobox
+                        value={formData.solicitud_id}
+                        onChange={(value) => setFormData(prev => ({ ...prev, solicitud_id: value }))}
+                        onSearch={searchSolicitudes}
+                        placeholder="Buscar por RUC, empresa o ID de solicitud..."
+                        searchPlaceholder="Escriba para buscar..."
+                        emptyMessage="No se encontraron solicitudes."
+                        disabled={!isAdmin}
+                        initialDisplayValue={initialSolicitudLabel}
+                      />
                     </div>
                     <div className="w-full pt-2">
                       <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
