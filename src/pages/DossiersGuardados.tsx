@@ -1,5 +1,7 @@
+// En DossiersGuardadosPage.tsx - REEMPLAZA TODO
+
 import React, { useEffect, useState, useRef } from 'react';
-import { FolderCheck, RefreshCw } from 'lucide-react';
+import { FolderCheck, RefreshCw, Download, X } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { useDossierData } from '@/hooks/useDossierData';
@@ -27,7 +29,7 @@ const DossiersGuardadosPage = () => {
     setError
   } = useDossierData();
 
-  const [pdfData, setPdfData] = useState<DossierRib | null>(null);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const pdfTemplateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,42 +48,33 @@ const DossiersGuardadosPage = () => {
     saveDossier();
   };
 
-  const handleDownload = async () => {
-    if (!dossier) {
-      showError('No hay dossier cargado para descargar.');
-      return;
-    }
+  // Ver preview del PDF en pantalla
+  const handleShowPreview = () => {
+    setShowPdfPreview(true);
+  };
 
-    const toastId = showLoading('Generando PDF de alta calidad...');
+  // Descargar PDF
+  const handleDownloadPDF = async () => {
+    if (!dossier) return;
     
-    // Render the template off-screen to be captured
-    setPdfData(dossier);
+    const toastId = showLoading('Generando PDF de alta calidad...');
 
-    // Use a timeout to ensure the template is rendered in the DOM before capturing
     setTimeout(async () => {
       const element = pdfTemplateRef.current;
       if (!element) {
         dismissToast(toastId);
-        showError('No se pudo encontrar la plantilla del PDF para generar el documento.');
-        setPdfData(null);
+        showError('No se pudo encontrar la plantilla del PDF.');
         return;
       }
 
       try {
-        // Configuración optimizada de html2canvas
         const canvas = await html2canvas(element, {
-          scale: 2, // Alta calidad (2x)
+          scale: 2,
           useCORS: true,
           logging: false,
           backgroundColor: '#f8f9fa',
-          windowWidth: 794, // 210mm en pixels (A4 width)
+          windowWidth: 794,
           windowHeight: element.scrollHeight,
-          onclone: (clonedDoc) => {
-            const clonedElement = clonedDoc.body.querySelector('[data-pdf-template]');
-            if (clonedElement) {
-              (clonedElement as HTMLElement).style.display = 'block';
-            }
-          },
         });
 
         const imgData = canvas.toDataURL('image/png', 1.0);
@@ -100,11 +93,9 @@ const DossiersGuardadosPage = () => {
         let heightLeft = imgHeight;
         let position = 0;
 
-        // Primera página
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, '', 'FAST');
         heightLeft -= pdfHeight;
 
-        // Páginas adicionales
         while (heightLeft > 0) {
           position = heightLeft - imgHeight;
           pdf.addPage();
@@ -120,9 +111,7 @@ const DossiersGuardadosPage = () => {
       } catch (error) {
         console.error('Error generando PDF:', error);
         dismissToast(toastId);
-        showError('Error al generar el PDF. Por favor, intenta nuevamente.');
-      } finally {
-        setPdfData(null);
+        showError('Error al generar el PDF.');
       }
     }, 500);
   };
@@ -161,21 +150,47 @@ const DossiersGuardadosPage = () => {
             onViewDossier={handleViewDossier}
           />
 
-          {dossier && (
+          {dossier && !showPdfPreview && (
             <DossierViewer 
               dossier={dossier} 
               onSave={handleSaveDossier}
               saving={saving}
-              onDownload={handleDownload}
+              onDownload={handleShowPreview}
             />
+          )}
+
+          {/* PREVIEW DEL PDF EN PANTALLA CON SCROLL */}
+          {dossier && showPdfPreview && (
+            <div className="fixed inset-0 bg-black/90 z-50 overflow-y-auto">
+              <div className="min-h-screen py-8">
+                {/* Botones de acción flotantes */}
+                <div className="fixed top-4 right-4 z-50 flex gap-2">
+                  <Button
+                    onClick={handleDownloadPDF}
+                    className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Descargar PDF
+                  </Button>
+                  <Button
+                    onClick={() => setShowPdfPreview(false)}
+                    variant="outline"
+                    className="border-gray-600 text-white hover:bg-gray-800"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cerrar
+                  </Button>
+                </div>
+
+                {/* Contenedor del PDF con scroll */}
+                <div className="max-w-[210mm] mx-auto">
+                  <DossierPdfTemplate ref={pdfTemplateRef} dossier={dossier} />
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
-      {pdfData && (
-        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-          <DossierPdfTemplate ref={pdfTemplateRef} dossier={pdfData} />
-        </div>
-      )}
     </Layout>
   );
 };
