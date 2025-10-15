@@ -9,7 +9,7 @@ interface VentasMensualesTableProps {
 }
 
 const VentasMensualesTable: React.FC<VentasMensualesTableProps> = ({ data, onDataChange }) => {
-  const years = [2023, 2024, 2025];
+  const years = Object.keys(data).map(Number).sort((a, b) => a - b);
   const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
 
   const handleInputChange = (year: number, month: string, value: string) => {
