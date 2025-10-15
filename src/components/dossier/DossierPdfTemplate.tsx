@@ -685,3 +685,84 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
             </div>
           </div>
         )}
+        {/* SECCIÓN 5: VENTAS MENSUALES - DIVIDIDA POR AÑO */}
+        {Object.keys(ventasMensualesByYear).length > 0 && (
+          <div style={styles.sectionCard}>
+            <div style={styles.sectionHeader}>
+              <div style={styles.sectionNumber}>5</div>
+              <h2 style={styles.sectionTitle}>Ventas Mensuales</h2>
+            </div>
+            
+            {/* Tabla por cada año */}
+            {Object.entries(ventasMensualesByYear)
+              .sort(([yearA], [yearB]) => Number(yearB) - Number(yearA))
+              .map(([year, salesData]) => {
+                if (salesData.length === 0) return null;
+                return (
+                  <div key={year} style={{ marginBottom: '8px' }}>
+                    <div style={styles.yearSubtitle}>📅 Año {year}</div>
+                    <div style={styles.tableWrapper}>
+                      <table style={styles.table}>
+                        <thead style={styles.tableHeader}>
+                          <tr style={styles.tr}>
+                            <th style={styles.th}>Mes</th>
+                            <th style={styles.th}>Ventas Proveedor</th>
+                            <th style={styles.thLast}>Ventas Deudor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {salesData.map((row, index) => (
+                            <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+                              <td style={{...styles.td, textTransform: 'capitalize'}}>{row.month}</td>
+                              <td style={styles.td}>{formatCurrency(row.proveedorVenta)}</td>
+                              <td style={styles.tdLast}>{formatCurrency(row.deudorVenta)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
+        {/* SECCIÓN 6: RIB EEFF */}
+        {dossier.ribEeff && dossier.ribEeff.length > 0 && (
+          <div style={styles.sectionCard}>
+            <div style={styles.sectionHeader}>
+              <div style={styles.sectionNumber}>6</div>
+              <h2 style={styles.sectionTitle}>RIB - Estados Financieros (EEFF)</h2>
+            </div>
+            {deudorEeff.years.length > 0 && (
+              <div>
+                <div style={{...styles.subsectionTitle, marginTop: '0'}}>Deudor: {nombreEmpresa}</div>
+                <FinancialTable title="Activos" fields={ribEeffFields.activoFields} years={deudorEeff.years} data={deudorEeff.data} />
+                <FinancialTable title="Pasivos" fields={ribEeffFields.pasivoFields} years={deudorEeff.years} data={deudorEeff.data} />
+                <FinancialTable title="Patrimonio" fields={ribEeffFields.patrimonioFields} years={deudorEeff.years} data={deudorEeff.data} />
+              </div>
+            )}
+            {proveedorEeff.years.length > 0 && (
+              <div style={{marginTop: '20px'}}>
+                <div style={styles.subsectionTitle}>Proveedor</div>
+                <FinancialTable title="Activos" fields={ribEeffFields.activoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
+                <FinancialTable title="Pasivos" fields={ribEeffFields.pasivoFields} years={proveedorEeff.years} data={proveedorEeff.data} />
+                <FinancialTable title="Patrimonio" fields={ribEeffFields.patrimonioFields} years={proveedorEeff.years} data={proveedorEeff.data} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* FOOTER */}
+        <div style={styles.footer}>
+          <p style={styles.footerText}>Documento generado el {new Date().toLocaleString('es-ES')}</p>
+          <p style={styles.footerBrand}>Upgrade AI - Análisis Inteligente</p>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+DossierPdfTemplate.displayName = 'DossierPdfTemplate';
+
+export default DossierPdfTemplate;
