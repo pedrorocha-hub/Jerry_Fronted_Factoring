@@ -1,38 +1,6 @@
 import React, { forwardRef } from 'react';
-
-// Tipos simulados para el ejemplo
-interface DossierRib {
-  solicitudOperacion: any;
-  fichaRuc?: any;
-  top10kData?: any;
-  analisisRib?: any;
-  comportamientoCrediticio?: any;
-  ribReporteTributario?: any[];
-  ventasMensuales?: any;
-  ribEeff?: any[];
-}
-
-interface RibEeff {
-  tipo_entidad: string;
-  anio_reporte?: number;
-  [key: string]: any;
-}
-interface DossierRib {
-  solicitudOperacion: any;
-  fichaRuc?: any;
-  top10kData?: any;
-  analisisRib?: any;
-  comportamientoCrediticio?: any;
-  ribReporteTributario?: any[];
-  ventasMensuales?: any;
-  ribEeff?: any[];
-}
-
-interface RibEeff {
-  tipo_entidad: string;
-  anio_reporte?: number;
-  [key: string]: any;
-}
+import { DossierRib } from '@/types/dossier';
+import { RibEeff } from '@/types/rib-eeff';
 
 interface DossierPdfTemplateProps {
   dossier: DossierRib;
@@ -49,16 +17,14 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       minHeight: '297mm',
       boxSizing: 'border-box' as 'border-box',
       margin: '0 auto',
-      overflow: 'visible',
-      pageBreakAfter: 'auto' as 'auto',
+      position: 'relative' as 'relative',
     },
     headerBanner: {
       background: 'linear-gradient(135deg, #1a1a1a 0%, #2d3748 100%)',
-      padding: '20px 0',
+      padding: '16px 0',
       color: 'white',
-      marginBottom: '0',
-      pageBreakInside: 'avoid' as 'avoid',
-      pageBreakAfter: 'avoid' as 'avoid',
+      WebkitPrintColorAdjust: 'exact' as 'exact',
+      printColorAdjust: 'exact' as 'exact',
     },
     headerContent: {
       maxWidth: '190mm',
@@ -66,19 +32,19 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       padding: '0 10mm',
     },
     headerTitle: {
-      fontSize: '26px',
+      fontSize: '22px',
       fontWeight: '700' as '700',
-      margin: '0 0 6px 0',
+      margin: '0 0 4px 0',
       letterSpacing: '-0.5px',
     },
     headerSubtitle: {
-      fontSize: '16px',
+      fontSize: '14px',
       fontWeight: '400' as '400',
-      margin: '0 0 3px 0',
+      margin: '0 0 2px 0',
       opacity: 0.95,
     },
     headerRuc: {
-      fontSize: '13px',
+      fontSize: '12px',
       fontWeight: '300' as '300',
       margin: '0',
       opacity: 0.85,
@@ -87,143 +53,158 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     accentBar: {
       height: '3px',
       background: 'linear-gradient(90deg, #00b894 0%, #00cec9 100%)',
-      marginBottom: '0',
-      pageBreakAfter: 'avoid' as 'avoid',
+      WebkitPrintColorAdjust: 'exact' as 'exact',
+      printColorAdjust: 'exact' as 'exact',
     },
     content: {
       maxWidth: '190mm',
       margin: '0 auto',
-      padding: '16px 10mm 20px 10mm',
+      padding: '12px 10mm 16px 10mm',
     },
     sectionCard: {
       backgroundColor: '#ffffff',
       border: 'none',
-      borderRadius: '10px',
-      padding: '20px 24px',
-      marginBottom: '16px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      borderRadius: '6px',
+      padding: '16px 18px',
+      marginBottom: '12px',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+      breakInside: 'avoid' as 'avoid',
       pageBreakInside: 'avoid' as 'avoid',
-      overflow: 'visible',
+      WebkitColumnBreakInside: 'avoid' as 'avoid',
     },
     sectionHeader: {
       display: 'flex',
       alignItems: 'center',
-      marginBottom: '16px',
-      paddingBottom: '12px',
+      marginBottom: '12px',
+      paddingBottom: '8px',
       borderBottom: '2px solid #f0f0f0',
+      breakInside: 'avoid' as 'avoid',
+      pageBreakInside: 'avoid' as 'avoid',
+      breakAfter: 'avoid' as 'avoid',
+      pageBreakAfter: 'avoid' as 'avoid',
     },
     sectionNumber: {
       backgroundColor: '#00b894',
       color: '#ffffff',
-      width: '36px',
-      height: '36px',
-      borderRadius: '8px',
+      width: '32px',
+      height: '32px',
+      borderRadius: '7px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontWeight: '700' as '700',
-      fontSize: '16px',
-      marginRight: '12px',
+      fontSize: '14px',
+      marginRight: '10px',
       flexShrink: 0,
-      boxShadow: '0 2px 8px rgba(0, 184, 148, 0.25)',
+      boxShadow: '0 2px 4px rgba(0, 184, 148, 0.15)',
+      WebkitPrintColorAdjust: 'exact' as 'exact',
+      printColorAdjust: 'exact' as 'exact',
     },
     sectionTitle: {
-      fontSize: '18px',
+      fontSize: '16px',
       fontWeight: '600' as '600',
       color: '#1f2937',
       margin: '0',
     },
     subsectionTitle: {
-      fontSize: '15px',
+      fontSize: '13px',
       fontWeight: '600' as '600',
       color: '#374151',
-      marginTop: '18px',
-      marginBottom: '10px',
-      paddingLeft: '10px',
+      marginTop: '14px',
+      marginBottom: '8px',
+      paddingLeft: '8px',
       borderLeft: '3px solid #00b894',
+      breakInside: 'avoid' as 'avoid',
+      pageBreakInside: 'avoid' as 'avoid',
+      breakAfter: 'avoid' as 'avoid',
+      pageBreakAfter: 'avoid' as 'avoid',
     },
     infoGrid: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
       gap: '0',
-      marginTop: '12px',
+      marginTop: '8px',
+      breakInside: 'avoid' as 'avoid',
+      pageBreakInside: 'avoid' as 'avoid',
     },
     infoItem: {
-      padding: '10px 12px',
+      padding: '8px 10px',
       borderBottom: '1px solid #f0f0f0',
     },
     infoLabel: {
-      fontSize: '10px',
+      fontSize: '9px',
       fontWeight: '600' as '600',
       color: '#6b7280',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.8px',
-      marginBottom: '4px',
+      letterSpacing: '0.6px',
+      marginBottom: '3px',
     },
     infoValue: {
-      fontSize: '13px',
+      fontSize: '11px',
       fontWeight: '500' as '500',
       color: '#1f2937',
       wordBreak: 'break-word' as 'break-word',
-      lineHeight: '1.4',
+      lineHeight: '1.3',
     },
     tableWrapper: {
-      pageBreakInside: 'avoid' as 'avoid',
-      marginTop: '12px',
-      overflowX: 'auto' as 'auto',
+      marginTop: '8px',
       width: '100%',
+      breakInside: 'auto' as 'auto',
+      pageBreakInside: 'auto' as 'auto',
     },
     table: {
       width: '100%',
-      borderCollapse: 'separate' as 'separate',
-      borderSpacing: '0',
-      fontSize: '11px',
-      borderRadius: '8px',
-      overflow: 'hidden',
+      borderCollapse: 'collapse' as 'collapse',
+      fontSize: '9px',
+      borderRadius: '0',
       border: 'none',
       tableLayout: 'auto' as 'auto',
     },
     tableHeader: {
       backgroundColor: '#374151',
       color: 'white',
+      breakInside: 'avoid' as 'avoid',
+      pageBreakInside: 'avoid' as 'avoid',
+      breakAfter: 'avoid' as 'avoid',
+      pageBreakAfter: 'avoid' as 'avoid',
+      WebkitPrintColorAdjust: 'exact' as 'exact',
+      printColorAdjust: 'exact' as 'exact',
     },
     th: {
-      padding: '11px 12px',
+      padding: '9px 8px',
       textAlign: 'left' as 'left',
       fontWeight: '600' as '600',
-      fontSize: '10px',
+      fontSize: '8px',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.8px',
+      letterSpacing: '0.6px',
       borderRight: 'none',
       borderBottom: '2px solid #00b894',
     },
     thLast: {
-      padding: '11px 12px',
+      padding: '9px 8px',
       textAlign: 'left' as 'left',
       fontWeight: '600' as '600',
-      fontSize: '10px',
+      fontSize: '8px',
       textTransform: 'uppercase' as 'uppercase',
-      letterSpacing: '0.8px',
+      letterSpacing: '0.6px',
       borderRight: 'none',
       borderBottom: '2px solid #00b894',
     },
     td: {
-      padding: '9px 12px',
-      borderBottom: '1px solid #f0f0f0',
+      padding: '7px 8px',
+      borderBottom: '1px solid #e8e8e8',
       borderRight: 'none',
-      fontSize: '12px',
+      fontSize: '10px',
       color: '#374151',
       wordWrap: 'break-word' as 'break-word',
-      overflow: 'hidden',
     },
     tdLast: {
-      padding: '9px 12px',
-      borderBottom: '1px solid #f0f0f0',
+      padding: '7px 8px',
+      borderBottom: '1px solid #e8e8e8',
       borderRight: 'none',
-      fontSize: '12px',
+      fontSize: '10px',
       color: '#374151',
       wordWrap: 'break-word' as 'break-word',
-      overflow: 'hidden',
     },
     tableRowEven: {
       backgroundColor: '#fafbfc',
@@ -232,22 +213,23 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       backgroundColor: '#ffffff',
     },
     footer: {
-      marginTop: '20px',
-      paddingTop: '14px',
+      marginTop: '14px',
+      paddingTop: '10px',
       borderTop: '2px solid #e5e7eb',
       textAlign: 'center' as 'center',
       color: '#6b7280',
+      breakInside: 'avoid' as 'avoid',
       pageBreakInside: 'avoid' as 'avoid',
     },
     footerText: {
-      fontSize: '10px',
-      margin: '3px 0',
+      fontSize: '8px',
+      margin: '2px 0',
     },
     footerBrand: {
-      fontSize: '11px',
+      fontSize: '9px',
       fontWeight: '600' as '600',
       color: '#1f2937',
-      marginTop: '6px',
+      marginTop: '4px',
     },
   };
 
@@ -367,7 +349,23 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
   );
 
   return (
-    <div ref={ref} style={styles.page}>
+    <div ref={ref} data-pdf-template style={styles.page}>
+      <style>
+        {`
+          @media print {
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            @page {
+              margin: 0;
+              size: A4 portrait;
+            }
+          }
+        `}
+      </style>
+      
       <div style={styles.headerBanner}>
         <div style={styles.headerContent}>
           <h1 style={styles.headerTitle}>Dossier RIB</h1>
@@ -540,5 +538,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     </div>
   );
 });
+
+DossierPdfTemplate.displayName = 'DossierPdfTemplate';
 
 export default DossierPdfTemplate;
