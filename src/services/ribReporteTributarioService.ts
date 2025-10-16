@@ -153,15 +153,23 @@ export class RibReporteTributarioService {
       return document;
     }
 
-    // Use upsert to insert or update records based on a composite key if available
-    // Assuming a unique constraint on (id, anio, tipo_entidad)
-    const { error } = await supabase
+    const { error: deleteError } = await supabase
       .from('rib_reporte_tributario')
-      .upsert(allRecords, { onConflict: 'id,anio,tipo_entidad' });
+      .delete()
+      .eq('id', reportId);
 
-    if (error) {
-      console.error('Error upserting RIB records:', error);
-      throw new Error(`Error al guardar el reporte: ${error.message}`);
+    if (deleteError) {
+      console.error('Error deleting old RIB records:', deleteError);
+      throw new Error(`Error al actualizar el reporte: ${deleteError.message}`);
+    }
+
+    const { error: insertError } = await supabase
+      .from('rib_reporte_tributario')
+      .insert(allRecords);
+
+    if (insertError) {
+      console.error('Error inserting new RIB records:', insertError);
+      throw new Error(`Error al guardar el reporte: ${insertError.message}`);
     }
 
     const savedDocument = await this.getById(reportId);
