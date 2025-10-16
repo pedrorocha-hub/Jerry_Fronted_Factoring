@@ -149,15 +149,26 @@ const RibReporteTributarioAuditLogViewer: React.FC<RibReporteTributarioAuditLogV
                       <Separator className="my-3 bg-gray-800" />
                       <div className="space-y-2">
                         <h4 className="text-xs font-semibold text-gray-400 uppercase">Campos Modificados:</h4>
-                        {Object.keys(log.changed_fields).map((field) => (
-                          <div key={field} className="bg-gray-800/50 rounded p-3 space-y-1">
-                            <div className="font-medium text-white text-sm">{formatFieldName(field)}</div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div><span className="text-gray-400">Anterior: </span><span className="text-red-400">{formatValue(log.old_values?.[field])}</span></div>
-                              <div><span className="text-gray-400">Nuevo: </span><span className="text-green-400">{formatValue(log.new_values?.[field])}</span></div>
+                        {log.changed_fields.aggregated ? (
+                          <div className="bg-gray-800/50 rounded p-3 space-y-1">
+                            <div className="font-medium text-white text-sm">
+                              Múltiples campos actualizados
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              El formulario completo fue guardado en una sola acción.
                             </div>
                           </div>
-                        ))}
+                        ) : (
+                          Object.keys(log.changed_fields).map((field) => (
+                            <div key={field} className="bg-gray-800/50 rounded p-3 space-y-1">
+                              <div className="font-medium text-white text-sm">{formatFieldName(field)}</div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div><span className="text-gray-400">Anterior: </span><span className="text-red-400">{formatValue(log.old_values?.[field])}</span></div>
+                                <div><span className="text-gray-400">Nuevo: </span><span className="text-green-400">{formatValue(log.new_values?.[field])}</span></div>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </>
                   )}
