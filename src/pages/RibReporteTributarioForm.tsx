@@ -343,7 +343,6 @@ const RibReporteTributarioForm = () => {
               </div>
               
               <ReporteStatusManager
-                reportId={id || null}
                 solicitudId={documentData.solicitud_id}
                 status={documentData.status as Status}
                 createdAt={documentData.created_at}

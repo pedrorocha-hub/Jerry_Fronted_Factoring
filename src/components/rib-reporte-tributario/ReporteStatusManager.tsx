@@ -5,10 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
-import RibReporteTributarioAuditLogViewer from '@/components/audit/RibReporteTributarioAuditLogViewer';
 
 interface ReporteStatusManagerProps {
-  reportId: string | null;
   solicitudId: string | null;
   status: 'Borrador' | 'En revisión' | 'Completado';
   createdAt?: string;
@@ -24,7 +22,6 @@ interface ReporteStatusManagerProps {
 }
 
 const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
-  reportId,
   solicitudId,
   status,
   createdAt,
@@ -140,12 +137,6 @@ const ReporteStatusManager: React.FC<ReporteStatusManagerProps> = ({
             <div>Actualizado: {formatDate(updatedAt)}</div>
           )}
         </div>
-
-        {reportId && (
-          <div className="w-full pt-4 border-t border-gray-800">
-            <RibReporteTributarioAuditLogViewer reportId={reportId} />
-          </div>
-        )}
 
         <div className="flex items-center justify-between pt-4 border-t border-gray-800">
           <div className="text-sm text-gray-400">
