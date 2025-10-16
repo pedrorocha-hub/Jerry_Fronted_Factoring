@@ -16,7 +16,6 @@ import IndicesFinancierosTable from '@/components/rib-reporte-tributario/Indices
 import ProveedorSection from '@/components/rib-reporte-tributario/ProveedorSection';
 import ReporteStatusManager from '@/components/rib-reporte-tributario/ReporteStatusManager';
 import EstadoSituacionTable from '@/components/estado-situacion/EstadoSituacionTable';
-import RibReporteTributarioAuditLog from '@/components/rib-reporte-tributario/RibReporteTributarioAuditLog';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
@@ -197,14 +196,7 @@ const RibReporteTributarioForm = () => {
       setDocumentData(savedDocument);
       setHasUnsavedChanges(false);
       showSuccess('Reporte RIB guardado exitosamente.');
-      
-      // Si estamos en modo edición, recargar para mostrar el nuevo log
-      if (isEditMode && id) {
-        await handleLoadForEdit(id);
-      } else if (savedDocument.id) {
-        // Si es nuevo, navegar al modo edición para ver el historial
-        navigate(`/rib-reporte-tributario/edit/${savedDocument.id}`);
-      }
+      navigate('/rib-reporte-tributario');
     } catch (err) {
       showError(`Error al guardar el reporte RIB: ${err instanceof Error ? err.message : 'Error desconocido'}`);
     } finally {
@@ -364,24 +356,6 @@ const RibReporteTributarioForm = () => {
                 searchSolicitudes={searchSolicitudes}
                 initialSolicitudLabel={initialSolicitudLabel}
               />
-              
-              {/* Sección de Historial de Cambios - Solo visible en modo edición */}
-              {isEditMode && id && (
-                <>
-                  <div className="border-t border-gray-800"></div>
-                  
-                  <div className="space-y-6">
-                    <div className="border-l-4 border-purple-500 pl-4">
-                      <h2 className="text-xl font-bold text-white mb-2">HISTORIAL DE CAMBIOS</h2>
-                      <p className="text-gray-400 text-sm">
-                        Registro completo de todas las modificaciones realizadas a este reporte
-                      </p>
-                    </div>
-                    
-                    <RibReporteTributarioAuditLog reporteId={id} />
-                  </div>
-                </>
-              )}
             </div>
           )}
         </div>
