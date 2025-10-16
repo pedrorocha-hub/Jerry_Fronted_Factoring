@@ -206,7 +206,10 @@ const ComportamientoCrediticioPage = () => {
     
     const formatSentinelScore = (score: string | null | undefined) => {
       if (!score) return '';
-      return `${score}/1000`;
+      // Si ya tiene /1000, no lo agregues de nuevo
+      const scoreStr = score.toString();
+      if (scoreStr.includes('/1000')) return scoreStr;
+      return `${scoreStr}/1000`;
     };
 
     setInitialSolicitudLabel(null);
