@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { History, User, Calendar, FileEdit, AlertCircle, CheckCircle, Trash2, Clock } from 'lucide-react';
+import { History, User, Calendar, FileEdit, AlertCircle, CheckCircle, Trash2, Clock, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { RibReporteTributarioAuditLogService } from '@/services/ribReporteTributarioAuditLogService';
 import { RibReporteTributarioAuditLogWithUserInfo, RibReporteTributarioAuditAction } from '@/types/rib-reporte-tributario-audit-log';
 import { Loader2 } from 'lucide-react';
@@ -97,6 +98,65 @@ const RibReporteTributarioAuditLogViewer: React.FC<RibReporteTributarioAuditLogV
     return String(value);
   };
 
+  const parseAggregateKey = (key: string): string => {
+    const parts = key.split('_');
+    if (parts.length === 2) {
+      const [year, entityType] = parts;
+      const formattedEntityType = entityType.charAt(0).toUpperCase() + entityType.slice(1);
+      return `${formattedEntityType} - Año ${year}`;
+    }
+    return key;
+  };
+
+  const renderAggregatedChanges = (log: RibReporteTributarioAuditLogWithUserInfo) => {
+    const allKeys = [...new Set([...Object.keys(log.old_values || {}), ...Object.keys(log.new_values || {})])];
+
+    return (
+      <Accordion type="multiple" className="w-full">
+        {allKeys.map(key => {
+          const oldData = log.old_values?.[key] || {};
+          const newData = log.new_values?.[key] || {};
+          const allFields = [...new Set([...Object.keys(oldData), ...Object.keys(newData)])];
+          const changedFields = allFields.filter(field => {
+            const oldValue = oldData[field];
+            const newValue = newData[field];
+            return JSON.stringify(oldValue) !== JSON.stringify(newValue);
+          });
+
+          if (changedFields.length === 0) return null;
+
+          return (
+            <AccordionItem value={key} key={key} className="border-gray-800">
+              <AccordionTrigger className="text-base hover:no-underline bg-gray-800/50 px-4 py-2 rounded-md">
+                {parseAggregateKey(key)}
+              </AccordionTrigger>
+              <AccordionContent className="pt-2">
+                <div className="space-y-2 p-3">
+                  {changedFields.map(field => {
+                    if (['id', 'user_id', 'created_at', 'updated_at', 'solicitud_id', 'ruc', 'proveedor_ruc', 'anio', 'tipo_entidad'].includes(field)) return null;
+                    
+                    const oldValue = oldData[field];
+                    const newValue = newData[field];
+
+                    return (
+                      <div key={field} className="bg-gray-800/50 rounded p-3 space-y-1">
+                        <div className="font-medium text-white text-sm">{formatFieldName(field)}</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div><span className="text-gray-400">Anterior: </span><span className="text-red-400">{formatValue(oldValue)}</span></div>
+                          <div><span className="text-gray-400">Nuevo: </span><span className="text-green-400">{formatValue(newValue)}</span></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -147,29 +207,20 @@ const RibReporteTributarioAuditLogViewer: React.FC<RibReporteTributarioAuditLogV
                   {log.changed_fields && Object.keys(log.changed_fields).length > 0 && (
                     <>
                       <Separator className="my-3 bg-gray-800" />
-                      <div className="space-y-2">
-                        <h4 className="text-xs font-semibold text-gray-400 uppercase">Campos Modificados:</h4>
-                        {log.changed_fields.aggregated ? (
-                          <div className="bg-gray-800/50 rounded p-3 space-y-1">
-                            <div className="font-medium text-white text-sm">
-                              Múltiples campos actualizados
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              El formulario completo fue guardado en una sola acción.
+                      <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Detalles del Cambio:</h4>
+                      {log.changed_fields.aggregated ? (
+                        renderAggregatedChanges(log)
+                      ) : (
+                        Object.keys(log.changed_fields).map((field) => (
+                          <div key={field} className="bg-gray-800/50 rounded p-3 space-y-1">
+                            <div className="font-medium text-white text-sm">{formatFieldName(field)}</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div><span className="text-gray-400">Anterior: </span><span className="text-red-400">{formatValue(log.old_values?.[field])}</span></div>
+                              <div><span className="text-gray-400">Nuevo: </span><span className="text-green-400">{formatValue(log.new_values?.[field])}</span></div>
                             </div>
                           </div>
-                        ) : (
-                          Object.keys(log.changed_fields).map((field) => (
-                            <div key={field} className="bg-gray-800/50 rounded p-3 space-y-1">
-                              <div className="font-medium text-white text-sm">{formatFieldName(field)}</div>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div><span className="text-gray-400">Anterior: </span><span className="text-red-400">{formatValue(log.old_values?.[field])}</span></div>
-                                <div><span className="text-gray-400">Nuevo: </span><span className="text-green-400">{formatValue(log.new_values?.[field])}</span></div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
+                        ))
+                      )}
                     </>
                   )}
                   {log.action === 'created' && <div className="mt-3 text-sm text-gray-400"><p>✨ Reporte creado inicialmente</p></div>}
