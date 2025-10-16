@@ -354,10 +354,11 @@ const VentasMensualesForm = () => {
               {isEditMode ? 'Editar' : 'Nuevo'} Reporte de Ventas
             </h1>
             <div className="flex gap-2">
-              {isEditMode && proveedorFicha && (
+              {isEditMode && proveedorFicha && solicitudId && (
                 <VentasMensualesAuditLogViewer 
                   proveedorRuc={proveedorFicha.ruc} 
-                  deudorRuc={deudorFicha?.ruc || null} 
+                  deudorRuc={deudorFicha?.ruc || null}
+                  solicitudId={solicitudId}
                 />
               )}
               <Button

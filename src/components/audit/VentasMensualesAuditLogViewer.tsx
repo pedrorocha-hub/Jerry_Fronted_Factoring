@@ -12,6 +12,7 @@ import { Loader2 } from 'lucide-react';
 interface VentasMensualesAuditLogViewerProps {
   proveedorRuc: string;
   deudorRuc: string | null;
+  solicitudId: string | null;
 }
 
 interface GroupedLog {
@@ -23,23 +24,28 @@ interface GroupedLog {
   logs: VentasMensualesAuditLogWithUserInfo[];
 }
 
-const VentasMensualesAuditLogViewer: React.FC<VentasMensualesAuditLogViewerProps> = ({ proveedorRuc, deudorRuc }) => {
+const VentasMensualesAuditLogViewer: React.FC<VentasMensualesAuditLogViewerProps> = ({ proveedorRuc, deudorRuc, solicitudId }) => {
   const [logs, setLogs] = useState<VentasMensualesAuditLogWithUserInfo[]>([]);
   const [groupedLogs, setGroupedLogs] = useState<GroupedLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && solicitudId) {
       loadLogs();
     }
-  }, [isOpen, proveedorRuc, deudorRuc]);
+  }, [isOpen, proveedorRuc, deudorRuc, solicitudId]);
 
   const loadLogs = async () => {
+    if (!solicitudId) {
+      console.warn('No solicitudId provided for audit log viewer');
+      return;
+    }
+    
     setLoading(true);
-    console.log('🔍 Loading audit logs for:', { proveedorRuc, deudorRuc });
+    console.log('🔍 Loading audit logs for:', { proveedorRuc, deudorRuc, solicitudId });
     try {
-      const data = await VentasMensualesAuditLogService.getLogsByRuc(proveedorRuc, deudorRuc);
+      const data = await VentasMensualesAuditLogService.getLogsBySolicitud(proveedorRuc, deudorRuc, solicitudId);
       console.log('🔍 Audit logs received:', data.length, 'logs');
       setLogs(data);
       groupLogsByOperation(data);

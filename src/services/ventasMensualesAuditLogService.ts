@@ -3,6 +3,84 @@ import { VentasMensualesAuditLog, VentasMensualesAuditLogWithUserInfo } from '@/
 
 export class VentasMensualesAuditLogService {
   /**
+   * Obtener logs de auditoría para una solicitud específica
+   */
+  static async getLogsBySolicitud(
+    proveedorRuc: string,
+    deudorRuc: string | null,
+    solicitudId: string
+  ): Promise<VentasMensualesAuditLogWithUserInfo[]> {
+    try {
+      console.log('🔍 getLogsBySolicitud called with:', { proveedorRuc, deudorRuc, solicitudId });
+      
+      // Obtener los IDs de ventas_mensuales para esta solicitud específica
+      let query = supabase
+        .from('ventas_mensuales')
+        .select('id')
+        .eq('proveedor_ruc', proveedorRuc)
+        .eq('solicitud_id', solicitudId);
+      
+      // Para NULL, usar .is() en lugar de .eq()
+      if (deudorRuc === null) {
+        query = query.is('deudor_ruc', null);
+      } else {
+        query = query.eq('deudor_ruc', deudorRuc);
+      }
+
+      const { data: ventasRecords, error: ventasError } = await query;
+
+      console.log('🔍 Ventas records found for solicitud:', ventasRecords?.length || 0);
+
+      if (ventasError) {
+        console.error('❌ Error getting ventas records:', ventasError);
+        throw ventasError;
+      }
+
+      if (!ventasRecords || ventasRecords.length === 0) {
+        console.log('⚠️ No ventas records found for this solicitud');
+        return [];
+      }
+
+      const ventasIds = ventasRecords.map(r => r.id);
+      console.log('🔍 Ventas IDs to search audit logs:', ventasIds);
+
+      // Obtener todos los logs para esos IDs
+      const { data, error } = await supabase
+        .from('ventas_mensuales_audit_log')
+        .select('*')
+        .in('ventas_mensuales_id', ventasIds)
+        .order('created_at', { ascending: false });
+      
+      console.log('🔍 Audit logs found:', data?.length || 0);
+
+      if (error) throw error;
+
+      // Enriquecer con información del usuario
+      const logsWithUserInfo = await Promise.all(
+        (data || []).map(async (log) => {
+          if (log.user_id) {
+            const { data: userData } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', log.user_id)
+              .single();
+
+            return {
+              ...log,
+              user_full_name: userData?.full_name || null,
+            } as VentasMensualesAuditLogWithUserInfo;
+          }
+          return log as VentasMensualesAuditLogWithUserInfo;
+        })
+      );
+
+      return logsWithUserInfo;
+    } catch (error) {
+      console.error('Error fetching Ventas Mensuales audit logs by solicitud:', error);
+      throw error;
+    }
+  }
+  /**
    * Obtener todos los logs de auditoría para un reporte de ventas mensuales específico
    */
   static async getLogsByVentasId(ventasId: string): Promise<VentasMensualesAuditLogWithUserInfo[]> {
