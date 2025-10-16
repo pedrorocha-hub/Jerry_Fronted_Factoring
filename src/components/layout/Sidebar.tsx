@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, FolderCheck, Upload, Users } from 'lucide-react';
+import { Home, FolderCheck, Upload, Users, BarChart } from 'lucide-react';
 import { useSession } from '@/contexts/SessionContext';
 
 const Sidebar: React.FC = () => {
@@ -10,6 +10,7 @@ const Sidebar: React.FC = () => {
     { to: '/', icon: Home, label: 'Dashboard' },
     { to: '/dossiers-guardados', icon: FolderCheck, label: 'RIBs Guardados' },
     { to: '/upload', icon: Upload, label: 'Subir Documentos' },
+    { to: '/top-10k', icon: BarChart, label: 'Top 10k' },
   ];
 
   const adminNavItems = [

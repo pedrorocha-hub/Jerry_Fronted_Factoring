@@ -1,83 +1,68 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { SessionProvider, useSession } from './contexts/SessionContext';
 import { Toaster } from '@/components/ui/sonner';
-import { SessionProvider } from './contexts/SessionContext';
+import { Loader2 } from 'lucide-react';
 
+// Page Imports
+import LoginPage from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import SolicitudOperacion from './pages/SolicitudOperacion';
-import SolicitudOperacionCreateEdit from './pages/SolicitudOperacionCreateEdit';
 import DossiersGuardados from './pages/DossiersGuardados';
-import DossierCompletado from './pages/DossierCompletado';
-import Login from './pages/Login';
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import UserManagement from './pages/Admin/Users';
-import FichasRuc from './pages/FichasRuc';
-import EeffPage from './pages/Eeff';
-import EeffForm from './pages/EeffForm';
-import SentinelPage from './pages/SentinelPage';
-import SentinelCreatePage from './pages/SentinelCreatePage';
-import Upload from './pages/Upload';
-import ReporteTributarioPage from './pages/ReporteTributario';
-import RibReporteTributarioPage from './pages/RibReporteTributario';
-import RibReporteTributarioForm from './pages/RibReporteTributarioForm';
-import VentasMensualesPage from './pages/VentasMensuales';
-import VentasMensualesForm from './pages/VentasMensualesForm';
-import Rib from './pages/Rib';
-import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
-import AuthCallbackPage from './pages/AuthCallbackPage';
-import RibEeffPage from './pages/RibEeff';
-import RibEeffForm from './pages/RibEeffForm';
+import UploadPage from './pages/Upload';
+import AdminUsersPage from './pages/admin/Users';
+import SolicitudOperacion from './pages/SolicitudOperacion';
+import SolicitudOperacionCreateEditPage from './pages/SolicitudOperacionCreateEdit';
+import Top10kPage from './pages/Top10k';
+
+const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
+  const { session, isAdmin, loading } = useSession();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black">
+        <Loader2 className="h-8 w-8 animate-spin text-[#00FF80]" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Navigate to="/login" />;
+  }
+
+  if (adminOnly && !isAdmin) {
+    return <Navigate to="/" />;
+  }
+
+  return children;
+};
+
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      
+      <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/dossiers-guardados" element={<PrivateRoute><DossiersGuardados /></PrivateRoute>} />
+      <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />
+      <Route path="/top-10k" element={<PrivateRoute><Top10kPage /></PrivateRoute>} />
+      
+      <Route path="/solicitudes-operacion" element={<PrivateRoute><SolicitudOperacion /></PrivateRoute>} />
+      <Route path="/solicitudes-operacion/crear" element={<PrivateRoute adminOnly><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
+      <Route path="/solicitudes-operacion/editar/:id" element={<PrivateRoute adminOnly><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
+      <Route path="/solicitudes-operacion/:id" element={<PrivateRoute><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
+
+      <Route path="/admin/users" element={<PrivateRoute adminOnly><AdminUsersPage /></PrivateRoute>} />
+
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+};
 
 function App() {
   return (
     <SessionProvider>
       <Router>
-        <Toaster position="top-right" richColors theme="dark" />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallbackPage />} />
-
-          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-
-          <Route path="/solicitudes-operacion" element={<ProtectedRoute><SolicitudOperacion /></ProtectedRoute>} />
-          <Route path="/solicitudes-operacion/crear" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
-          <Route path="/solicitudes-operacion/editar/:id" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
-          <Route path="/solicitudes-operacion/:id" element={<ProtectedRoute><SolicitudOperacionCreateEdit /></ProtectedRoute>} />
-
-          <Route path="/dossiers-guardados" element={<ProtectedRoute><DossiersGuardados /></ProtectedRoute>} />
-          <Route path="/dossier/:id" element={<ProtectedRoute><DossierCompletado /></ProtectedRoute>} />
-
-          <Route path="/fichas-ruc" element={<ProtectedRoute><FichasRuc /></ProtectedRoute>} />
-
-          <Route path="/eeff" element={<ProtectedRoute><EeffPage /></ProtectedRoute>} />
-          <Route path="/eeff/nuevo" element={<ProtectedRoute><EeffForm /></ProtectedRoute>} />
-          <Route path="/eeff/edit/:id" element={<ProtectedRoute><EeffForm /></ProtectedRoute>} />
-
-          <Route path="/sentinel" element={<ProtectedRoute><SentinelPage /></ProtectedRoute>} />
-          <Route path="/sentinel/create" element={<ProtectedRoute><SentinelCreatePage /></ProtectedRoute>} />
-
-          <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-
-          <Route path="/reporte-tributario" element={<ProtectedRoute><ReporteTributarioPage /></ProtectedRoute>} />
-          
-          <Route path="/rib-reporte-tributario" element={<ProtectedRoute><RibReporteTributarioPage /></ProtectedRoute>} />
-          <Route path="/rib-reporte-tributario/new" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
-          <Route path="/rib-reporte-tributario/edit/:id" element={<ProtectedRoute><RibReporteTributarioForm /></ProtectedRoute>} />
-
-          <Route path="/ventas-mensuales" element={<ProtectedRoute><VentasMensualesPage /></ProtectedRoute>} />
-          <Route path="/ventas-mensuales/new" element={<ProtectedRoute><VentasMensualesForm /></ProtectedRoute>} />
-          <Route path="/ventas-mensuales/edit/:id" element={<ProtectedRoute><VentasMensualesForm /></ProtectedRoute>} />
-
-          <Route path="/rib" element={<ProtectedRoute><Rib /></ProtectedRoute>} />
-          <Route path="/comportamiento-crediticio" element={<ProtectedRoute><ComportamientoCrediticio /></ProtectedRoute>} />
-
-          <Route path="/rib-eeff" element={<ProtectedRoute><RibEeffPage /></ProtectedRoute>} />
-          <Route path="/rib-eeff/nuevo" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
-          <Route path="/rib-eeff/edit/:id" element={<ProtectedRoute><RibEeffForm /></ProtectedRoute>} />
-
-          <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserManagement /></ProtectedRoute>} />
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <AppRoutes />
+        <Toaster />
       </Router>
     </SessionProvider>
   );
