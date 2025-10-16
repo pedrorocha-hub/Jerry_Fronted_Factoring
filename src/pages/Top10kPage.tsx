@@ -65,15 +65,18 @@ const Top10kPage = () => {
     }
   };
 
-  const formatValue = (value: any) => {
+  const formatValue = (value: any, key: string) => {
     if (value === null || value === undefined) return 'N/A';
+    if (key === 'ruc') {
+      return String(value);
+    }
     if (typeof value === 'number') {
       return new Intl.NumberFormat('es-PE').format(value);
     }
     return String(value);
   };
 
-  const tableHeaders = data.length > 0 ? Object.keys(data[0]) : [];
+  const tableHeaders = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'id') : [];
 
   return (
     <Layout>
@@ -116,7 +119,7 @@ const Top10kPage = () => {
                           <TableRow key={rowIndex} className="border-gray-800 hover:bg-gray-900/30">
                             {tableHeaders.map(header => (
                               <TableCell key={`${rowIndex}-${header}`} className="text-white whitespace-nowrap px-4 py-2 font-mono text-sm">
-                                {formatValue(row[header])}
+                                {formatValue(row[header], header)}
                               </TableCell>
                             ))}
                           </TableRow>
@@ -126,7 +129,7 @@ const Top10kPage = () => {
                   </div>
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-sm text-gray-400">
-                      Mostrando {page * ITEMS_PER_PAGE + 1} - {Math.min((page + 1) * ITEMS_PER_PAGE, totalCount)} de {formatValue(totalCount)}
+                      Mostrando {page * ITEMS_PER_PAGE + 1} - {Math.min((page + 1) * ITEMS_PER_PAGE, totalCount)} de {new Intl.NumberFormat('es-PE').format(totalCount)}
                     </span>
                     <div className="flex gap-2">
                       <Button
