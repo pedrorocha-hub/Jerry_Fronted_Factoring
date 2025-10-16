@@ -57,9 +57,10 @@ export class VentasMensualesService {
       status?: string;
       validado_por?: string | null;
       solicitud_id?: string | null;
-    }
+    },
+    existingId?: string  // ID del registro existente (para hacer UPDATE)
   ): Promise<VentasMensuales> {
-    const reportData = {
+    const reportData: any = {
       proveedor_ruc: proveedorRuc,
       deudor_ruc: deudorRuc,
       anio,
@@ -81,16 +82,34 @@ export class VentasMensualesService {
       solicitud_id: metadata.solicitud_id || null,
     };
 
-    const { data, error } = await supabase
-      .from('ventas_mensuales')
-      .upsert(reportData, {
-        onConflict: 'proveedor_ruc,deudor_ruc,anio,tipo_entidad,solicitud_id',
-      })
-      .select()
-      .single();
+    // Si tenemos un ID existente, hacer UPDATE directo
+    if (existingId) {
+      console.log('🔍 UPDATE mode - using existing ID:', existingId);
+      const { data, error } = await supabase
+        .from('ventas_mensuales')
+        .update(reportData)
+        .eq('id', existingId)
+        .select()
+        .single();
 
-    if (error) throw error;
-    return data;
+      console.log('🔍 UPDATE completed - ID:', data?.id);
+      
+      if (error) throw error;
+      return data;
+    } else {
+      // Si no hay ID, hacer INSERT normal
+      console.log('🔍 INSERT mode - creating new record');
+      const { data, error } = await supabase
+        .from('ventas_mensuales')
+        .insert(reportData)
+        .select()
+        .single();
+
+      console.log('🔍 INSERT completed - New ID:', data?.id);
+      
+      if (error) throw error;
+      return data;
+    }
   }
 
   static async deleteReport(id: string): Promise<void> {

@@ -37,8 +37,10 @@ const VentasMensualesAuditLogViewer: React.FC<VentasMensualesAuditLogViewerProps
 
   const loadLogs = async () => {
     setLoading(true);
+    console.log('🔍 Loading audit logs for:', { proveedorRuc, deudorRuc });
     try {
       const data = await VentasMensualesAuditLogService.getLogsByRuc(proveedorRuc, deudorRuc);
+      console.log('🔍 Audit logs received:', data.length, 'logs');
       setLogs(data);
       groupLogsByOperation(data);
     } catch (error) {

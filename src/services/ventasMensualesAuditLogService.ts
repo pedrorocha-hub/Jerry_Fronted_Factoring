@@ -49,20 +49,37 @@ export class VentasMensualesAuditLogService {
     deudorRuc: string | null
   ): Promise<VentasMensualesAuditLogWithUserInfo[]> {
     try {
+      console.log('🔍 getLogsByRuc called with:', { proveedorRuc, deudorRuc });
+      
       // Primero obtener todos los IDs de ventas_mensuales para este proveedor/deudor
-      const { data: ventasRecords, error: ventasError } = await supabase
+      let query = supabase
         .from('ventas_mensuales')
         .select('id')
-        .eq('proveedor_ruc', proveedorRuc)
-        .eq('deudor_ruc', deudorRuc || null);
+        .eq('proveedor_ruc', proveedorRuc);
+      
+      // Para NULL, usar .is() en lugar de .eq()
+      if (deudorRuc === null) {
+        query = query.is('deudor_ruc', null);
+      } else {
+        query = query.eq('deudor_ruc', deudorRuc);
+      }
 
-      if (ventasError) throw ventasError;
+      const { data: ventasRecords, error: ventasError } = await query;
+
+      console.log('🔍 Ventas records found:', ventasRecords?.length || 0);
+
+      if (ventasError) {
+        console.error('❌ Error getting ventas records:', ventasError);
+        throw ventasError;
+      }
 
       if (!ventasRecords || ventasRecords.length === 0) {
+        console.log('⚠️ No ventas records found');
         return [];
       }
 
       const ventasIds = ventasRecords.map(r => r.id);
+      console.log('🔍 Ventas IDs to search audit logs:', ventasIds);
 
       // Obtener todos los logs para esos IDs
       const { data, error } = await supabase
@@ -70,6 +87,8 @@ export class VentasMensualesAuditLogService {
         .select('*')
         .in('ventas_mensuales_id', ventasIds)
         .order('created_at', { ascending: false });
+      
+      console.log('🔍 Audit logs found:', data?.length || 0);
 
       if (error) throw error;
 

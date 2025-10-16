@@ -37,6 +37,10 @@ const VentasMensualesForm = () => {
   const [proveedorSalesData, setProveedorSalesData] = useState<SalesData>({});
   const [deudorSalesData, setDeudorSalesData] = useState<SalesData>({});
   const [availableYears, setAvailableYears] = useState<number[]>([]);
+  
+  // Mantener mapeo de año → ID para UPDATEs correctos
+  const [proveedorRecordIds, setProveedorRecordIds] = useState<Record<number, string>>({});
+  const [deudorRecordIds, setDeudorRecordIds] = useState<Record<number, string>>({});
 
   const [status, setStatus] = useState<string>('Borrador');
   const [validadoPor, setValidadoPor] = useState<string | null>(null);
@@ -74,13 +78,21 @@ const VentasMensualesForm = () => {
     return data;
   };
 
-  const extractSalesDataFromReports = (reports: VentasMensuales[]): SalesData => {
+  const extractSalesDataFromReports = (reports: VentasMensuales[]): {
+    salesData: SalesData;
+    recordIds: Record<number, string>;
+  } => {
     // Primero extraer los años de los reportes
     const yearsFromReports = reports.map(r => r.anio);
     const years = getAvailableYears({}, yearsFromReports);
     
     const salesData = initializeSalesData(years);
+    const recordIds: Record<number, string> = {};
+    
     reports.forEach(report => {
+      // Guardar el ID del registro para este año
+      recordIds[report.anio] = report.id;
+      
       if (salesData[report.anio]) {
         MONTHS.forEach(month => {
           const value = report[month as keyof VentasMensuales] as number | null;
@@ -90,7 +102,7 @@ const VentasMensualesForm = () => {
         });
       }
     });
-    return salesData;
+    return { salesData, recordIds };
   };
 
   const extractSalesDataFromReporteTributario = (reportes: any[]): SalesData => {
@@ -144,11 +156,13 @@ const VentasMensualesForm = () => {
       const proveedorReports = allReports.filter(r => r.tipo_entidad === 'proveedor');
       const deudorReports = allReports.filter(r => r.tipo_entidad === 'deudor');
 
-      const proveedorData = extractSalesDataFromReports(proveedorReports);
-      const deudorData = extractSalesDataFromReports(deudorReports);
+      const { salesData: proveedorData, recordIds: proveedorIds } = extractSalesDataFromReports(proveedorReports);
+      const { salesData: deudorData, recordIds: deudorIds } = extractSalesDataFromReports(deudorReports);
       
       setProveedorSalesData(proveedorData);
       setDeudorSalesData(deudorData);
+      setProveedorRecordIds(proveedorIds);
+      setDeudorRecordIds(deudorIds);
       
       // Combinar años de ambos datasets
       const allYears = getAvailableYears(proveedorData, Object.keys(deudorData).map(y => parseInt(y)));
@@ -275,13 +289,15 @@ const VentasMensualesForm = () => {
         const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
         
         if (hasData) {
+          const existingId = proveedorRecordIds[year]; // Obtener el ID si existe
           await VentasMensualesService.saveReport(
             proveedorFicha.ruc,
             deudorFicha?.ruc || null,
             year,
             'proveedor',
             yearData,
-            metadata
+            metadata,
+            existingId  // Pasar el ID para hacer UPDATE
           );
         }
       }
@@ -293,13 +309,15 @@ const VentasMensualesForm = () => {
           const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
           
           if (hasData) {
+            const existingId = deudorRecordIds[year]; // Obtener el ID si existe
             await VentasMensualesService.saveReport(
               proveedorFicha.ruc,
               deudorFicha.ruc,
               year,
               'deudor',
               yearData,
-              metadata
+              metadata,
+              existingId  // Pasar el ID para hacer UPDATE
             );
           }
         }
