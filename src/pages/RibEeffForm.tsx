@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowLeft, Building, DollarSign, TrendingUp, TrendingDown, Download, User, Users } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,6 @@ import { Combobox } from '@/components/ui/combobox';
 import { useSession } from '@/contexts/SessionContext';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import { supabase } from '@/integrations/supabase/client';
-import RibEeffAuditLogViewer from '@/components/audit/RibEeffAuditLogViewer';
 
 const sum = (...args: (number | null | undefined)[]): number => {
   return args.reduce((acc, val) => acc + (val || 0), 0);
@@ -171,7 +170,6 @@ const RibEeffForm = () => {
   const [deudorRuc, setDeudorRuc] = useState<string | null>(null);
   
   const [yearsData, setYearsData] = useState<{ proveedor: { [key: number]: Partial<RibEeff> }, deudor: { [key: number]: Partial<RibEeff> } }>({ proveedor: {}, deudor: {} });
-  const [initialYearsData, setInitialYearsData] = useState<{ proveedor: { [key: number]: Partial<RibEeff> }, deudor: { [key: number]: Partial<RibEeff> } }>({ proveedor: {}, deudor: {} });
   const [years, setYears] = useState<number[]>([]);
   const [status, setStatus] = useState<'Borrador' | 'En revision' | 'Completado'>('Borrador');
   const [solicitudId, setSolicitudId] = useState<string | null>(null);
@@ -253,7 +251,6 @@ const RibEeffForm = () => {
             }, { proveedor: {}, deudor: {} } as any);
 
             setYearsData(loadedYearsData);
-            setInitialYearsData(JSON.parse(JSON.stringify(loadedYearsData))); // Deep copy for initial state
             setStatus(existingData[0].status || 'Borrador');
             setSolicitudId(existingData[0].solicitud_id || null);
 
@@ -348,24 +345,13 @@ const RibEeffForm = () => {
         if (!ruc) return;
 
         years.forEach(year => {
-          const currentYearData = yearsData[entityType as 'proveedor' | 'deudor'][year] || {};
-          const initialYearData = initialYearsData[entityType as 'proveedor' | 'deudor'][year] || {};
-          
-          const changedFields: Partial<RibEeff> = {};
-          let hasChanges = false;
+          const yearData = yearsData[entityType as 'proveedor' | 'deudor'][year];
+          if (yearData && Object.keys(yearData).length > 0) {
+            
+            const { created_at, ...restOfYearData } = yearData;
 
-          Object.keys(currentYearData).forEach(key => {
-            const currentValue = currentYearData[key as keyof RibEeff];
-            const initialValue = initialYearData[key as keyof RibEeff];
-            if (currentValue !== initialValue) {
-              changedFields[key as keyof RibEeff] = currentValue;
-              hasChanges = true;
-            }
-          });
-
-          if (hasChanges) {
             const record: Partial<RibEeff> = {
-              ...changedFields,
+              ...restOfYearData,
               id: reportId,
               ruc: ruc,
               tipo_entidad: entityType as 'proveedor' | 'deudor',
@@ -375,13 +361,14 @@ const RibEeffForm = () => {
               updated_at: new Date().toISOString(),
               solicitud_id: solicitudId,
             };
+
             recordsToUpsert.push(record);
           }
         });
       });
 
       if (recordsToUpsert.length === 0) {
-        toast.info("No hay cambios para guardar.");
+        toast.info("No hay datos para guardar.");
         setIsSubmitting(false);
         return;
       }
@@ -415,10 +402,7 @@ const RibEeffForm = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">{isEditMode ? 'Editar' : 'Nuevo'} RIB EEFF</h1>
-            <div className="flex items-center gap-2">
-              {isEditMode && id && <RibEeffAuditLogViewer reportId={id} />}
-              <Button variant="outline" onClick={() => navigate('/rib-eeff')}><ArrowLeft className="h-4 w-4 mr-2" /> Volver</Button>
-            </div>
+            <Button variant="outline" onClick={() => navigate('/rib-eeff')}><ArrowLeft className="h-4 w-4 mr-2" /> Volver</Button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

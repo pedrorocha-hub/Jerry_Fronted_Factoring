@@ -17,19 +17,12 @@ export const RibEeffService = {
   },
 
   async upsertMultiple(records: Partial<RibEeff>[]): Promise<RibEeff[]> {
-    if (records.length === 0) {
-      return [];
-    }
-    
     const { data, error } = await supabase
       .from(TABLE_NAME)
       .upsert(records, { onConflict: 'id,anio_reporte,tipo_entidad' })
       .select();
       
-    if (error) {
-      console.error("Error in upsertMultiple:", error);
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
     return data;
   },
 
