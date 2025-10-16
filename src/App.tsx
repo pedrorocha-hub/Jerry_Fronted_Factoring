@@ -5,8 +5,8 @@ import { Toaster } from 'sonner';
 // Import pages
 import Dashboard from './pages/Dashboard';
 import DossiersGuardados from './pages/DossiersGuardados';
-import UploadPage from './pages/UploadPage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
+import Upload from './pages/Upload';
+import AdminUsersPage from './pages/Admin/Users';
 import SolicitudOperacion from './pages/SolicitudOperacion';
 import SolicitudOperacionCreateEditPage from './pages/SolicitudOperacionCreateEdit';
 import LoginPage from './pages/Login';
@@ -20,7 +20,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/dossiers-guardados" element={<DossiersGuardados />} />
-          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/upload" element={<Upload />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
           <Route path="/solicitudes-operacion" element={<SolicitudOperacion />} />
           <Route path="/solicitudes-operacion/crear" element={<SolicitudOperacionCreateEditPage />} />
