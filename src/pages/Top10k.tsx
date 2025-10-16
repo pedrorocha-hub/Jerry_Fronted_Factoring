@@ -122,7 +122,16 @@ const Top10kPage = () => {
         .order('ranking_2024', { ascending: true, nullsFirst: false });
 
       if (search) {
-        query = query.or(`razon_social.ilike.%${search}%,ruc::text.ilike.%${search}%`);
+        // Verificar si el término de búsqueda es numérico (RUC)
+        const isNumeric = /^\d+$/.test(search.trim());
+        
+        if (isNumeric) {
+          // Buscar solo por RUC
+          query = query.eq('ruc', search.trim());
+        } else {
+          // Buscar solo por razón social
+          query = query.ilike('razon_social', `%${search}%`);
+        }
       }
 
       const { data, error, count } = await query;
