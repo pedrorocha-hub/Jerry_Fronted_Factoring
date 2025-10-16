@@ -51,6 +51,12 @@ const AppRoutes = () => {
       <Route path="/solicitudes-operacion/:id" element={<PrivateRoute><SolicitudOperacionCreateEditPage /></PrivateRoute>} />
 
       <Route path="/admin/users" element={<PrivateRoute adminOnly><AdminUsersPage /></PrivateRoute>} />
+      <Route path="/fichas-ruc" element={<PrivateRoute><FichasRuc /></PrivateRoute>} />
+      <Route path="/eeff" element={<PrivateRoute><EeffPage /></PrivateRoute>} />
+      <Route path="/eeff/nuevo" element={<PrivateRoute><EeffForm /></PrivateRoute>} />
+      <Route path="/sentinel" element={<PrivateRoute><SentinelPage /></PrivateRoute>} />
+      <Route path="/sentinel/create" element={<PrivateRoute><SentinelCreatePage /></PrivateRoute>} />
+      <Route path="/reporte-tributario" element={<PrivateRoute><ReporteTributarioPage /></PrivateRoute>} />
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
