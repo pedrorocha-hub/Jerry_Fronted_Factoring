@@ -13,6 +13,7 @@ import SolicitudOperacion from './pages/SolicitudOperacion';
 import SolicitudOperacionCreateEditPage from './pages/SolicitudOperacionCreateEdit';
 import Top10kPage from './pages/Top10k';
 
+
 const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
   const { session, isAdmin, loading } = useSession();
 
