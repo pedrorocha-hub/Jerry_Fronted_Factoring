@@ -20,6 +20,22 @@ export class VentasMensualesService {
     return data || [];
   }
 
+  static async getBySolicitudId(
+    proveedorRuc: string,
+    solicitudId: string
+  ): Promise<VentasMensuales[]> {
+    const { data, error } = await supabase
+      .from('ventas_mensuales')
+      .select('*')
+      .eq('proveedor_ruc', proveedorRuc)
+      .eq('solicitud_id', solicitudId)
+      .order('anio', { ascending: false })
+      .order('tipo_entidad', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
   static async getById(id: string): Promise<VentasMensuales | null> {
     const { data, error } = await supabase
       .from('ventas_mensuales')
@@ -68,7 +84,7 @@ export class VentasMensualesService {
     const { data, error } = await supabase
       .from('ventas_mensuales')
       .upsert(reportData, {
-        onConflict: 'proveedor_ruc,deudor_ruc,anio,tipo_entidad',
+        onConflict: 'proveedor_ruc,deudor_ruc,anio,tipo_entidad,solicitud_id',
       })
       .select()
       .single();

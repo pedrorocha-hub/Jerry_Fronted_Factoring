@@ -13,6 +13,7 @@ import { ReporteTributarioService } from '@/services/reporteTributarioService';
 import { VentasMensuales } from '@/types/ventasMensuales';
 import VentasMensualesTable from '@/components/ventas-mensuales/VentasMensualesTable';
 import VentasStatusManager from '@/components/ventas-mensuales/VentasStatusManager';
+import VentasMensualesAuditLogViewer from '@/components/audit/VentasMensualesAuditLogViewer';
 import { showSuccess, showError } from '@/utils/toast';
 import { ProfileService } from '@/services/profileService';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,7 +132,10 @@ const VentasMensualesForm = () => {
       const [provFicha, deudorFichaData, allReports] = await Promise.all([
         FichaRucService.getByRuc(reportData.proveedor_ruc),
         reportData.deudor_ruc ? FichaRucService.getByRuc(reportData.deudor_ruc) : Promise.resolve(null),
-        VentasMensualesService.getByProveedorRuc(reportData.proveedor_ruc)
+        // IMPORTANTE: Solo cargar reportes de esta solicitud_id específica
+        reportData.solicitud_id 
+          ? VentasMensualesService.getBySolicitudId(reportData.proveedor_ruc, reportData.solicitud_id)
+          : VentasMensualesService.getByProveedorRuc(reportData.proveedor_ruc)
       ]);
 
       setProveedorFicha(provFicha);
@@ -230,6 +234,33 @@ const VentasMensualesForm = () => {
 
   const handleSave = async () => {
     if (!proveedorFicha) return;
+    
+    // Validar que solicitud_id sea obligatorio
+    if (!solicitudId) {
+      showError('Debe asociar el reporte a una Solicitud de Operación antes de guardar.');
+      return;
+    }
+    
+    // Si es un nuevo reporte, verificar que no exista ya uno con ese RUC + solicitud_id
+    if (!isEditMode) {
+      try {
+        const existingReports = await VentasMensualesService.getBySolicitudId(
+          proveedorFicha.ruc,
+          solicitudId
+        );
+        
+        if (existingReports.length > 0) {
+          showError(
+            'Ya existe un reporte de Ventas Mensuales para este RUC asociado a esta Solicitud de Operación. ' +
+            'Por favor, seleccione una solicitud diferente o edite el reporte existente.'
+          );
+          return;
+        }
+      } catch (err) {
+        console.error('Error verificando reportes existentes:', err);
+      }
+    }
+    
     setSaving(true);
     try {
       const metadata = {
@@ -304,13 +335,21 @@ const VentasMensualesForm = () => {
               <BarChart3 className="h-6 w-6 mr-3 text-[#00FF80]" />
               {isEditMode ? 'Editar' : 'Nuevo'} Reporte de Ventas
             </h1>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/ventas-mensuales')}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" /> Volver a la lista
-            </Button>
+            <div className="flex gap-2">
+              {isEditMode && proveedorFicha && (
+                <VentasMensualesAuditLogViewer 
+                  proveedorRuc={proveedorFicha.ruc} 
+                  deudorRuc={deudorFicha?.ruc || null} 
+                />
+              )}
+              <Button
+                variant="outline"
+                onClick={() => navigate('/ventas-mensuales')}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" /> Volver a la lista
+              </Button>
+            </div>
           </div>
 
           {!isEditMode && (
