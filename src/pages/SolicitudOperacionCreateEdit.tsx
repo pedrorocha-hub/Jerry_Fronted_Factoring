@@ -18,6 +18,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
 import { toast } from 'sonner';
+import AuditLogViewer from '@/components/audit/AuditLogViewer';
 
 interface Top10kData {
   descripcion_ciiu_rev3: string | null;
@@ -82,7 +83,7 @@ const SolicitudOperacionCreateEditPage = () => {
     resumen_solicitud: '',
     garantias: '',
     condiciones_desembolso: '',
-    validado_por: '', // <-- Inicialización del nuevo campo
+    validado_por: '',
   });
 
   const handleEditSolicitud = useCallback(async (solicitud: SolicitudOperacionWithRiesgos) => {
@@ -139,7 +140,7 @@ const SolicitudOperacionCreateEditPage = () => {
       resumen_solicitud: solicitud.resumen_solicitud || '',
       garantias: solicitud.garantias || '',
       condiciones_desembolso: solicitud.condiciones_desembolso || '',
-      validado_por: solicitud.validado_por || '', // <-- Mapeo del campo
+      validado_por: solicitud.validado_por || '',
     });
     await handleSearch(solicitud.ruc);
     window.scrollTo(0, 0);
@@ -216,7 +217,7 @@ const SolicitudOperacionCreateEditPage = () => {
       resumen_solicitud: '',
       garantias: '',
       condiciones_desembolso: '',
-      validado_por: '', // <-- Reset del nuevo campo
+      validado_por: '',
     });
   };
 
@@ -316,7 +317,6 @@ const SolicitudOperacionCreateEditPage = () => {
         await supabase.from('solicitud_operacion_riesgos').insert(riesgosToInsert);
         showSuccess('Solicitud actualizada exitosamente.');
       } else {
-        // This flow is now handled by handleCreateAndRedirect
         showError("Error: El modo de creación directa no debería ser accesible.");
       }
       navigate('/solicitudes-operacion');
@@ -567,6 +567,12 @@ const SolicitudOperacionCreateEditPage = () => {
                         )}
                         <div className="flex items-center gap-2"><Calendar className="h-4 w-4 flex-shrink-0" /><span>Fecha de creación: <strong className="text-gray-200">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</strong></span></div>
                         <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 flex-shrink-0" /><span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span></div>
+                        
+                        {/* Botón para ver historial de auditoría */}
+                        <div className="w-full pt-4 border-t border-gray-800">
+                          <AuditLogViewer solicitudId={editingSolicitud.id} />
+                        </div>
+
                         <div className="w-full pt-2"><Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label><Input id="validado_por" value={solicitudFormData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} /></div>
                         <div className="w-full pt-2"><Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label><Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}><SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En Revisión">En Revisión</SelectItem><SelectItem value="Completado">Completado</SelectItem></SelectContent></Select></div>
                       </CardFooter>
