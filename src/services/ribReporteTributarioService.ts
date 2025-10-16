@@ -153,23 +153,17 @@ export class RibReporteTributarioService {
       return document;
     }
 
-    const { error: deleteError } = await supabase
+    // Usar UPSERT en lugar de DELETE+INSERT para que el audit log capture solo cambios reales
+    const { error: upsertError } = await supabase
       .from('rib_reporte_tributario')
-      .delete()
-      .eq('id', reportId);
+      .upsert(allRecords, {
+        onConflict: 'id,anio,tipo_entidad',
+        ignoreDuplicates: false
+      });
 
-    if (deleteError) {
-      console.error('Error deleting old RIB records:', deleteError);
-      throw new Error(`Error al actualizar el reporte: ${deleteError.message}`);
-    }
-
-    const { error: insertError } = await supabase
-      .from('rib_reporte_tributario')
-      .insert(allRecords);
-
-    if (insertError) {
-      console.error('Error inserting new RIB records:', insertError);
-      throw new Error(`Error al guardar el reporte: ${insertError.message}`);
+    if (upsertError) {
+      console.error('Error upserting RIB records:', upsertError);
+      throw new Error(`Error al guardar el reporte: ${upsertError.message}`);
     }
 
     const savedDocument = await this.getById(reportId);

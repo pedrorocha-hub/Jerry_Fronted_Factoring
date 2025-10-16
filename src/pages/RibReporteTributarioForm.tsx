@@ -16,6 +16,7 @@ import IndicesFinancierosTable from '@/components/rib-reporte-tributario/Indices
 import ProveedorSection from '@/components/rib-reporte-tributario/ProveedorSection';
 import ReporteStatusManager from '@/components/rib-reporte-tributario/ReporteStatusManager';
 import EstadoSituacionTable from '@/components/estado-situacion/EstadoSituacionTable';
+import RibReporteTributarioAuditLogViewer from '@/components/audit/RibReporteTributarioAuditLogViewer';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
@@ -223,14 +224,19 @@ const RibReporteTributarioForm = () => {
               <ClipboardList className="h-6 w-6 mr-3 text-[#00FF80]" />
               {isEditMode ? 'Editar' : 'Nuevo'} RIB - Reporte Tributario
             </h1>
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/rib-reporte-tributario')} 
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a la lista
-            </Button>
+            <div className="flex gap-2">
+              {isEditMode && id && (
+                <RibReporteTributarioAuditLogViewer reporteId={id} />
+              )}
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/rib-reporte-tributario')} 
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver a la lista
+              </Button>
+            </div>
           </div>
 
           {!isEditMode && (
