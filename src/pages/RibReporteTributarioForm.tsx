@@ -16,6 +16,7 @@ import IndicesFinancierosTable from '@/components/rib-reporte-tributario/Indices
 import ProveedorSection from '@/components/rib-reporte-tributario/ProveedorSection';
 import ReporteStatusManager from '@/components/rib-reporte-tributario/ReporteStatusManager';
 import EstadoSituacionTable from '@/components/estado-situacion/EstadoSituacionTable';
+import RibReporteTributarioAuditLogViewer from '@/components/audit/RibReporteTributarioAuditLogViewer';
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
@@ -356,6 +357,15 @@ const RibReporteTributarioForm = () => {
                 searchSolicitudes={searchSolicitudes}
                 initialSolicitudLabel={initialSolicitudLabel}
               />
+
+              {/* Historial de Auditoría - Solo visible en modo edición */}
+              {isEditMode && documentData.deudor.id && (
+                <Card className="bg-[#121212] border border-gray-800">
+                  <CardContent className="pt-6">
+                    <RibReporteTributarioAuditLogViewer reporteId={documentData.deudor.id} />
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>
