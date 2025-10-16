@@ -23,6 +23,7 @@ import RibTable from '@/components/rib/RibTable';
 import { supabase } from '@/integrations/supabase/client';
 import { DatePicker } from '@/components/ui/date-picker';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
+import RibAuditLogViewer from '@/components/audit/RibAuditLogViewer';
 
 const getStatusColor = (status: RibStatus | null | undefined) => {
   switch (status) {
@@ -707,6 +708,11 @@ const RibPage = () => {
                           <strong className="text-gray-400">Última modificación:</strong>{' '}
                           {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
                         </div>
+                      </div>
+                      
+                      {/* Botón para ver historial de auditoría */}
+                      <div className="w-full pt-4 border-t border-gray-800">
+                        <RibAuditLogViewer ribId={selectedRib.id} />
                       </div>
                     </div>
                   )}
