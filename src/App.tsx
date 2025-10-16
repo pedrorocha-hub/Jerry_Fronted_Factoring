@@ -12,6 +12,22 @@ import AdminUsersPage from './pages/admin/Users';
 import SolicitudOperacion from './pages/SolicitudOperacion';
 import SolicitudOperacionCreateEditPage from './pages/SolicitudOperacionCreateEdit';
 import Top10kPage from './pages/Top10k';
+import DossierCompletado from './pages/DossierCompletado';
+import FichasRuc from './pages/FichasRuc';
+import EeffPage from './pages/Eeff';
+import EeffForm from './pages/EeffForm';
+import SentinelPage from './pages/SentinelPage';
+import SentinelCreatePage from './pages/SentinelCreatePage';
+import ReporteTributarioPage from './pages/ReporteTributario';
+import RibReporteTributarioPage from './pages/RibReporteTributario';
+import RibReporteTributarioForm from './pages/RibReporteTributarioForm';
+import VentasMensualesPage from './pages/VentasMensuales';
+import VentasMensualesForm from './pages/VentasMensualesForm';
+import Rib from './pages/Rib';
+import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
+import AuthCallbackPage from './pages/AuthCallbackPage';
+import RibEeffPage from './pages/RibEeff';
+import RibEeffForm from './pages/RibEeffForm';
 
 
 const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element, adminOnly?: boolean }) => {
