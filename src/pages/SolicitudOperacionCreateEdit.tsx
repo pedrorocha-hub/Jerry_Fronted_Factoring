@@ -23,6 +23,7 @@ interface Top10kData {
   descripcion_ciiu_rev3: string | null;
   sector: string | null;
   ranking_2024: number | null;
+  ranking_2023: number | null;
   facturado_2024_soles_maximo: number | null;
   facturado_2023_soles_maximo: string | null;
 }
@@ -238,7 +239,7 @@ const SolicitudOperacionCreateEditPage = () => {
 
         const { data: topData, error: topError } = await supabase
           .from('top_10k')
-          .select('descripcion_ciiu_rev3, sector, ranking_2024, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
+          .select('descripcion_ciiu_rev3, sector, ranking_2024, ranking_2023, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
           .eq('ruc', rucToSearch)
           .single();
 
@@ -510,10 +511,11 @@ const SolicitudOperacionCreateEditPage = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{searchedFicha?.ruc}</p></div>
                         <div><Label className="text-gray-400">Sector</Label><p className="text-white">{top10kData.sector || 'N/A'}</p></div>
+                        <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2024 || 'N/A'}</p></div>
+                        <div><Label className="text-gray-400">Ranking 2023</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2023 || 'N/A'}</p></div>
                         <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2024_soles_maximo)}</p></div>
                         <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2023_soles_maximo)}</p></div>
                         <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p></div>
-                        <div className="md:col-span-2"><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2024 || 'N/A'}</p></div>
                       </div>
                     ) : (
                       <div className="text-center py-4 text-gray-500"><p>No se encontraron datos de riesgo en la base TOP 10K para este RUC.</p></div>
