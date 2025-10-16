@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Loader2, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 
@@ -16,31 +17,48 @@ const ITEMS_PER_PAGE = 50;
 const Top10kPage = () => {
   const [data, setData] = useState<Top10kRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [query, setQuery] = useState({ page: 0, term: '' });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuery({ page: 0, term: searchTerm });
+    }, 500); // 500ms delay before search
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const from = page * ITEMS_PER_PAGE;
+        const from = query.page * ITEMS_PER_PAGE;
         const to = from + ITEMS_PER_PAGE - 1;
 
-        const { count, error: countError } = await supabase
-          .from('top_10k')
-          .select('*', { count: 'exact', head: true });
+        let queryBuilder = supabase.from('top_10k');
+        
+        let countQuery = queryBuilder.select('*', { count: 'exact', head: true });
+        let dataQuery = queryBuilder.select('*');
 
+        if (query.term) {
+          const searchPattern = `%${query.term}%`;
+          const orFilter = `ruc::text.ilike.${searchPattern},razon_social.ilike.${searchPattern}`;
+          countQuery = countQuery.or(orFilter);
+          dataQuery = dataQuery.or(orFilter);
+        }
+
+        const { count, error: countError } = await countQuery;
         if (countError) throw countError;
         setTotalCount(count || 0);
 
-        const { data: pageData, error: dataError } = await supabase
-          .from('top_10k')
-          .select('*')
+        const { data: pageData, error: dataError } = await dataQuery
           .order('ranking_2024', { ascending: true, nullsFirst: false })
           .range(from, to);
 
         if (dataError) throw dataError;
-
         setData(pageData || []);
       } catch (err) {
         showError('No se pudieron cargar los datos de Top 10k.');
@@ -51,17 +69,17 @@ const Top10kPage = () => {
     };
 
     fetchData();
-  }, [page]);
+  }, [query]);
 
   const handleNextPage = () => {
-    if ((page + 1) * ITEMS_PER_PAGE < totalCount) {
-      setPage(page + 1);
+    if ((query.page + 1) * ITEMS_PER_PAGE < totalCount) {
+      setQuery(q => ({ ...q, page: q.page + 1 }));
     }
   };
 
   const handlePrevPage = () => {
-    if (page > 0) {
-      setPage(page - 1);
+    if (query.page > 0) {
+      setQuery(q => ({ ...q, page: q.page - 1 }));
     }
   };
 
@@ -89,7 +107,18 @@ const Top10kPage = () => {
 
           <Card className="bg-[#121212] border border-gray-800">
             <CardHeader>
-              <CardTitle className="text-white">Base de Datos Top 10,000</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-white">Base de Datos Top 10,000</CardTitle>
+                <div className="relative w-full max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Buscar por RUC o Razón Social..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-gray-900 border-gray-700 text-white pl-10"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -99,7 +128,7 @@ const Top10kPage = () => {
               ) : data.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No se encontraron datos en la tabla Top 10k.</p>
+                  <p>{query.term ? `No se encontraron resultados para "${query.term}".` : 'No se encontraron datos en la tabla Top 10k.'}</p>
                 </div>
               ) : (
                 <>
@@ -129,14 +158,14 @@ const Top10kPage = () => {
                   </div>
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-sm text-gray-400">
-                      Mostrando {page * ITEMS_PER_PAGE + 1} - {Math.min((page + 1) * ITEMS_PER_PAGE, totalCount)} de {new Intl.NumberFormat('es-PE').format(totalCount)}
+                      Mostrando {query.page * ITEMS_PER_PAGE + 1} - {Math.min((query.page + 1) * ITEMS_PER_PAGE, totalCount)} de {new Intl.NumberFormat('es-PE').format(totalCount)}
                     </span>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={handlePrevPage}
-                        disabled={page === 0}
+                        disabled={query.page === 0}
                         className="border-gray-700 text-gray-300 hover:bg-gray-800"
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" />
@@ -146,7 +175,7 @@ const Top10kPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={handleNextPage}
-                        disabled={(page + 1) * ITEMS_PER_PAGE >= totalCount}
+                        disabled={(query.page + 1) * ITEMS_PER_PAGE >= totalCount}
                         className="border-gray-700 text-gray-300 hover:bg-gray-800"
                       >
                         Siguiente
