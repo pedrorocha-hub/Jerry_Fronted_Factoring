@@ -21,6 +21,7 @@ import ComportamientoCrediticioTable from '@/components/comportamiento-creditici
 import { supabase } from '@/integrations/supabase/client';
 import ExperienciaPagoManager from '@/components/comportamiento-crediticio/ExperienciaPagoManager';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
+import ComportamientoCrediticioAuditLogViewer from '@/components/audit/ComportamientoCrediticioAuditLogViewer';
 
 interface ReporteWithDetails extends ComportamientoCrediticio {
   nombre_empresa?: string;
@@ -172,7 +173,7 @@ const ComportamientoCrediticioPage = () => {
     }
 
     const newReport: ComportamientoCrediticio = {
-      id: '', // No ID yet
+      id: '',
       ruc: searchedFicha.ruc,
       proveedor: searchedFicha.nombre_empresa,
       status: 'Borrador',
@@ -196,7 +197,7 @@ const ComportamientoCrediticioPage = () => {
   };
 
   const handleEditFromSearchResults = async (report: ComportamientoCrediticio) => {
-    await handleSelectReport(report, null); // Pass null for sentinelData
+    await handleSelectReport(report, null);
     setView('form');
   };
 
@@ -503,7 +504,6 @@ const ComportamientoCrediticioPage = () => {
 
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
-              {/* Formulario y resto de la UI de edición */}
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">{selectedReport?.id ? 'Editando' : 'Nuevo'} Reporte para: {searchedFicha.nombre_empresa}</CardTitle>
@@ -603,6 +603,12 @@ const ComportamientoCrediticioPage = () => {
                     <h4 className="font-semibold text-white">Detalles del Análisis</h4>
                     <div className="flex items-start"><User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" /><div><p><strong className="text-gray-400">Ejecutivo:</strong>{creatorDetails ? <span> {creatorDetails.fullName} ({creatorDetails.email})</span> : <span> Cargando...</span>}</p><div className="flex items-center mt-1 text-gray-500"><Calendar className="h-4 w-4 mr-2" /><span className="text-xs">{new Date(selectedReport.created_at).toLocaleString('es-PE')}</span></div></div></div>
                     <div className="flex items-center"><Clock className="h-4 w-4 mr-2 text-gray-400" /><div><strong className="text-gray-400">Última modificación:</strong> {new Date(selectedReport.updated_at).toLocaleString('es-PE')}</div></div>
+                    
+                    {/* Botón para ver historial de auditoría */}
+                    <div className="w-full pt-4 border-t border-gray-800">
+                      <ComportamientoCrediticioAuditLogViewer reportId={selectedReport.id} />
+                    </div>
+
                     <div className="w-full pt-2">
                       <Label htmlFor="solicitud_id" className="font-semibold text-white">Asociar a Solicitud de Operación</Label>
                       <AsyncCombobox
