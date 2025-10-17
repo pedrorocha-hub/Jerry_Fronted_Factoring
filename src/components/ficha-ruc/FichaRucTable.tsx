@@ -41,6 +41,7 @@ import {
 import { FichaRuc } from '@/types/ficha-ruc';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import FichaRucAuditLogViewer from '@/components/audit/FichaRucAuditLogViewer';
 
 interface FichaRucTableProps {
   fichas: FichaRuc[];
@@ -236,6 +237,7 @@ const FichaRucTable: React.FC<FichaRucTableProps> = ({
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <FichaRucAuditLogViewer ruc={ficha.ruc} />
                       <Button
                         variant="ghost"
                         size="sm"
