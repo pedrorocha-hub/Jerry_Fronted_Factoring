@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useSession } from '@/contexts/SessionContext';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -9,7 +9,14 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) => {
-  const { session, loading, isAdmin } = useSession();
+  const { session, loading, isAdmin, isOnboardingCompleted, refreshProfile } = useSession();
+
+  // Refrescar perfil cuando el componente se monta para asegurar datos actualizados
+  useEffect(() => {
+    if (session && !loading) {
+      refreshProfile();
+    }
+  }, [session, loading, refreshProfile]);
 
   if (loading) {
     return (
@@ -24,6 +31,11 @@ const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) =>
 
   if (!session) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Redirect to onboarding if user hasn't completed it
+  if (!isOnboardingCompleted) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   if (adminOnly && !isAdmin) {

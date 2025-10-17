@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 
 // 🧩 Páginas principales
 import LoginPage from './pages/Login';
+import OnboardingPage from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import DossiersGuardados from './pages/DossiersGuardados';
 import UploadPage from './pages/Upload';
@@ -33,7 +34,7 @@ import RibEeffForm from './pages/RibEeffForm';
 
 // 🔒 Componente de protección de rutas
 const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element; adminOnly?: boolean }) => {
-  const { session, isAdmin, loading } = useSession();
+  const { session, isAdmin, loading, isOnboardingCompleted } = useSession();
 
   if (loading) {
     return (
@@ -44,6 +45,7 @@ const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element; 
   }
 
   if (!session) return <Navigate to="/login" />;
+  if (!isOnboardingCompleted) return <Navigate to="/onboarding" />;
   if (adminOnly && !isAdmin) return <Navigate to="/" />;
 
   return children;
@@ -55,6 +57,7 @@ const AppRoutes = () => {
     <Routes>
       {/* Auth */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/onboarding" element={<OnboardingPage />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       {/* Dashboard */}
