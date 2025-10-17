@@ -10,6 +10,7 @@ import { ReporteTributarioWithFicha, ReporteTributarioUpdate } from '@/types/rep
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
+import ReporteTributarioAuditLogViewer from '@/components/audit/ReporteTributarioAuditLogViewer';
 
 interface ReporteTributarioModalProps {
   reporte: ReporteTributarioWithFicha | null;
@@ -50,7 +51,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
     setLoading(true);
     try {
       // Limpiar los datos antes de enviarlos, eliminando campos que no deben actualizarse.
-      const { id, created_at, updated_at, ficha_ruc, ...updatePayload } = formData;
+      const { id, created_at, updated_at, ficha_ruc, nombre_empresa, ...updatePayload } = formData as any;
 
       await ReporteTributarioService.update(reporte.id, updatePayload);
       dismissToast(loadingToast);
@@ -115,6 +116,7 @@ const ReporteTributarioModal: React.FC<ReporteTributarioModalProps> = ({
             </div>
             {isAdmin && (
               <div className="flex items-center space-x-2">
+                <ReporteTributarioAuditLogViewer reporteId={reporte.id} />
                 {mode === 'view' ? (
                   <Button variant="outline" size="sm" onClick={() => setMode('edit')} className="border-gray-700 text-gray-300 hover:bg-gray-800"><Edit className="h-4 w-4 mr-2" /> Editar</Button>
                 ) : (

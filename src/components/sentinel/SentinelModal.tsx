@@ -13,6 +13,7 @@ import { Sentinel, UpdateSentinelData } from '@/services/sentinelService';
 import { SentinelService } from '@/services/sentinelService';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import { useSession } from '@/contexts/SessionContext';
+import SentinelAuditLogViewer from '@/components/audit/SentinelAuditLogViewer';
 
 interface SentinelModalProps {
   sentinel: Sentinel | null;
@@ -128,6 +129,7 @@ const SentinelModal: React.FC<SentinelModalProps> = ({
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <SentinelAuditLogViewer sentinelId={sentinel.id} />
               {isAdmin && mode === 'view' ? (
                 <Button variant="outline" size="sm" onClick={() => setMode('edit')} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                   <Edit className="h-4 w-4 mr-2" /> Editar
