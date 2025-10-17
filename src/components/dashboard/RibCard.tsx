@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, FileSearch, TrendingUp, FileBarChart2, CalendarDays, ArrowRight, FileText } from 'lucide-react';
+import { ClipboardList, FileSearch, TrendingUp, FileBarChart2, CalendarDays, ArrowRight, FileText, MessageSquare } from 'lucide-react';
 
 const RibCard = () => {
   return (
@@ -63,6 +63,18 @@ const RibCard = () => {
             <div className="flex items-center">
               <FileText className="h-4 w-4 mr-2 text-[#00FF80]" />
               RIB EEFF
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-500" />
+          </Button>
+        </Link>
+        <Link to="/comentarios-ejecutivo">
+          <Button variant="outline" className="w-full justify-between border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white transition-all">
+            <div className="flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2 text-[#00FF80]" />
+              Comentarios del Ejecutivo
+              <span className="ml-2 px-2 py-1 text-xs bg-orange-500/20 text-orange-400 rounded-full border border-orange-500/30">
+                BETA
+              </span>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-500" />
           </Button>

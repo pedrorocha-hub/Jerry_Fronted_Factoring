@@ -31,6 +31,7 @@ import ComportamientoCrediticio from './pages/ComportamientoCrediticio';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import RibEeffPage from './pages/RibEeff';
 import RibEeffForm from './pages/RibEeffForm';
+import ComentariosEjecutivoPage from './pages/ComentariosEjecutivo';
 
 // 🔒 Componente de protección de rutas
 const PrivateRoute = ({ children, adminOnly = false }: { children: JSX.Element; adminOnly?: boolean }) => {
@@ -108,6 +109,9 @@ const AppRoutes = () => {
       <Route path="/rib-eeff" element={<PrivateRoute><RibEeffPage /></PrivateRoute>} />
       <Route path="/rib-eeff/nuevo" element={<PrivateRoute><RibEeffForm /></PrivateRoute>} />
       <Route path="/rib-eeff/edit/:id" element={<PrivateRoute><RibEeffForm /></PrivateRoute>} />
+
+      {/* Comentarios del Ejecutivo */}
+      <Route path="/comentarios-ejecutivo" element={<PrivateRoute><ComentariosEjecutivoPage /></PrivateRoute>} />
 
       {/* Otras */}
       <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />

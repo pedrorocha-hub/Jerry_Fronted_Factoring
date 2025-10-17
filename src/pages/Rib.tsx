@@ -718,6 +718,7 @@ const RibPage = () => {
                   )}
                 </CardContent>
               </Card>
+
             </div>
           )}
         </div>
