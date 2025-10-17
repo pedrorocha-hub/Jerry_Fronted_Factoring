@@ -12,6 +12,7 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { CreateEeffDto, UpdateEeffDto } from '@/types/eeff';
 import { toast } from 'sonner';
 import { Combobox } from '@/components/ui/combobox';
+import EeffAuditLogViewer from '@/components/audit/EeffAuditLogViewer';
 
 const EeffForm = () => {
   const { id } = useParams<{ id: string }>();
@@ -191,10 +192,15 @@ const EeffForm = () => {
                 {isEditMode ? 'Actualice los detalles del registro.' : 'Complete el formulario para crear un nuevo registro.'}
               </p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/eeff')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver al listado
-            </Button>
+            <div className="flex items-center gap-2">
+              {isEditMode && id && (
+                <EeffAuditLogViewer eeffId={id} />
+              )}
+              <Button variant="outline" onClick={() => navigate('/eeff')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver al listado
+              </Button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
