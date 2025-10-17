@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { VentasMensualesAuditLogService } from '@/services/ventasMensualesAuditLogService';
 import { VentasMensualesAuditLogWithUserInfo, VentasMensualesAuditAction } from '@/types/ventas-mensuales-audit-log';
 import { Loader2 } from 'lucide-react';
+import { VentasStatus, getVentasStatusDisplay } from '@/types/ventasMensuales';
 
 interface VentasMensualesAuditLogViewerProps {
   proveedorRuc: string;
@@ -162,8 +163,14 @@ const VentasMensualesAuditLogViewer: React.FC<VentasMensualesAuditLogViewerProps
     return baseName;
   };
 
-  const formatValue = (value: any): string => {
+  const formatValue = (value: any, fieldName?: string): string => {
     if (value === null || value === undefined) return 'N/A';
+    
+    // Mapear status al formato de display
+    if (fieldName === 'status') {
+      return getVentasStatusDisplay(value as VentasStatus);
+    }
+    
     if (typeof value === 'boolean') return value ? 'Sí' : 'No';
     if (typeof value === 'number') {
       return new Intl.NumberFormat('es-PE', {
@@ -284,13 +291,13 @@ const VentasMensualesAuditLogViewer: React.FC<VentasMensualesAuditLogViewerProps
                                       <div>
                                         <span className="text-gray-400">Anterior: </span>
                                         <span className="text-red-400">
-                                          {formatValue(log.old_values?.[field])}
+                                          {formatValue(log.old_values?.[field], field)}
                                         </span>
                                       </div>
                                       <div>
                                         <span className="text-gray-400">Nuevo: </span>
                                         <span className="text-green-400">
-                                          {formatValue(log.new_values?.[field])}
+                                          {formatValue(log.new_values?.[field], field)}
                                         </span>
                                       </div>
                                     </div>

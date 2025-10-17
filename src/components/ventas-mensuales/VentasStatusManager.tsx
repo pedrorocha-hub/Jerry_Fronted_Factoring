@@ -6,13 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, Loader2, CheckCircle, XCircle, Clock, User } from 'lucide-react';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
+import { VentasStatus, getVentasStatusDisplay } from '@/types/ventasMensuales';
 
 interface VentasStatusManagerProps {
-  status: string;
+  status: VentasStatus;
   validadoPor: string | null;
   creatorName: string | null;
-  solicitudId: string | null; // <-- Añadido
-  onStatusChange: (status: string) => void;
+  solicitudId: string | null;
+  onStatusChange: (status: VentasStatus) => void;
   onValidatedByChange: (name: string | null) => void;
   onSave: () => void;
   isSaving: boolean;
@@ -49,23 +50,23 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
 
   const getStatusIcon = () => {
     switch (status) {
-      case 'Validado':
+      case 'completado':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'Rechazado':
-        return <XCircle className="h-5 w-5 text-red-500" />;
-      default:
+      case 'en_revision':
         return <Clock className="h-5 w-5 text-yellow-500" />;
+      default:
+        return <Clock className="h-5 w-5 text-gray-500" />;
     }
   };
 
   const getStatusColor = () => {
     switch (status) {
-      case 'Validado':
+      case 'completado':
         return 'text-green-400';
-      case 'Rechazado':
-        return 'text-red-400';
-      default:
+      case 'en_revision':
         return 'text-yellow-400';
+      default:
+        return 'text-gray-400';
     }
   };
 
@@ -74,7 +75,7 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
       <CardHeader>
         <CardTitle className="text-white flex items-center">
           {getStatusIcon()}
-          <span className={`ml-2 ${getStatusColor()}`}>Estado del Reporte</span>
+          <span className={`ml-2 ${getStatusColor()}`}>Estado del Reporte - {getVentasStatusDisplay(status)}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -83,17 +84,17 @@ const VentasStatusManager: React.FC<VentasStatusManagerProps> = ({
             <Label htmlFor="status" className="text-gray-300">Estado</Label>
             <Select value={status} onValueChange={onStatusChange}>
               <SelectTrigger id="status" className="bg-gray-900/50 border-gray-700 text-white">
-                <SelectValue />
+                <SelectValue placeholder={getVentasStatusDisplay(status)} />
               </SelectTrigger>
               <SelectContent className="bg-gray-900 border-gray-700">
-                <SelectItem value="Borrador" className="text-white hover:bg-gray-800">
+                <SelectItem value="borrador" className="text-white hover:bg-gray-800">
                   Borrador
                 </SelectItem>
-                <SelectItem value="Validado" className="text-white hover:bg-gray-800">
-                  Validado
+                <SelectItem value="en_revision" className="text-white hover:bg-gray-800">
+                  En revision
                 </SelectItem>
-                <SelectItem value="Rechazado" className="text-white hover:bg-gray-800">
-                  Rechazado
+                <SelectItem value="completado" className="text-white hover:bg-gray-800">
+                  Completado
                 </SelectItem>
               </SelectContent>
             </Select>

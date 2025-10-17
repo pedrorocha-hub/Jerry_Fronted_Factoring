@@ -1,4 +1,18 @@
-export type VentasStatus = 'Borrador' | 'Validado' | 'Rechazado';
+export type VentasStatus = 'borrador' | 'en_revision' | 'completado';
+
+// Función para convertir status del backend al frontend
+export const getVentasStatusDisplay = (status: VentasStatus | null | undefined): string => {
+  switch (status) {
+    case 'borrador':
+      return 'Borrador';
+    case 'en_revision':
+      return 'En revision';
+    case 'completado':
+      return 'Completado';
+    default:
+      return 'Borrador';
+  }
+};
 
 export interface VentasMensuales {
   id: string;

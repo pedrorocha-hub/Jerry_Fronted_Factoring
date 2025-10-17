@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { VentasMensualesSummary } from '@/types/ventasMensuales';
+import { VentasMensualesSummary, VentasStatus, getVentasStatusDisplay } from '@/types/ventasMensuales';
 
 interface VentasMensualesListProps {
   items: VentasMensualesSummary[];
@@ -19,15 +19,17 @@ interface VentasMensualesListProps {
   onDeleteReport: (id: string) => void;
 }
 
-const getStatusBadge = (status: string | null | undefined) => {
+const getStatusBadge = (status: VentasStatus | null | undefined) => {
+  const displayStatus = getVentasStatusDisplay(status);
+  
   switch (status) {
-    case 'Completado':
-      return <Badge className="bg-green-600 hover:bg-green-700 text-white border-transparent">Completado</Badge>;
-    case 'En revision':
-      return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black border-transparent">En Revisión</Badge>;
-    case 'Borrador':
+    case 'completado':
+      return <Badge className="bg-green-600 hover:bg-green-700 text-white border-transparent">{displayStatus}</Badge>;
+    case 'en_revision':
+      return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black border-transparent">{displayStatus}</Badge>;
+    case 'borrador':
     default:
-      return <Badge variant="outline">Borrador</Badge>;
+      return <Badge variant="outline">{displayStatus}</Badge>;
   }
 };
 

@@ -80,7 +80,7 @@ export class VentasMensualesService {
       octubre: salesData.octubre ?? null,
       noviembre: salesData.noviembre ?? null,
       diciembre: salesData.diciembre ?? null,
-      status: metadata.status || 'Borrador',
+      status: metadata.status || 'borrador',
       validado_por: metadata.validado_por || null,
       solicitud_id: metadata.solicitud_id || null,
     };

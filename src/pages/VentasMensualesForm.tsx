@@ -10,7 +10,7 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { VentasMensualesService } from '@/services/ventasMensualesService';
 import { ReporteTributarioService } from '@/services/reporteTributarioService';
-import { VentasMensuales } from '@/types/ventasMensuales';
+import { VentasMensuales, VentasStatus } from '@/types/ventasMensuales';
 import VentasMensualesTable from '@/components/ventas-mensuales/VentasMensualesTable';
 import VentasStatusManager from '@/components/ventas-mensuales/VentasStatusManager';
 import VentasMensualesAuditLogViewer from '@/components/audit/VentasMensualesAuditLogViewer';
@@ -42,7 +42,7 @@ const VentasMensualesForm = () => {
   const [proveedorRecordIds, setProveedorRecordIds] = useState<Record<number, string>>({});
   const [deudorRecordIds, setDeudorRecordIds] = useState<Record<number, string>>({});
 
-  const [status, setStatus] = useState<string>('Borrador');
+  const [status, setStatus] = useState<VentasStatus>('borrador');
   const [validadoPor, setValidadoPor] = useState<string | null>(null);
   const [solicitudId, setSolicitudId] = useState<string | null>(null);
   const [creatorName, setCreatorName] = useState<string | null>(null);
@@ -237,7 +237,7 @@ const VentasMensualesForm = () => {
         showError('No se encontraron reportes tributarios para autocompletar.');
       }
       
-      setStatus('Borrador');
+      setStatus('borrador');
       setIsDirty(true);
     } catch (err) {
       setError('Ocurrió un error al buscar la información.');
