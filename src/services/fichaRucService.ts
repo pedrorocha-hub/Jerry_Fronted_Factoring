@@ -146,17 +146,68 @@ export class FichaRucService {
   // Buscar fichas RUC por texto
   static async search(searchTerm: string): Promise<FichaRuc[]> {
     try {
-      const { data, error } = await supabase
-        .from('ficha_ruc')
-        .select('*')
-        .or(`nombre_empresa.ilike.%${searchTerm}%,ruc.ilike.%${searchTerm}%,actividad_empresa.ilike.%${searchTerm}%`)
-        .order('created_at', { ascending: false });
+      console.log(`Buscando fichas con término: "${searchTerm}"`);
+      
+      // Hacer tres búsquedas en paralelo para mayor efectividad
+      const searchPattern = `%${searchTerm}%`;
+      
+      const [byName, byRuc, byActivity] = await Promise.all([
+        // Búsqueda por nombre
+        supabase
+          .from('ficha_ruc')
+          .select('*')
+          .ilike('nombre_empresa', searchPattern)
+          .limit(20),
+        // Búsqueda por RUC
+        supabase
+          .from('ficha_ruc')
+          .select('*')
+          .ilike('ruc', searchPattern)
+          .limit(20),
+        // Búsqueda por actividad
+        supabase
+          .from('ficha_ruc')
+          .select('*')
+          .ilike('actividad_empresa', searchPattern)
+          .limit(20),
+      ]);
 
-      if (error) {
-        throw new Error(`Error buscando fichas RUC: ${error.message}`);
+      // Combinar resultados y eliminar duplicados
+      const allResults: FichaRuc[] = [];
+      const seenIds = new Set<number>();
+
+      for (const result of [byName, byRuc, byActivity]) {
+        if (result.data) {
+          for (const ficha of result.data) {
+            if (!seenIds.has(ficha.id)) {
+              seenIds.add(ficha.id);
+              allResults.push(ficha);
+            }
+          }
+        }
+        if (result.error) {
+          console.error('Error en búsqueda:', result.error);
+        }
       }
 
-      return data || [];
+      // Ordenar por relevancia: primero los que empiezan con el término de búsqueda
+      const sorted = allResults.sort((a, b) => {
+        const searchLower = searchTerm.toLowerCase();
+        const aNameStarts = a.nombre_empresa.toLowerCase().startsWith(searchLower);
+        const bNameStarts = b.nombre_empresa.toLowerCase().startsWith(searchLower);
+        const aRucStarts = a.ruc.startsWith(searchTerm);
+        const bRucStarts = b.ruc.startsWith(searchTerm);
+        
+        if (aRucStarts && !bRucStarts) return -1;
+        if (!aRucStarts && bRucStarts) return 1;
+        if (aNameStarts && !bNameStarts) return -1;
+        if (!aNameStarts && bNameStarts) return 1;
+        
+        return a.nombre_empresa.localeCompare(b.nombre_empresa);
+      });
+
+      console.log(`Encontrados ${sorted.length} resultados para "${searchTerm}"`);
+      return sorted.slice(0, 50);
     } catch (error) {
       console.error('Error en search:', error);
       throw error;

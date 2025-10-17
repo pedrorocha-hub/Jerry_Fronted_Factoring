@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowLeft, Building, DollarSign, TrendingUp, TrendingDown, Download, User, Users } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -15,7 +15,6 @@ import { FichaRuc } from '@/types/ficha-ruc';
 import { Eeff } from '@/types/eeff';
 import { RibEeff } from '@/types/rib-eeff';
 import { toast } from 'sonner';
-import { Combobox } from '@/components/ui/combobox';
 import { useSession } from '@/contexts/SessionContext';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import { supabase } from '@/integrations/supabase/client';
@@ -162,7 +161,6 @@ const RibEeffForm = () => {
   const { user } = useSession();
   const isEditMode = !!id;
 
-  const [fichas, setFichas] = useState<FichaRuc[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -174,6 +172,8 @@ const RibEeffForm = () => {
   const [status, setStatus] = useState<'Borrador' | 'En revision' | 'Completado'>('Borrador');
   const [solicitudId, setSolicitudId] = useState<string | null>(null);
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
+  const [initialProveedorLabel, setInitialProveedorLabel] = useState<string | null>(null);
+  const [initialDeudorLabel, setInitialDeudorLabel] = useState<string | null>(null);
 
   const activoFields = {
     activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
@@ -226,9 +226,6 @@ const RibEeffForm = () => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
-        const fichasData = await FichaRucService.getAll();
-        setFichas(fichasData);
-
         if (isEditMode && id) {
           const existingData = await RibEeffService.getById(id);
           if (existingData.length > 0) {
@@ -238,8 +235,20 @@ const RibEeffForm = () => {
             const proveedorData = existingData.find(d => d.tipo_entidad === 'proveedor');
             const deudorData = existingData.find(d => d.tipo_entidad === 'deudor');
 
-            if (proveedorData) setProveedorRuc(proveedorData.ruc);
-            if (deudorData) setDeudorRuc(deudorData.ruc);
+            if (proveedorData) {
+              setProveedorRuc(proveedorData.ruc);
+              const proveedorFicha = await FichaRucService.getByRuc(proveedorData.ruc);
+              if (proveedorFicha) {
+                setInitialProveedorLabel(`${proveedorFicha.nombre_empresa} (${proveedorFicha.ruc})`);
+              }
+            }
+            if (deudorData) {
+              setDeudorRuc(deudorData.ruc);
+              const deudorFicha = await FichaRucService.getByRuc(deudorData.ruc);
+              if (deudorFicha) {
+                setInitialDeudorLabel(`${deudorFicha.nombre_empresa} (${deudorFicha.ruc})`);
+              }
+            }
 
             const loadedYearsData = existingData.reduce((acc, record) => {
               if (record.anio_reporte) {
@@ -279,6 +288,20 @@ const RibEeffForm = () => {
     }
     setLoading(true);
     try {
+      // Cargar nombres de empresas si no los tenemos
+      if (proveedorRuc && !initialProveedorLabel) {
+        const proveedorFicha = await FichaRucService.getByRuc(proveedorRuc);
+        if (proveedorFicha) {
+          setInitialProveedorLabel(`${proveedorFicha.nombre_empresa} (${proveedorFicha.ruc})`);
+        }
+      }
+      if (deudorRuc && !initialDeudorLabel) {
+        const deudorFicha = await FichaRucService.getByRuc(deudorRuc);
+        if (deudorFicha) {
+          setInitialDeudorLabel(`${deudorFicha.nombre_empresa} (${deudorFicha.ruc})`);
+        }
+      }
+
       const rucsToLoad = [proveedorRuc, deudorRuc].filter((r): r is string => !!r);
       const eeffRecords = (await Promise.all(rucsToLoad.map(r => EeffService.getByRuc(r)))).flat();
       
@@ -384,7 +407,7 @@ const RibEeffForm = () => {
     }
   };
 
-  const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
+  const searchSolicitudes = useCallback(async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     const { data, error } = await supabase.rpc('search_solicitudes', { search_term: query });
     if (error) {
@@ -392,17 +415,44 @@ const RibEeffForm = () => {
       return [];
     }
     return data || [];
-  };
+  }, []);
 
-  const rucOptions = fichas.map(ficha => ({ value: ficha.ruc, label: `${ficha.nombre_empresa} (${ficha.ruc})` }));
+  const searchFichas = useCallback(async (query: string): Promise<ComboboxOption[]> => {
+    if (query.length < 2) return [];
+    try {
+      const fichasData = await FichaRucService.search(query);
+      const options = fichasData.map(ficha => ({
+        value: ficha.ruc,
+        label: `${ficha.nombre_empresa} (${ficha.ruc})`
+      }));
+      console.log(`searchFichas retornando ${options.length} opciones:`, options);
+      return options;
+    } catch (error) {
+      console.error('Error searching fichas:', error);
+      return [];
+    }
+  }, []);
 
   return (
     <Layout>
       <div className="p-6">
-        <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-bold">{isEditMode ? 'Editar' : 'Nuevo'} RIB EEFF</h1>
-            <Button variant="outline" onClick={() => navigate('/rib-eeff')}><ArrowLeft className="h-4 w-4 mr-2" /> Volver</Button>
+            <div className="flex gap-3">
+              <Button 
+                type="button" 
+                onClick={(e) => { e.preventDefault(); handleSubmit(e as any); }} 
+                disabled={isSubmitting || years.length === 0} 
+                className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/rib-eeff')}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Volver
+              </Button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -410,15 +460,31 @@ const RibEeffForm = () => {
               <CardHeader><CardTitle className="flex items-center"><Users className="h-5 w-5 mr-2 text-[#00FF80]" />Selección de Empresas y Solicitud</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 <div>
-                  <Label htmlFor="proveedorRuc">Proveedor</Label>
-                  <Combobox options={rucOptions} value={proveedorRuc || ''} onChange={setProveedorRuc} placeholder="Seleccione un proveedor..." searchPlaceholder="Buscar proveedor..." />
+                  <Label htmlFor="proveedorRuc" className="text-gray-300">Proveedor</Label>
+                  <AsyncCombobox
+                    value={proveedorRuc}
+                    onChange={setProveedorRuc}
+                    onSearch={searchFichas}
+                    placeholder="Buscar proveedor por RUC o nombre..."
+                    searchPlaceholder="Escriba RUC o nombre de empresa..."
+                    emptyMessage="No se encontraron empresas."
+                    initialDisplayValue={initialProveedorLabel}
+                  />
                 </div>
                 <div>
-                  <Label htmlFor="deudorRuc">Deudor</Label>
-                  <Combobox options={rucOptions} value={deudorRuc || ''} onChange={setDeudorRuc} placeholder="Seleccione un deudor..." searchPlaceholder="Buscar deudor..." />
+                  <Label htmlFor="deudorRuc" className="text-gray-300">Deudor (Opcional)</Label>
+                  <AsyncCombobox
+                    value={deudorRuc}
+                    onChange={setDeudorRuc}
+                    onSearch={searchFichas}
+                    placeholder="Buscar deudor por RUC o nombre..."
+                    searchPlaceholder="Escriba RUC o nombre de empresa..."
+                    emptyMessage="No se encontraron empresas."
+                    initialDisplayValue={initialDeudorLabel}
+                  />
                 </div>
                 <div className="md:col-span-2">
-                  <Label htmlFor="solicitud_id">Asociar a Solicitud de Operación</Label>
+                  <Label htmlFor="solicitud_id" className="text-gray-300">Asociar a Solicitud de Operación</Label>
                   <AsyncCombobox
                     value={solicitudId}
                     onChange={setSolicitudId}
@@ -447,7 +513,7 @@ const RibEeffForm = () => {
 
             {proveedorRuc && (
               <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-white">Proveedor: {fichas.find(f => f.ruc === proveedorRuc)?.nombre_empresa}</h2>
+                <h2 className="text-2xl font-bold text-white">Proveedor: {initialProveedorLabel?.split(' (')[0] || proveedorRuc}</h2>
                 <FinancialTable title="Activos" fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} entityType="proveedor" />
                 <FinancialTable title="Pasivos" fields={pasivoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} entityType="proveedor" />
                 <FinancialTable title="Patrimonio" fields={patrimonioFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} entityType="proveedor" />
@@ -456,7 +522,7 @@ const RibEeffForm = () => {
             
             {deudorRuc && (
               <div className="space-y-6 mt-8">
-                <h2 className="text-2xl font-bold text-white">Deudor: {fichas.find(f => f.ruc === deudorRuc)?.nombre_empresa}</h2>
+                <h2 className="text-2xl font-bold text-white">Deudor: {initialDeudorLabel?.split(' (')[0] || deudorRuc}</h2>
                 <FinancialTable title="Activos" fields={activoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingUp className="h-5 w-5 mr-2 text-green-400" />} entityType="deudor" />
                 <FinancialTable title="Pasivos" fields={pasivoFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<TrendingDown className="h-5 w-5 mr-2 text-red-400" />} entityType="deudor" />
                 <FinancialTable title="Patrimonio" fields={patrimonioFields} years={years} yearsData={yearsData} handleChange={handleYearDataChange} icon={<DollarSign className="h-5 w-5 mr-2 text-yellow-400" />} entityType="deudor" />

@@ -60,10 +60,15 @@ export function AsyncCombobox({
 
   React.useEffect(() => {
     if (open) {
+      console.log(`AsyncCombobox: Buscando con query "${searchQuery}"`);
       setLoading(true)
       onSearch(searchQuery).then((newOptions) => {
+        console.log(`AsyncCombobox: Recibidas ${newOptions.length} opciones:`, newOptions);
         setOptions(newOptions)
         setLoading(false)
+      }).catch((error) => {
+        console.error('AsyncCombobox: Error en búsqueda:', error);
+        setLoading(false);
       })
     }
   }, [open, searchQuery, onSearch])
@@ -94,7 +99,7 @@ export function AsyncCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder={searchPlaceholder} 
             onValueChange={setSearchQuery}
