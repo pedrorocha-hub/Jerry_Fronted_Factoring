@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useSession } from '@/contexts/SessionContext';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import { supabase } from '@/integrations/supabase/client';
+import RibEeffAuditLogViewer from '@/components/audit/RibEeffAuditLogViewer';
 
 const sum = (...args: (number | null | undefined)[]): number => {
   return args.reduce((acc, val) => acc + (val || 0), 0);
@@ -503,10 +504,15 @@ const RibEeffForm = () => {
                       <SelectContent><SelectItem value="Borrador">Borrador</SelectItem><SelectItem value="En revision">En revisión</SelectItem><SelectItem value="Completado">Completado</SelectItem></SelectContent>
                     </Select>
                   </div>
-                  <Button type="button" variant="outline" onClick={handleLoadEeffData} disabled={!proveedorRuc || loading}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {loading ? 'Cargando...' : 'Cargar datos de EEFF'}
-                  </Button>
+                  <div className="flex gap-3">
+                    {id && (
+                      <RibEeffAuditLogViewer ribEeffId={id} />
+                    )}
+                    <Button type="button" variant="outline" onClick={handleLoadEeffData} disabled={!proveedorRuc || loading}>
+                      <Download className="h-4 w-4 mr-2" />
+                      {loading ? 'Cargando...' : 'Cargar datos de EEFF'}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
