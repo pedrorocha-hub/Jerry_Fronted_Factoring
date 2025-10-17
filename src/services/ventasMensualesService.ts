@@ -60,6 +60,9 @@ export class VentasMensualesService {
     },
     existingId?: string  // ID del registro existente (para hacer UPDATE)
   ): Promise<VentasMensuales> {
+    // Obtener el usuario actual
+    const { data: { user } } = await supabase.auth.getUser();
+    
     const reportData: any = {
       proveedor_ruc: proveedorRuc,
       deudor_ruc: deudorRuc,
@@ -82,30 +85,29 @@ export class VentasMensualesService {
       solicitud_id: metadata.solicitud_id || null,
     };
 
+    // Solo agregar user_id en INSERT (nuevo registro)
+    if (!existingId && user?.id) {
+      reportData.user_id = user.id;
+    }
+
     // Si tenemos un ID existente, hacer UPDATE directo
     if (existingId) {
-      console.log('🔍 UPDATE mode - using existing ID:', existingId);
       const { data, error } = await supabase
         .from('ventas_mensuales')
         .update(reportData)
         .eq('id', existingId)
         .select()
         .single();
-
-      console.log('🔍 UPDATE completed - ID:', data?.id);
       
       if (error) throw error;
       return data;
     } else {
       // Si no hay ID, hacer INSERT normal
-      console.log('🔍 INSERT mode - creating new record');
       const { data, error } = await supabase
         .from('ventas_mensuales')
         .insert(reportData)
         .select()
         .single();
-
-      console.log('🔍 INSERT completed - New ID:', data?.id);
       
       if (error) throw error;
       return data;

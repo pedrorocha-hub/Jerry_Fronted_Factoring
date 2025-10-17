@@ -11,8 +11,6 @@ export class VentasMensualesAuditLogService {
     solicitudId: string
   ): Promise<VentasMensualesAuditLogWithUserInfo[]> {
     try {
-      console.log('🔍 getLogsBySolicitud called with:', { proveedorRuc, deudorRuc, solicitudId });
-      
       // Obtener los IDs de ventas_mensuales para esta solicitud específica
       let query = supabase
         .from('ventas_mensuales')
@@ -29,20 +27,13 @@ export class VentasMensualesAuditLogService {
 
       const { data: ventasRecords, error: ventasError } = await query;
 
-      console.log('🔍 Ventas records found for solicitud:', ventasRecords?.length || 0);
-
-      if (ventasError) {
-        console.error('❌ Error getting ventas records:', ventasError);
-        throw ventasError;
-      }
+      if (ventasError) throw ventasError;
 
       if (!ventasRecords || ventasRecords.length === 0) {
-        console.log('⚠️ No ventas records found for this solicitud');
         return [];
       }
 
       const ventasIds = ventasRecords.map(r => r.id);
-      console.log('🔍 Ventas IDs to search audit logs:', ventasIds);
 
       // Obtener todos los logs para esos IDs
       const { data, error } = await supabase
@@ -50,8 +41,6 @@ export class VentasMensualesAuditLogService {
         .select('*')
         .in('ventas_mensuales_id', ventasIds)
         .order('created_at', { ascending: false });
-      
-      console.log('🔍 Audit logs found:', data?.length || 0);
 
       if (error) throw error;
 
@@ -127,8 +116,6 @@ export class VentasMensualesAuditLogService {
     deudorRuc: string | null
   ): Promise<VentasMensualesAuditLogWithUserInfo[]> {
     try {
-      console.log('🔍 getLogsByRuc called with:', { proveedorRuc, deudorRuc });
-      
       // Primero obtener todos los IDs de ventas_mensuales para este proveedor/deudor
       let query = supabase
         .from('ventas_mensuales')
@@ -144,20 +131,13 @@ export class VentasMensualesAuditLogService {
 
       const { data: ventasRecords, error: ventasError } = await query;
 
-      console.log('🔍 Ventas records found:', ventasRecords?.length || 0);
-
-      if (ventasError) {
-        console.error('❌ Error getting ventas records:', ventasError);
-        throw ventasError;
-      }
+      if (ventasError) throw ventasError;
 
       if (!ventasRecords || ventasRecords.length === 0) {
-        console.log('⚠️ No ventas records found');
         return [];
       }
 
       const ventasIds = ventasRecords.map(r => r.id);
-      console.log('🔍 Ventas IDs to search audit logs:', ventasIds);
 
       // Obtener todos los logs para esos IDs
       const { data, error } = await supabase
@@ -165,8 +145,6 @@ export class VentasMensualesAuditLogService {
         .select('*')
         .in('ventas_mensuales_id', ventasIds)
         .order('created_at', { ascending: false });
-      
-      console.log('🔍 Audit logs found:', data?.length || 0);
 
       if (error) throw error;
 
