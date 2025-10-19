@@ -14,6 +14,12 @@ interface DocumentRequest {
   size_bytes: number;
 }
 
+interface UserData {
+  id: string;
+  email: string;
+  fullName: string | null;
+}
+
 interface N8nPayload {
   documento_id: string;
   tipo: string;
@@ -22,9 +28,14 @@ interface N8nPayload {
   nombre_archivo: string;
   size_bytes: number;
   signed_ttl_seconds: number;
+  user: UserData;
 }
 
 serve(async (req) => {
+  console.log('🚨 DISPATCH-DOCUMENT EDGE FUNCTION STARTED 🚨')
+  console.log('🚨 Request method:', req.method)
+  console.log('🚨 Timestamp:', new Date().toISOString())
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -133,7 +144,82 @@ serve(async (req) => {
     // Initialize Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    console.log('Step 1: Generating signed URL...')
+    console.log('Step 1: Getting document with user info...')
+    
+    // Get document with created_by from database
+    const { data: documento, error: documentError } = await supabase
+      .from('documentos')
+      .select('*, created_by')
+      .eq('id', documentData.id)
+      .single()
+
+    if (documentError) {
+      console.error('❌ Error fetching document:', documentError)
+      return new Response(
+        JSON.stringify({ error: 'Document not found' }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    console.log('📄 Document fetched from DB:', documento)
+    console.log('📄 Document created_by field:', documento.created_by)
+    console.log('📄 All document fields:', Object.keys(documento))
+
+    console.log('Step 2: Getting user data...')
+    let userData: UserData = {
+      id: '',
+      email: '',
+      fullName: null
+    }
+
+    if (documento.created_by) {
+      console.log('created_by type:', typeof documento.created_by)
+      console.log('created_by value:', documento.created_by)
+      
+      // Check if created_by is already a user object or just an ID
+      if (typeof documento.created_by === 'object' && documento.created_by !== null) {
+        // created_by is already a user object
+        console.log('created_by is an object, extracting data directly')
+        userData = {
+          id: documento.created_by.id || '',
+          email: documento.created_by.email || '',
+          fullName: documento.created_by.full_name || null
+        }
+        console.log('User data from object:', userData)
+      } else if (typeof documento.created_by === 'string') {
+        // created_by is a user ID, need to fetch user data
+        console.log('created_by is a string ID, fetching user data')
+        const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(documento.created_by)
+        
+        if (!authError && authUser.user) {
+          // Get user profile
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', documento.created_by)
+            .single()
+
+          userData = {
+            id: authUser.user.id,
+            email: authUser.user.email || '',
+            fullName: profile?.full_name || null
+          }
+          
+          console.log('User data from API:', userData)
+        } else {
+          console.warn('Could not fetch user data:', authError?.message)
+        }
+      } else {
+        console.warn('created_by has unexpected type:', typeof documento.created_by)
+      }
+    } else {
+      console.warn('Document has no created_by')
+    }
+
+    console.log('Step 3: Generating signed URL...')
     console.log('Storage path:', documentData.storage_path)
     
     // Generate signed URL for the document (10 minutes TTL)
@@ -157,7 +243,7 @@ serve(async (req) => {
 
     console.log('✅ Signed URL generated successfully')
 
-    console.log('Step 2: Updating document status to processing...')
+    console.log('Step 4: Updating document status to processing...')
     
     // Update document status to 'processing'
     const { error: updateError } = await supabase
@@ -184,10 +270,11 @@ serve(async (req) => {
 
     console.log('✅ Document status updated to processing')
 
-    console.log('Step 3: Sending payload to n8n webhook...')
+    console.log('Step 5: Sending payload to n8n webhook...')
     console.log('N8n webhook URL:', n8nWebhookUrl)
     
     // Prepare payload for n8n
+    console.log('🔨 Building payload with userData:', userData)
     const n8nPayload: N8nPayload = {
       documento_id: documentData.id,
       tipo: documentData.tipo,
@@ -195,22 +282,50 @@ serve(async (req) => {
       signed_url: signedUrlData.signedUrl,
       nombre_archivo: documentData.nombre_archivo,
       size_bytes: documentData.size_bytes,
-      signed_ttl_seconds: 600
+      signed_ttl_seconds: 600,
+      user: userData
     }
+    console.log('🔨 Payload built, user field:', n8nPayload.user)
 
     console.log('N8n payload (signed_url redacted):', {
       ...n8nPayload,
       signed_url: '[REDACTED - Length: ' + signedUrlData.signedUrl.length + ' chars]'
     })
+    
+    console.log('🔍 User data being sent:', {
+      hasCreatedBy: !!documento.created_by,
+      createdByType: typeof documento.created_by,
+      userId: userData.id || 'EMPTY',
+      userEmail: userData.email || 'EMPTY', 
+      userFullName: userData.fullName || 'NULL'
+    })
+    
+    console.log('📦 Final payload user object:', JSON.stringify(userData, null, 2))
+
+    // Ensure user object is always present, even if empty
+    if (!userData.id && !userData.email && !userData.fullName) {
+      console.log('⚠️ No user data found, sending empty user object')
+      userData = {
+        id: '',
+        email: '',
+        fullName: null
+      }
+    }
 
     // Send POST to n8n webhook
     console.log('📤 Sending POST to n8n...')
+    console.log('📋 Complete payload being sent:', JSON.stringify(n8nPayload, null, 2))
+    
+    const payloadString = JSON.stringify(n8nPayload)
+    console.log('📋 Serialized payload string:', payloadString)
+    console.log('📋 Payload contains user:', payloadString.includes('"user"'))
+    
     const n8nResponse = await fetch(n8nWebhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(n8nPayload)
+      body: payloadString
     })
 
     console.log('📥 N8n response received:', {

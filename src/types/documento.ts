@@ -16,6 +16,7 @@ export interface Documento {
   estado: DocumentoEstado;
   nombre_archivo: string | null;
   tamaño_archivo: number | null;
+  created_by: any;
   created_at: string;
   updated_at: string;
   error_msg: string | null;

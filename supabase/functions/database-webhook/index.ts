@@ -14,6 +14,12 @@ interface DatabaseWebhookPayload {
   old_record?: any;
 }
 
+interface UserData {
+  id: string;
+  email: string;
+  fullName: string | null;
+}
+
 interface N8nPayload {
   documento_id: string;
   tipo: string;
@@ -23,6 +29,7 @@ interface N8nPayload {
   size_bytes: number;
   signed_ttl_seconds: number;
   trigger_type: 'database_webhook';
+  user: UserData;
 }
 
 serve(async (req) => {
@@ -93,6 +100,8 @@ serve(async (req) => {
 
     const documento = webhookData.record
     console.log('📄 New document inserted:', documento)
+    console.log('📄 Document created_by field:', documento.created_by)
+    console.log('📄 All document fields:', Object.keys(documento))
 
     // Validate document data
     if (!documento.id || !documento.tipo || !documento.storage_path) {
@@ -109,7 +118,58 @@ serve(async (req) => {
     // Initialize Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    console.log('Step 1: Generating signed URL...')
+    console.log('Step 1: Getting user data...')
+    let userData: UserData = {
+      id: '',
+      email: '',
+      fullName: null
+    }
+
+    if (documento.created_by) {
+      console.log('created_by type:', typeof documento.created_by)
+      console.log('created_by value:', documento.created_by)
+      
+      // Check if created_by is already a user object or just an ID
+      if (typeof documento.created_by === 'object' && documento.created_by !== null) {
+        // created_by is already a user object
+        console.log('created_by is an object, extracting data directly')
+        userData = {
+          id: documento.created_by.id || '',
+          email: documento.created_by.email || '',
+          fullName: documento.created_by.full_name || null
+        }
+        console.log('User data from object:', userData)
+      } else if (typeof documento.created_by === 'string') {
+        // created_by is a user ID, need to fetch user data
+        console.log('created_by is a string ID, fetching user data')
+        const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(documento.created_by)
+        
+        if (!authError && authUser.user) {
+          // Get user profile
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', documento.created_by)
+            .single()
+
+          userData = {
+            id: authUser.user.id,
+            email: authUser.user.email || '',
+            fullName: profile?.full_name || null
+          }
+          
+          console.log('User data from API:', userData)
+        } else {
+          console.warn('Could not fetch user data:', authError?.message)
+        }
+      } else {
+        console.warn('created_by has unexpected type:', typeof documento.created_by)
+      }
+    } else {
+      console.warn('Document has no created_by')
+    }
+
+    console.log('Step 2: Generating signed URL...')
     console.log('Storage path:', documento.storage_path)
     
     // Generate signed URL for the document (10 minutes TTL)
@@ -175,6 +235,7 @@ serve(async (req) => {
     console.log('N8n webhook URL:', n8nWebhookUrl)
     
     // Prepare payload for n8n
+    console.log('🔨 Building payload with userData:', userData)
     const n8nPayload: N8nPayload = {
       documento_id: documento.id,
       tipo: documento.tipo,
@@ -183,22 +244,50 @@ serve(async (req) => {
       nombre_archivo: documento.nombre_archivo || 'unknown.pdf',
       size_bytes: documento.tamaño_archivo || 0,
       signed_ttl_seconds: 600,
-      trigger_type: 'database_webhook'
+      trigger_type: 'database_webhook',
+      user: userData
     }
+    console.log('🔨 Payload built, user field:', n8nPayload.user)
 
     console.log('N8n payload (signed_url redacted):', {
       ...n8nPayload,
       signed_url: '[REDACTED - Length: ' + signedUrlData.signedUrl.length + ' chars]'
     })
+    
+    console.log('🔍 User data being sent:', {
+      hasCreatedBy: !!documento.created_by,
+      createdByType: typeof documento.created_by,
+      userId: userData.id || 'EMPTY',
+      userEmail: userData.email || 'EMPTY', 
+      userFullName: userData.fullName || 'NULL'
+    })
+    
+    console.log('📦 Final payload user object:', JSON.stringify(userData, null, 2))
+
+    // Ensure user object is always present, even if empty
+    if (!userData.id && !userData.email && !userData.fullName) {
+      console.log('⚠️ No user data found, sending empty user object')
+      userData = {
+        id: '',
+        email: '',
+        fullName: null
+      }
+    }
 
     // Send POST to n8n webhook
     console.log('📤 Sending POST to n8n...')
+    console.log('📋 Complete payload being sent:', JSON.stringify(n8nPayload, null, 2))
+    
+    const payloadString = JSON.stringify(n8nPayload)
+    console.log('📋 Serialized payload string:', payloadString)
+    console.log('📋 Payload contains user:', payloadString.includes('"user"'))
+    
     const n8nResponse = await fetch(n8nWebhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(n8nPayload)
+      body: payloadString
     })
 
     console.log('📥 N8n response received:', {

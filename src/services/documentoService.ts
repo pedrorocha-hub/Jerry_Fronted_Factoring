@@ -62,6 +62,8 @@ export class DocumentoService {
       onProgress?.(15);
 
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('📄 Current user for document creation:', user ? { id: user.id, email: user.email } : 'NO USER');
+
       onProgress?.(25);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -82,10 +84,12 @@ export class DocumentoService {
         storage_path: path,
         estado: 'pending',
         nombre_archivo: fileName,
-        tamaño_archivo: file.size
+        tamaño_archivo: file.size,
+        created_by: user?.id || null
       };
 
       console.log('DocumentoService: Inserting document with data:', documentoData);
+      console.log('📄 created_by value being inserted:', documentoData.created_by);
 
       const { data: dbData, error: dbError } = await supabase
         .from('documentos')
@@ -113,7 +117,9 @@ export class DocumentoService {
 
       if (autoDispatch) {
         try {
+          console.log('📤 DocumentoService: Calling auto dispatch for document:', dbData.id);
           await DispatchService.autoDispatchAfterUpload(dbData.id);
+          console.log('📤 DocumentoService: Auto dispatch completed successfully');
         } catch (dispatchError) {
           console.error('Error en auto dispatch:', dispatchError);
         }

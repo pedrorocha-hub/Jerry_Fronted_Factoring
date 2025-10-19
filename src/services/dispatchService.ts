@@ -55,6 +55,7 @@ export class DispatchService {
   // Método de conveniencia para dispatch automático después de upload
   static async autoDispatchAfterUpload(documentId: string): Promise<DispatchDocumentResponse> {
     try {
+      console.log('🚀 DispatchService: Starting auto dispatch for document:', documentId);
       // Obtener datos del documento desde la base de datos
       const { data: documento, error } = await supabase
         .from('documentos')
@@ -79,7 +80,10 @@ export class DispatchService {
         size_bytes: documento.tamaño_archivo || 0
       };
 
-      return await this.dispatchDocument(dispatchData);
+      console.log('🚀 DispatchService: Calling dispatch-document Edge Function with:', dispatchData);
+      const result = await this.dispatchDocument(dispatchData);
+      console.log('🚀 DispatchService: Edge Function response:', result);
+      return result;
 
     } catch (error) {
       console.error('Error en auto dispatch:', error);
