@@ -387,8 +387,13 @@ const SolicitudOperacionCreateEditPage = () => {
     setSaving(true);
     try {
       const firstRiesgoRow = riesgoRows[0] || {};
+      
+      // SANEAMIENTO: Eliminamos propiedades extra que no existen en la tabla
+      // 'actividad' se usaba en el UI pero no existe en DB
+      const { actividad, ...cleanFormData } = solicitudFormData as any;
+
       const dataToSave: Partial<SolicitudOperacion> & { deudor_ruc?: string } = {
-        ...solicitudFormData,
+        ...cleanFormData,
         ruc,
         tipo_cambio: parseFloat(solicitudFormData.tipo_cambio) || null,
         lp: firstRiesgoRow.lp || null,
@@ -441,10 +446,11 @@ const SolicitudOperacionCreateEditPage = () => {
         showSuccess('Solicitud actualizada exitosamente.');
         navigate('/solicitudes-operacion');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido.';
-      showError(`No se pudo guardar la solicitud: ${errorMessage}`);
+    } catch (err: any) {
+      // Manejo mejorado de errores de Supabase
       console.error("Save error:", err);
+      const errorMessage = err.message || (err instanceof Error ? err.message : 'Ocurrió un error desconocido al guardar.');
+      showError(`No se pudo guardar: ${errorMessage}`);
     } finally {
       setSaving(false);
     }
