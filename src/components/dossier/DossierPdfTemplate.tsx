@@ -265,6 +265,27 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
       padding: '10px 12px',
       marginBottom: '10px',
     },
+    operationTypeBox: {
+      backgroundColor: '#f0fdf4',
+      border: '1px solid #00b894',
+      borderRadius: '6px',
+      padding: '8px 12px',
+      marginBottom: '12px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    operationLabel: {
+      fontSize: '8px',
+      fontWeight: '600' as '600',
+      color: '#00b894',
+      textTransform: 'uppercase' as 'uppercase',
+    },
+    operationValue: {
+      fontSize: '12px',
+      fontWeight: '700' as '700',
+      color: '#064e3b',
+    }
   };
 
   const nombreEmpresa = dossier.fichaRuc?.nombre_empresa || dossier.top10kData?.razon_social || 'Empresa sin nombre';
@@ -432,6 +453,18 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
             <h2 style={styles.sectionTitle}>Solicitud de Operación</h2>
           </div>
 
+          {/* Highlight box for Product and Operation Type */}
+          <div style={styles.operationTypeBox}>
+            <div style={{flex: 1, textAlign: 'center', borderRight: '1px solid #00b894'}}>
+              <div style={styles.operationLabel}>TIPO DE PRODUCTO</div>
+              <div style={styles.operationValue}>{dossier.solicitudOperacion.tipo_producto || 'FACTORING'}</div>
+            </div>
+            <div style={{flex: 1, textAlign: 'center'}}>
+              <div style={styles.operationLabel}>MODALIDAD</div>
+              <div style={styles.operationValue}>{dossier.solicitudOperacion.tipo_operacion || 'PUNTUAL'}</div>
+            </div>
+          </div>
+
           {dossier.top10kData && (
             <div style={styles.highlightBox}>
               <div style={{ ...styles.infoLabel, marginBottom: '6px' }}>⭐ INFORMACIÓN TOP 10K PERÚ</div>
@@ -448,8 +481,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           <div style={styles.infoGrid}>
             <InfoItem label="Empresa Proveedor" value={dossier.fichaRuc?.nombre_empresa} />
             <InfoItem label="RUC Proveedor" value={dossier.solicitudOperacion.ruc} />
-            <InfoItem label="Producto" value={dossier.solicitudOperacion.producto || dossier.solicitudOperacion.tipo_producto} />
-            <InfoItem label="Tipo Operación" value={dossier.solicitudOperacion.tipo_operacion} />
             <InfoItem label="Nombre Deudor" value={dossier.solicitudOperacion.deudor} />
             <InfoItem label="RUC Deudor" value={dossier.solicitudOperacion.deudor_ruc} />
             <InfoItem label="Moneda" value={dossier.solicitudOperacion.moneda_operacion} />
