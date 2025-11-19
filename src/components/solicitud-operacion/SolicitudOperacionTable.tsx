@@ -1,7 +1,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Calendar, Copy } from 'lucide-react';
+import { Edit, Trash2, Calendar, Copy, Briefcase } from 'lucide-react';
 import { SolicitudOperacion } from '@/types/solicitud-operacion';
 import { useSession } from '@/contexts/SessionContext';
 import { showSuccess } from '@/utils/toast';
@@ -12,6 +12,8 @@ interface SolicitudOperacionWithDetails extends SolicitudOperacion {
   creator_name?: string;
   deudor_nombre?: string;
   deudor_ruc?: string;
+  tipo_operacion?: string;
+  tipo_producto?: string;
 }
 
 interface SolicitudOperacionTableProps {
@@ -32,6 +34,16 @@ const getStatusColor = (status: string | null | undefined) => {
   }
 };
 
+const getTipoBadgeColor = (tipo: string | undefined) => {
+  switch (tipo) {
+    case 'LINEA':
+      return 'text-purple-400 border-purple-400/30';
+    case 'PUNTUAL':
+    default:
+      return 'text-blue-400 border-blue-400/30';
+  }
+};
+
 const SolicitudOperacionTable: React.FC<SolicitudOperacionTableProps> = ({ solicitudes, onEdit, onDelete }) => {
   const { isAdmin } = useSession();
   const navigate = useNavigate();
@@ -46,6 +58,7 @@ const SolicitudOperacionTable: React.FC<SolicitudOperacionTableProps> = ({ solic
         <TableHeader>
           <TableRow className="border-gray-800 hover:bg-gray-900/50">
             <TableHead className="text-gray-300">ID Solicitud</TableHead>
+            <TableHead className="text-gray-300">Tipo</TableHead>
             <TableHead className="text-gray-300">RUC</TableHead>
             <TableHead className="text-gray-300">Proveedor</TableHead>
             <TableHead className="text-gray-300">Deudor</TableHead>
@@ -71,6 +84,16 @@ const SolicitudOperacionTable: React.FC<SolicitudOperacionTableProps> = ({ solic
                   {solicitud.id.substring(0, 8)}...
                   <Copy className="h-3 w-3" />
                 </Button>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium text-white text-sm">
+                    {solicitud.tipo_producto || 'FACTORING'}
+                  </span>
+                  <span className={`text-[10px] uppercase tracking-wider border px-1.5 py-0.5 rounded w-fit ${getTipoBadgeColor(solicitud.tipo_operacion)}`}>
+                    {solicitud.tipo_operacion || 'PUNTUAL'}
+                  </span>
+                </div>
               </TableCell>
               <TableCell className="font-mono text-white">{solicitud.ruc}</TableCell>
               <TableCell className="text-white">{solicitud.nombre_empresa}</TableCell>
