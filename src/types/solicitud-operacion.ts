@@ -1,4 +1,6 @@
 export type SolicitudStatus = 'Borrador' | 'En Revisión' | 'Completado';
+export type TipoProducto = 'FACTORING' | 'CONFIRMING' | 'LINEA';
+export type TipoOperacion = 'PUNTUAL' | 'LINEA';
 
 export interface SolicitudOperacion {
   id: string;
@@ -28,7 +30,12 @@ export interface SolicitudOperacion {
   garantias: string | null;
   condiciones_desembolso: string | null;
   user_id: string | null;
-  validado_por: string | null; // <-- Nuevo campo
+  validado_por: string | null;
+  deudor_ruc: string | null;
+  
+  // Nuevos campos para lógica de negocio
+  tipo_producto: TipoProducto | null;
+  tipo_operacion: TipoOperacion | null;
 }
 
 export interface SolicitudOperacionRiesgo {
