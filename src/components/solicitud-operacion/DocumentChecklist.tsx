@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, ExternalLink } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     
     setLoading(true);
     try {
-      // Ejecutar consultas en paralelo para mayor velocidad
+      // Consultamos las tablas procesadas para ver si existe información para este RUC
       const [ficha, sentinel, tributario, facturas, eeff] = await Promise.all([
         supabase.from('ficha_ruc').select('id').eq('ruc', ruc).maybeSingle(),
         supabase.from('sentinel').select('id').eq('ruc', ruc).maybeSingle(),
@@ -49,7 +49,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
         FACTURA: (facturas.data?.length || 0) > 0,
         EEFF: (eeff.data?.length || 0) > 0,
-        VIGENCIA_PODER: false // TODO: Implementar tabla de vigencia o lógica específica
+        VIGENCIA_PODER: false // Por ahora false, ya que no tenemos tabla específica aun
       };
 
       setDocStatus(newStatus);
@@ -67,32 +67,36 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   // Validar cumplimiento de requisitos y notificar al padre
   useEffect(() => {
     if (!tipoProducto) {
-      onValidationChange(true); // Si no hay producto seleccionado, no bloqueamos técnicamente
+      onValidationChange(true); 
       return;
     }
 
     const reqs = PRODUCT_REQUIREMENTS[tipoProducto];
     const allRequiredMet = reqs.required.every(docType => docStatus[docType]);
+    
+    // Notificamos al componente padre si cumple los requisitos
     onValidationChange(allRequiredMet);
   }, [docStatus, tipoProducto, onValidationChange]);
 
   if (!tipoProducto) {
     return (
-      <Card className="bg-[#121212] border border-gray-800 opacity-50">
-        <CardContent className="p-6 text-center text-gray-500">
-          Seleccione un Tipo de Producto para ver los requisitos documentarios.
+      <Card className="bg-[#121212] border border-gray-800 opacity-50 h-full">
+        <CardContent className="p-6 text-center text-gray-500 flex flex-col items-center justify-center h-full">
+          <AlertTriangle className="h-10 w-10 mb-2 opacity-50" />
+          <p>Seleccione un Tipo de Producto para ver los requisitos documentarios.</p>
         </CardContent>
       </Card>
     );
   }
 
   const requirements = PRODUCT_REQUIREMENTS[tipoProducto];
+  const missingCount = requirements.required.filter(k => !docStatus[k]).length;
 
   const renderItem = (key: DocumentTypeKey, isRequired: boolean) => {
     const exists = docStatus[key];
     
     return (
-      <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2">
+      <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2 hover:bg-gray-900/50 transition-colors">
         <div className="flex items-center gap-3">
           {loading ? (
             <Loader2 className="h-5 w-5 text-gray-500 animate-spin" />
@@ -109,8 +113,8 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
               {DOCUMENT_LABELS[key]}
             </p>
             {!exists && (
-              <p className="text-xs text-gray-500">
-                {isRequired ? 'Requerido para avanzar' : 'Opcional'}
+              <p className={`text-[10px] ${isRequired ? 'text-red-400/80' : 'text-gray-600'}`}>
+                {isRequired ? 'IMPRESCINDIBLE' : 'Adicional / Opcional'}
               </p>
             )}
           </div>
@@ -129,8 +133,8 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
             </Button>
           )}
           {exists && (
-             <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px]">
-               DETECTADO
+             <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5">
+               OK
              </Badge>
           )}
         </div>
@@ -139,25 +143,38 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   };
 
   return (
-    <Card className="bg-[#121212] border border-gray-800">
-      <CardHeader className="pb-3">
+    <Card className={`bg-[#121212] border transition-all ${missingCount > 0 ? 'border-red-500/20' : 'border-green-500/20'}`}>
+      <CardHeader className="pb-3 border-b border-gray-800 bg-gray-900/20">
         <CardTitle className="text-base text-white flex justify-between items-center">
-          <span>Checklist Documentario ({requirements.required.filter(k => docStatus[k]).length}/{requirements.required.length})</span>
-          <Button variant="ghost" size="sm" onClick={checkDocuments} disabled={loading}>
-            <Loader2 className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <div className="flex flex-col">
+            <span>Checklist Documentario</span>
+            <span className={`text-xs font-normal ${missingCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
+              {missingCount > 0 ? `${missingCount} documentos pendientes` : 'Documentación completa'}
+            </span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={checkDocuments} disabled={loading} className="h-8 w-8">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <div className="space-y-1">
-          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Documentos Obligatorios</p>
-          {requirements.required.map(doc => renderItem(doc, true))}
+          <div className="mb-4">
+            <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></span>
+              Imprescindibles ({tipoProducto})
+            </p>
+            {requirements.required.map(doc => renderItem(doc, true))}
+          </div>
           
           {requirements.optional.length > 0 && (
-            <>
-               <p className="text-xs font-semibold text-gray-500 mt-4 mb-2 uppercase tracking-wider">Adicionales</p>
+            <div>
+               <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+                 <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-2"></span>
+                 Adicionales
+               </p>
                {requirements.optional.map(doc => renderItem(doc, false))}
-            </>
+            </div>
           )}
         </div>
       </CardContent>

@@ -369,9 +369,14 @@ const SolicitudOperacionCreateEditPage = () => {
       return;
     }
 
-    // Regla de validación de documentos (Paso 3)
+    // VALIDACIÓN DE DOCUMENTOS (Punto 3 del requerimiento)
+    // Si el estado no es "Borrador" y falta documentación, impedir el guardado con el nuevo estado
+    // Se permite guardar como Borrador siempre.
     if (!isDocumentationComplete && solicitudFormData.status !== 'Borrador') {
-      showError('Faltan documentos imprescindibles para el tipo de producto seleccionado. No se puede avanzar del estado Borrador.');
+      showError(
+        `Faltan documentos imprescindibles para ${solicitudFormData.tipo_producto || 'el producto'}. ` +
+        `Suba los documentos faltantes o mantenga el estado como Borrador.`
+      );
       return;
     }
 
@@ -388,8 +393,6 @@ const SolicitudOperacionCreateEditPage = () => {
     try {
       const firstRiesgoRow = riesgoRows[0] || {};
       
-      // SANEAMIENTO: Eliminamos propiedades extra que no existen en la tabla
-      // 'actividad' se usaba en el UI pero no existe en DB
       const { actividad, ...cleanFormData } = solicitudFormData as any;
 
       const dataToSave: Partial<SolicitudOperacion> & { deudor_ruc?: string } = {
@@ -447,7 +450,6 @@ const SolicitudOperacionCreateEditPage = () => {
         navigate('/solicitudes-operacion');
       }
     } catch (err: any) {
-      // Manejo mejorado de errores de Supabase
       console.error("Save error:", err);
       const errorMessage = err.message || (err instanceof Error ? err.message : 'Ocurrió un error desconocido al guardar.');
       showError(`No se pudo guardar: ${errorMessage}`);
