@@ -436,6 +436,11 @@ const SolicitudOperacionCreateEditPage = () => {
       const dataToSave: Partial<SolicitudOperacion> & { deudor_ruc?: string } = {
         ...cleanFormData,
         ruc,
+        // Asegurar que fecha vacía se envíe como null
+        visita_fecha: solicitudFormData.visita_fecha || null,
+        fecha_ficha: solicitudFormData.fecha_ficha || null,
+        
+        // Resto de campos
         tipo_cambio: parseFloat(solicitudFormData.tipo_cambio) || null,
         lp: firstRiesgoRow.lp || null,
         producto: firstRiesgoRow.producto || null,
@@ -454,6 +459,10 @@ const SolicitudOperacionCreateEditPage = () => {
         monto_original: parseFloat(solicitudFormData.monto_original) || null,
         tasa_tea: parseFloat(solicitudFormData.tasa_tea) || null, // Tasa Global
         tipo_garantia: solicitudFormData.tipo_garantia || null,
+        
+        // Asegurar que los tipos sean null si no están seleccionados (Borrador)
+        tipo_producto: solicitudFormData.tipo_producto || null,
+        tipo_operacion: solicitudFormData.tipo_operacion || null,
       };
 
       if (editingSolicitud) {
