@@ -1,7 +1,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Calendar, Copy, Briefcase } from 'lucide-react';
+import { Edit, Trash2, Calendar, Copy } from 'lucide-react';
 import { SolicitudOperacion } from '@/types/solicitud-operacion';
 import { useSession } from '@/contexts/SessionContext';
 import { showSuccess } from '@/utils/toast';
@@ -34,13 +34,15 @@ const getStatusColor = (status: string | null | undefined) => {
   }
 };
 
-const getTipoBadgeColor = (tipo: string | undefined) => {
+const getProductBadgeColor = (tipo: string | undefined) => {
   switch (tipo) {
+    case 'CONFIRMING':
+      return 'text-purple-400 border-purple-400/30 bg-purple-400/10';
     case 'LINEA':
-      return 'text-purple-400 border-purple-400/30';
-    case 'PUNTUAL':
+      return 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10';
+    case 'FACTORING':
     default:
-      return 'text-blue-400 border-blue-400/30';
+      return 'text-blue-400 border-blue-400/30 bg-blue-400/10';
   }
 };
 
@@ -86,11 +88,11 @@ const SolicitudOperacionTable: React.FC<SolicitudOperacionTableProps> = ({ solic
                 </Button>
               </TableCell>
               <TableCell>
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium text-white text-sm">
+                <div className="flex flex-col gap-1.5 items-start">
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider border px-2 py-0.5 rounded-md w-fit ${getProductBadgeColor(solicitud.tipo_producto)}`}>
                     {solicitud.tipo_producto || 'FACTORING'}
                   </span>
-                  <span className={`text-[10px] uppercase tracking-wider border px-1.5 py-0.5 rounded w-fit ${getTipoBadgeColor(solicitud.tipo_operacion)}`}>
+                  <span className="text-xs text-gray-400 pl-0.5">
                     {solicitud.tipo_operacion || 'PUNTUAL'}
                   </span>
                 </div>
