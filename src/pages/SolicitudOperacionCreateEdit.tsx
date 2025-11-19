@@ -60,6 +60,7 @@ const SolicitudOperacionCreateEditPage = () => {
   const [createdSolicitudId, setCreatedSolicitudId] = useState<string | null>(null);
 
   const [rucInput, setRucInput] = useState('');
+  const [createProductType, setCreateProductType] = useState<TipoProducto | null>(null); // Nuevo estado para creación
   const [deudorRucInput, setDeudorRucInput] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchingDeudor, setSearchingDeudor] = useState(false);
@@ -279,6 +280,7 @@ const SolicitudOperacionCreateEditPage = () => {
     setTop10kData(null);
     setEditingSolicitud(null);
     setCreatorInfo(null);
+    setCreateProductType(null); // Reset del nuevo estado
     setRiesgoRows([{ lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }]);
     setSolicitudFormData({
       status: 'Borrador',
@@ -381,12 +383,22 @@ const SolicitudOperacionCreateEditPage = () => {
       showError('Por favor, seleccione una empresa válida.');
       return;
     }
+    if (!createProductType) {
+      showError('Por favor, seleccione el Tipo de Producto (Factoring/Confirming).');
+      return;
+    }
+
     setSaving(true);
     try {
-      const newSolicitud = await SolicitudOperacionService.create({ ruc: rucInput, status: 'Borrador' });
+      const newSolicitud = await SolicitudOperacionService.create({ 
+        ruc: rucInput, 
+        status: 'Borrador',
+        tipo_producto: createProductType // Incluimos el tipo seleccionado
+      });
       showSuccess('Expediente creado. Redirigiendo a la página de edición...');
       navigate(`/solicitudes-operacion/edit/${newSolicitud.id}`);
     } catch (err) {
+      console.error("Error creating solicitud:", err);
       showError('No se pudo crear el nuevo expediente.');
     } finally {
       setSaving(false);
@@ -616,6 +628,22 @@ const SolicitudOperacionCreateEditPage = () => {
                       searchPlaceholder="Escriba para buscar..."
                       emptyMessage="No se encontraron empresas."
                     />
+                    
+                    {/* Selector de Producto Agregado Aquí */}
+                    <div className="mt-3">
+                      <Label className="text-gray-400 mb-1 block">Tipo de Producto *</Label>
+                      <Select value={createProductType || undefined} onValueChange={(val) => setCreateProductType(val as TipoProducto)}>
+                        <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                          <SelectValue placeholder="Seleccione Factoring o Confirming" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                          <SelectItem value="FACTORING">Factoring</SelectItem>
+                          <SelectItem value="CONFIRMING">Confirming</SelectItem>
+                          <SelectItem value="LINEA">Línea</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     {error && (
                       <Alert variant="destructive" className="bg-red-500/10 border-red-500/20 text-red-400">
                         <AlertCircle className="h-4 w-4" />
@@ -624,8 +652,8 @@ const SolicitudOperacionCreateEditPage = () => {
                     )}
                     <Button 
                       onClick={handleCreateAndRedirect} 
-                      disabled={saving || !rucInput} 
-                      className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black w-full"
+                      disabled={saving || !rucInput || !createProductType} 
+                      className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black w-full mt-4"
                       size="lg"
                     >
                       {saving ? (
