@@ -33,9 +33,16 @@ export interface SolicitudOperacion {
   validado_por: string | null;
   deudor_ruc: string | null;
   
-  // Nuevos campos para lógica de negocio
+  // Campos de lógica de negocio
   tipo_producto: TipoProducto | null;
   tipo_operacion: TipoOperacion | null;
+
+  // Nuevos campos financieros (Punto 8)
+  tasa_tea: number | null;
+  plazo_dias: number | null;
+  porcentaje_anticipo: number | null;
+  comision_estructuracion: number | null;
+  tipo_garantia: string | null;
 }
 
 export interface SolicitudOperacionRiesgo {
