@@ -151,6 +151,18 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving =
                 </div>
               </div>
 
+              {/* Tipo de Producto y Modalidad Highlights */}
+              <div className="flex flex-wrap gap-3 mb-6">
+                <div className="bg-[#00FF80]/10 border border-[#00FF80]/30 px-3 py-1.5 rounded-md flex items-center gap-2">
+                  <span className="text-[#00FF80] text-xs font-bold uppercase tracking-wider">PRODUCTO:</span>
+                  <span className="text-white text-sm font-medium">{dossier.solicitudOperacion.tipo_producto || 'FACTORING'}</span>
+                </div>
+                <div className="bg-blue-500/10 border border-blue-500/30 px-3 py-1.5 rounded-md flex items-center gap-2">
+                  <span className="text-blue-400 text-xs font-bold uppercase tracking-wider">MODALIDAD:</span>
+                  <span className="text-white text-sm font-medium">{dossier.solicitudOperacion.tipo_operacion || 'PUNTUAL'}</span>
+                </div>
+              </div>
+
               {/* Progress Bar */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">

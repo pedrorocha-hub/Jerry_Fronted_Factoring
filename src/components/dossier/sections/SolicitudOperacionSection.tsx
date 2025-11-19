@@ -31,6 +31,19 @@ const SolicitudOperacionSection: React.FC<SolicitudOperacionSectionProps> = ({ d
 
   return (
     <div className="space-y-6">
+        
+        {/* Bloque Destacado: Producto y Modalidad */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg flex flex-col items-center justify-center text-center hover:border-[#00FF80]/50 transition-colors">
+            <span className="text-[#00FF80] text-xs font-bold uppercase tracking-wider mb-1">TIPO DE PRODUCTO</span>
+            <span className="text-white text-xl font-semibold">{dossier.solicitudOperacion.tipo_producto || 'FACTORING'}</span>
+          </div>
+          <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-lg flex flex-col items-center justify-center text-center hover:border-blue-500/50 transition-colors">
+            <span className="text-blue-400 text-xs font-bold uppercase tracking-wider mb-1">MODALIDAD</span>
+            <span className="text-white text-xl font-semibold">{dossier.solicitudOperacion.tipo_operacion || 'PUNTUAL'}</span>
+          </div>
+        </div>
+
         {/* Información TOP 10K integrada */}
         {dossier.top10kData && (
           <div className="mb-8 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 rounded-lg">
