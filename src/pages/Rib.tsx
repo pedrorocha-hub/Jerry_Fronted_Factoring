@@ -24,6 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DatePicker } from '@/components/ui/date-picker';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import RibAuditLogViewer from '@/components/audit/RibAuditLogViewer';
+import { useSearchParams } from 'react-router-dom';
 
 const getStatusColor = (status: RibStatus | null | undefined) => {
   switch (status) {
@@ -39,6 +40,7 @@ const getStatusColor = (status: RibStatus | null | undefined) => {
 
 const RibPage = () => {
   const { isAdmin } = useSession();
+  const [searchParams] = useSearchParams(); // Hook para leer URL params
   const [view, setView] = useState<'list' | 'search_results' | 'form' | 'create_mode'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -80,6 +82,71 @@ const RibPage = () => {
   useEffect(() => {
     loadAllRibs();
   }, []);
+
+  // Efecto para manejar la redirección automática desde Solicitudes
+  useEffect(() => {
+    const solicitudIdParam = searchParams.get('solicitud_id');
+    const rucParam = searchParams.get('ruc');
+
+    if (solicitudIdParam && rucParam && allRibs.length > 0) {
+      handleAutoSelect(solicitudIdParam, rucParam);
+    }
+  }, [searchParams, allRibs]); // Dependencia en allRibs para asegurar que la data está cargada
+
+  const handleAutoSelect = async (solicitudId: string, ruc: string) => {
+    // Verificar si ya existe un RIB para esta solicitud
+    const { data: existingRib, error } = await supabase
+      .from('rib')
+      .select('*')
+      .eq('solicitud_id', solicitudId)
+      .maybeSingle();
+
+    if (existingRib) {
+      // Si existe, editarlo directamente
+      // Necesitamos asegurarnos de cargar la ficha RUC primero
+      const fichaData = await FichaRucService.getByRuc(existingRib.ruc);
+      if (fichaData) {
+        setSearchedFicha(fichaData);
+        // Cargar accionistas y gerentes
+        const [accionistasData, gerentesData] = await Promise.all([
+          AccionistaService.getByRuc(existingRib.ruc),
+          GerenciaService.getAllByRuc(existingRib.ruc)
+        ]);
+        setAccionistas(accionistasData);
+        setGerentes(gerentesData);
+        setCreateWithoutRuc(false);
+        
+        await handleSelectRibForEdit(existingRib);
+        showSuccess('Se encontró un RIB existente para esta solicitud.');
+      }
+    } else {
+      // Si no existe, preparar formulario de creación
+      setRucInput(ruc);
+      // Buscar datos de la empresa
+      await handleSearch(ruc);
+      
+      // Pre-seleccionar la solicitud en el formulario
+      setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
+      
+      // Buscar etiqueta de la solicitud para el combobox
+      const { data: solicitud } = await supabase
+        .from('solicitudes_operacion')
+        .select('id, created_at')
+        .eq('id', solicitudId)
+        .single();
+        
+      if (solicitud) {
+         // Intentamos obtener el nombre de la empresa, si ya lo buscamos en handleSearch estará en searchedFicha
+         // pero handleSearch es asíncrono, así que hacemos una consulta rápida por si acaso
+         const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', ruc).single();
+         const nombre = ficha?.nombre_empresa || ruc;
+         setInitialSolicitudLabel(`${nombre} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+      }
+      
+      setView('form');
+      showSuccess('Creando nuevo RIB para la solicitud seleccionada.');
+    }
+  };
 
   useEffect(() => {
     const formChanged = JSON.stringify(formData) !== JSON.stringify(initialFormData);
@@ -160,14 +227,18 @@ const RibPage = () => {
 
   const handleSearch = async (rucToSearch: string = rucInput) => {
     if (!rucToSearch || rucToSearch.length !== 11) {
-      setError('Por favor, ingrese un RUC válido de 11 dígitos.');
+      // Solo mostrar error si no estamos en un proceso automático (para evitar spam de toasts)
+      if (!searchParams.get('ruc')) {
+        setError('Por favor, ingrese un RUC válido de 11 dígitos.');
+      }
       return;
     }
     setSearching(true);
     setError(null);
     setSearchedFicha(null);
     setExistingRibs([]);
-    resetForm();
+    // NOTA: No reseteamos todo el formulario aquí para mantener el solicitud_id si viene de la URL
+    // resetForm(); 
     setAccionistas([]);
     setGerentes([]);
 
@@ -183,7 +254,10 @@ const RibPage = () => {
         setExistingRibs(ribData);
         setAccionistas(accionistasData);
         setGerentes(gerentesData);
-        setView('search_results');
+        // Si venimos de redirección automática, no cambiamos la vista a search_results
+        if (!searchParams.get('solicitud_id')) {
+            setView('search_results');
+        }
       } else {
         setError('Ficha RUC no encontrada. No se puede crear un análisis RIB.');
         showError('Ficha RUC no encontrada.');
@@ -235,6 +309,8 @@ const RibPage = () => {
         showSuccess('Análisis RIB creado.');
       }
       await loadAllRibs();
+      // Limpiar params de URL para evitar re-loading
+      window.history.replaceState({}, '', '/rib');
       handleBackToList();
     } catch (err) {
       showError('Error al guardar el análisis RIB.');
@@ -384,6 +460,9 @@ const RibPage = () => {
     if (isDirty && !window.confirm('Hay cambios sin guardar. ¿Está seguro de que quiere volver a la lista?')) {
       return;
     }
+    // Limpiar parámetros de la URL al volver
+    window.history.replaceState({}, '', '/rib');
+    
     setView('list');
     setRucInput('');
     setSearchedFicha(null);
@@ -680,7 +759,7 @@ const RibPage = () => {
                           id="ruc_manual" 
                           value={rucInput} 
                           onChange={(e) => setRucInput(e.target.value)}
-                          className="bg-gray-900/50 border-gray-700 font-mono"
+                          className="bg-gray-900/50 border-gray-700 font-mono text-white"
                           maxLength={11}
                           placeholder="11 dígitos"
                           disabled={!isAdmin}
