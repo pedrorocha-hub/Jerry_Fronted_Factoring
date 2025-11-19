@@ -21,7 +21,7 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ solicitudId }) => {
       deudor: 'Nombre del Deudor',
       status: 'Estado',
       direccion: 'Dirección',
-      visita: 'Visita',
+      visita: 'Visita (Resumen)',
       contacto: 'Contacto',
       comentarios: 'Comentarios',
       fianza: 'Fianza',
@@ -35,9 +35,28 @@ const AuditLogViewer: React.FC<AuditLogViewerProps> = ({ solicitudId }) => {
       factura: 'Factura',
       tipo_cambio: 'Tipo de Cambio',
       
+      // Nuevos campos de clasificación
+      tipo_producto: 'Tipo de Producto',
+      tipo_operacion: 'Tipo de Operación',
+
+      // Nuevos campos de Visita Estructurada
+      visita_tipo: 'Tipo de Visita',
+      visita_fecha: 'Fecha de Visita',
+      visita_contacto_nombre: 'Nombre del Entrevistado',
+      visita_contacto_cargo: 'Cargo del Entrevistado',
+
+      // Nuevos campos Financieros
+      monto_original: 'Monto Original',
+      porcentaje_anticipo: '% Anticipo',
+      plazo_dias: 'Plazo (Días)',
+      tasa_minima: 'Tasa Mínima',
+      tasa_tea: 'Tasa Global (TEA)',
+      comision_estructuracion: 'Comisión Estructuración',
+      tipo_garantia: 'Tipo de Garantía',
+
       // Campos de solicitud_operacion_riesgos
       lp: 'L/P',
-      producto: 'Producto',
+      producto: 'Producto (Riesgos)',
       lp_vigente_gve: 'L/P Vigente (GVE)',
       riesgo_aprobado: 'Riesgo Aprobado',
       propuesta_comercial: 'Propuesta Comercial',
