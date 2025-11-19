@@ -302,7 +302,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     </div>
   );
 
-  // NUEVA FUNCIÓN: Agrupar ventas mensuales por año
+  // Agrupar ventas mensuales por año
   const getVentasMensualesDataByYear = () => {
     if (!dossier.ventasMensuales) return {};
     const salesByYear: Record<number, Array<{ month: string; proveedorVenta: number | null; deudorVenta: number | null }>> = {};
@@ -324,6 +324,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     return salesByYear;
   };
   const ventasMensualesByYear = getVentasMensualesDataByYear();
+  
   const ribEeffFields = {
     activoFields: {
       activo_caja_inversiones_disponible: "Caja e Inversiones Disponibles",
@@ -447,29 +448,37 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           <div style={styles.infoGrid}>
             <InfoItem label="Empresa Proveedor" value={dossier.fichaRuc?.nombre_empresa} />
             <InfoItem label="RUC Proveedor" value={dossier.solicitudOperacion.ruc} />
-            <InfoItem label="Producto" value={dossier.solicitudOperacion.producto} />
-            <InfoItem label="Nombre Proveedor" value={dossier.solicitudOperacion.proveedor} />
+            <InfoItem label="Producto" value={dossier.solicitudOperacion.producto || dossier.solicitudOperacion.tipo_producto} />
+            <InfoItem label="Tipo Operación" value={dossier.solicitudOperacion.tipo_operacion} />
             <InfoItem label="Nombre Deudor" value={dossier.solicitudOperacion.deudor} />
+            <InfoItem label="RUC Deudor" value={dossier.solicitudOperacion.deudor_ruc} />
             <InfoItem label="Moneda" value={dossier.solicitudOperacion.moneda_operacion} />
             <InfoItem label="Exposición Total" value={dossier.solicitudOperacion.exposicion_total} />
-            <InfoItem label="Propuesta Comercial" value={dossier.solicitudOperacion.propuesta_comercial} />
             <InfoItem label="Riesgo Aprobado" value={dossier.solicitudOperacion.riesgo_aprobado} />
             <InfoItem label="Fecha Ficha" value={formatDate(dossier.solicitudOperacion.fecha_ficha)} />
-            <InfoItem label="L/P" value={dossier.solicitudOperacion.lp} />
-            <InfoItem label="L/P Vigente GVE" value={dossier.solicitudOperacion.lp_vigente_gve} />
-            <InfoItem label="Fianza" value={dossier.solicitudOperacion.fianza} />
-            <InfoItem label="Tipo de Cambio" value={dossier.solicitudOperacion.tipo_cambio} />
             <InfoItem label="Orden de Servicio" value={dossier.solicitudOperacion.orden_servicio} />
             <InfoItem label="Factura" value={dossier.solicitudOperacion.factura} />
           </div>
 
-          {dossier.solicitudOperacion.direccion && (
+          <div style={styles.subsectionTitle}>Condiciones Comerciales</div>
+          <div style={styles.infoGrid}>
+            <InfoItem label="Monto Original" value={formatCurrency(dossier.solicitudOperacion.monto_original)} />
+            <InfoItem label="% Anticipo" value={dossier.solicitudOperacion.porcentaje_anticipo ? `${dossier.solicitudOperacion.porcentaje_anticipo}%` : 'N/A'} />
+            <InfoItem label="Tasa Global (TEA)" value={dossier.solicitudOperacion.tasa_tea ? `${dossier.solicitudOperacion.tasa_tea}%` : 'N/A'} />
+            <InfoItem label="Plazo (Días)" value={dossier.solicitudOperacion.plazo_dias} />
+            <InfoItem label="Comisión Estruct." value={dossier.solicitudOperacion.comision_estructuracion} />
+            <InfoItem label="Tasa Mínima" value={dossier.solicitudOperacion.tasa_minima} />
+          </div>
+
+          {(dossier.solicitudOperacion.direccion || dossier.solicitudOperacion.visita_fecha) && (
             <>
-              <div style={styles.subsectionTitle}>Información del Deudor</div>
+              <div style={styles.subsectionTitle}>Información de Visita y Contacto</div>
               <div style={styles.infoGrid}>
                 <InfoItem label="Dirección" value={dossier.solicitudOperacion.direccion} />
-                <InfoItem label="Visita" value={dossier.solicitudOperacion.visita} />
-                <InfoItem label="Contacto" value={dossier.solicitudOperacion.contacto} />
+                <InfoItem label="Tipo de Visita" value={dossier.solicitudOperacion.visita_tipo} />
+                <InfoItem label="Fecha de Visita" value={formatDate(dossier.solicitudOperacion.visita_fecha)} />
+                <InfoItem label="Entrevistado" value={dossier.solicitudOperacion.visita_contacto_nombre} />
+                <InfoItem label="Cargo" value={dossier.solicitudOperacion.visita_contacto_cargo} />
               </div>
             </>
           )}
@@ -489,37 +498,8 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
           {dossier.solicitudOperacion.comentarios && (
             <TextBlock label="Comentarios" value={dossier.solicitudOperacion.comentarios} />
           )}
-
-          {dossier.riesgos && dossier.riesgos.length > 0 && (
-            <>
-              <div style={styles.subsectionTitle}>Riesgos del Proveedor</div>
-              <div style={styles.tableWrapper}>
-                <table style={styles.table}>
-                  <thead style={styles.tableHeader}>
-                    <tr style={styles.tr}>
-                      <th style={styles.th}>L/P</th>
-                      <th style={styles.th}>Producto</th>
-                      <th style={styles.th}>Deudor</th>
-                      <th style={styles.th}>Riesgo Aprobado</th>
-                      <th style={styles.thLast}>Propuesta Comercial</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dossier.riesgos.map((riesgo: any, index: number) => (
-                      <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
-                        <td style={styles.td}>{riesgo.lp || 'N/A'}</td>
-                        <td style={styles.td}>{riesgo.producto || 'N/A'}</td>
-                        <td style={styles.td}>{riesgo.deudor || 'N/A'}</td>
-                        <td style={styles.td}>{formatCurrency(riesgo.riesgo_aprobado)}</td>
-                        <td style={styles.tdLast}>{formatCurrency(riesgo.propuesta_comercial)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
         </div>
+
         {/* SECCIÓN 2: ANÁLISIS RIB */}
         {dossier.analisisRib && (
           <div style={styles.sectionCard}>
@@ -541,10 +521,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
 
             {dossier.analisisRib.descripcion_empresa && (
               <TextBlock label="Descripción de la Empresa" value={dossier.analisisRib.descripcion_empresa} />
-            )}
-
-            {dossier.analisisRib.visita && (
-              <TextBlock label="Visita" value={dossier.analisisRib.visita} />
             )}
 
             {dossier.accionistas && dossier.accionistas.length > 0 && (
