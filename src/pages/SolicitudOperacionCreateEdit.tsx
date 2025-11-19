@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, ClipboardCopy } from 'lucide-react';
+import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, ClipboardCopy, Layers } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FichaRuc } from '@/types/ficha-ruc';
-import { SolicitudOperacion, SolicitudOperacionRiesgo, SolicitudOperacionWithRiesgos, SolicitudStatus } from '@/types/solicitud-operacion';
+import { SolicitudOperacion, SolicitudOperacionRiesgo, SolicitudOperacionWithRiesgos, SolicitudStatus, TipoProducto, TipoOperacion } from '@/types/solicitud-operacion';
 import { SolicitudOperacionService } from '@/services/solicitudOperacionService';
 import { FichaRucService } from '@/services/fichaRucService';
 import { showSuccess, showError } from '@/utils/toast';
@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSession } from '@/contexts/SessionContext';
 import AuditLogViewer from '@/components/audit/AuditLogViewer';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
+import DocumentChecklist from '@/components/solicitud-operacion/DocumentChecklist';
 
 interface Top10kData {
   ruc: string;
@@ -68,6 +69,9 @@ const SolicitudOperacionCreateEditPage = () => {
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudOperacionWithRiesgos | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
+  
+  // Estado para validación de documentos
+  const [isDocumentationComplete, setIsDocumentationComplete] = useState(true);
 
   const [riesgoRows, setRiesgoRows] = useState<Partial<RiesgoRow>[]>([
     { lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }
@@ -75,6 +79,8 @@ const SolicitudOperacionCreateEditPage = () => {
 
   const [solicitudFormData, setSolicitudFormData] = useState({
     status: 'Borrador' as SolicitudStatus,
+    tipo_producto: null as TipoProducto | null,
+    tipo_operacion: null as TipoOperacion | null,
     direccion: '',
     visita: '',
     contacto: '',
@@ -133,6 +139,8 @@ const SolicitudOperacionCreateEditPage = () => {
 
     setSolicitudFormData({
       status: solicitud.status || 'Borrador',
+      tipo_producto: solicitud.tipo_producto,
+      tipo_operacion: solicitud.tipo_operacion,
       direccion: solicitud.direccion || '',
       visita: solicitud.visita || '',
       contacto: solicitud.contacto || '',
@@ -152,28 +160,24 @@ const SolicitudOperacionCreateEditPage = () => {
       deudor_ruc: (solicitud as any).deudor_ruc || '',
     });
 
-    // Intentar buscar la ficha RUC, pero si no existe (solicitud manual), crear una ficha mock
     try {
       const fichaData = await FichaRucService.getByRuc(solicitud.ruc);
       if (fichaData) {
         setSearchedFicha(fichaData);
       } else {
-        // Solicitud creada manualmente sin ficha RUC
-        // Crear una ficha mock con los datos de la solicitud
         setSearchedFicha({
-          id: 'manual-' + solicitud.id,
+          id: 0,
           ruc: solicitud.ruc,
           nombre_empresa: solicitud.proveedor || 'Empresa Manual',
           actividad_empresa: 'N/A',
           created_at: solicitud.created_at,
           updated_at: solicitud.updated_at,
         } as FichaRuc);
-        setCreateWithoutRuc(true); // Activar modo de edición manual
+        setCreateWithoutRuc(true);
       }
     } catch (err) {
-      // Si hay error al buscar, asumir que es una solicitud manual
       setSearchedFicha({
-        id: 'manual-' + solicitud.id,
+        id: 0,
         ruc: solicitud.ruc,
         nombre_empresa: solicitud.proveedor || 'Empresa Manual',
         actividad_empresa: 'N/A',
@@ -183,7 +187,6 @@ const SolicitudOperacionCreateEditPage = () => {
       setCreateWithoutRuc(true);
     }
 
-    // Si hay un RUC de deudor guardado, buscarlo automáticamente
     if ((solicitud as any).deudor_ruc) {
       setDeudorRucInput((solicitud as any).deudor_ruc);
       await handleSearchDeudor((solicitud as any).deudor_ruc);
@@ -250,6 +253,8 @@ const SolicitudOperacionCreateEditPage = () => {
     setRiesgoRows([{ lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }]);
     setSolicitudFormData({
       status: 'Borrador',
+      tipo_producto: null,
+      tipo_operacion: null,
       direccion: '',
       visita: '',
       contacto: '',
@@ -318,7 +323,6 @@ const SolicitudOperacionCreateEditPage = () => {
 
       if (topData) {
         setTop10kData(topData);
-        // Guardar el RUC del deudor en el formulario
         setSolicitudFormData(prev => ({ ...prev, deudor_ruc: rucToSearch }));
         showSuccess('Datos del deudor encontrados en TOP 10K.');
       } else {
@@ -351,7 +355,7 @@ const SolicitudOperacionCreateEditPage = () => {
 
   const handleCreateWithoutRuc = () => {
     setCreateWithoutRuc(true);
-    setSearchedFicha({} as FichaRuc); // Crear ficha vacía para habilitar el formulario
+    setSearchedFicha({} as FichaRuc);
     setSolicitudFormData(prev => ({
       ...prev,
       proveedor: '',
@@ -364,6 +368,13 @@ const SolicitudOperacionCreateEditPage = () => {
       showError('No tienes permisos para guardar la solicitud.');
       return;
     }
+
+    // Regla de validación de documentos (Paso 3)
+    if (!isDocumentationComplete && solicitudFormData.status !== 'Borrador') {
+      showError('Faltan documentos imprescindibles para el tipo de producto seleccionado. No se puede avanzar del estado Borrador.');
+      return;
+    }
+
     const ruc = editingSolicitud?.ruc || searchedFicha?.ruc || rucInput;
     if (!ruc) {
       showError('Debe ingresar un RUC para guardar la solicitud.');
@@ -392,13 +403,11 @@ const SolicitudOperacionCreateEditPage = () => {
       if (editingSolicitud) {
         await SolicitudOperacionService.update(editingSolicitud.id, dataToSave);
       } else if (createWithoutRuc) {
-        // Modo de creación sin RUC previo
         const newSolicitud = await SolicitudOperacionService.create(dataToSave as any);
         setCreatedSolicitudId(newSolicitud.id);
         setShowSuccessModal(true);
         return;
       } else {
-
         const { data: existingRiesgos } = await supabase.from('solicitud_operacion_riesgos').select('id').eq('solicitud_id', editingSolicitud.id);
         const existingIds = existingRiesgos?.map(r => r.id) || [];
         const currentIds = riesgoRows.map(r => r.id).filter((id): id is string => !!id);
@@ -525,7 +534,6 @@ const SolicitudOperacionCreateEditPage = () => {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-6">
-                {/* Opción 1: Buscar con RUC */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="bg-[#00FF80] text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
@@ -564,8 +572,6 @@ const SolicitudOperacionCreateEditPage = () => {
                     </Button>
                   </div>
                 </div>
-
-                {/* Divisor */}
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-800"></div>
@@ -574,8 +580,6 @@ const SolicitudOperacionCreateEditPage = () => {
                     <span className="px-4 bg-[#121212] text-gray-500">O</span>
                   </div>
                 </div>
-
-                {/* Opción 2: Crear sin RUC */}
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
@@ -597,8 +601,6 @@ const SolicitudOperacionCreateEditPage = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Botón Cancelar */}
               <div className="mt-6 pt-6 border-t border-gray-800">
                 <Button 
                   variant="ghost" 
@@ -633,254 +635,314 @@ const SolicitudOperacionCreateEditPage = () => {
             </div>
           </div>
 
-          <div className="space-y-6">
-            {searchedFicha && (
-              <div className="space-y-6">
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="flex items-center text-white"><FileText className="h-5 w-5 mr-2 text-[#00FF80]" />Solicitud de Operación</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Columna izquierda: Checklist de documentos */}
+            <div className="xl:col-span-1 order-2 xl:order-1">
+               <DocumentChecklist 
+                 ruc={searchedFicha?.ruc || rucInput}
+                 tipoProducto={solicitudFormData.tipo_producto}
+                 onValidationChange={setIsDocumentationComplete}
+               />
+            </div>
+
+            {/* Columna derecha: Formulario */}
+            <div className="xl:col-span-2 order-1 xl:order-2 space-y-6">
+              {searchedFicha && (
+                <div className="space-y-6">
+                  {/* Tarjeta de Tipo de Operación y Producto */}
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader>
+                      <CardTitle className="flex items-center text-white">
+                        <Layers className="h-5 w-5 mr-2 text-[#00FF80]" />
+                        Configuración de la Operación
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="tipo_producto" className="font-semibold text-white mb-2 block">Tipo de Producto</Label>
+                          <Select 
+                            value={solicitudFormData.tipo_producto || ''} 
+                            onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, tipo_producto: value as TipoProducto }))}
+                            disabled={!isAdmin}
+                          >
+                            <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
+                              <SelectValue placeholder="Seleccionar Producto" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                              <SelectItem value="FACTORING">Factoring</SelectItem>
+                              <SelectItem value="CONFIRMING">Confirming</SelectItem>
+                              <SelectItem value="LINEA">Línea</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="tipo_operacion" className="font-semibold text-white mb-2 block">Tipo de Operación</Label>
+                          <Select 
+                            value={solicitudFormData.tipo_operacion || ''} 
+                            onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, tipo_operacion: value as TipoOperacion }))}
+                            disabled={!isAdmin}
+                          >
+                            <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
+                              <SelectValue placeholder="Seleccionar Tipo" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                              <SelectItem value="PUNTUAL">Puntual</SelectItem>
+                              <SelectItem value="LINEA">Línea</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="flex items-center text-white"><FileText className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de la Solicitud</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div>
+                          <Label htmlFor="proveedor">Proveedor</Label>
+                          <Input 
+                            id="proveedor" 
+                            value={createWithoutRuc ? solicitudFormData.proveedor : (searchedFicha?.nombre_empresa || '')} 
+                            onChange={createWithoutRuc ? handleFormChange : undefined}
+                            disabled={!createWithoutRuc} 
+                            className={createWithoutRuc ? "bg-gray-900/50 border-gray-700" : "bg-gray-800 border-gray-700 text-gray-400"} 
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="ruc_manual">Número de RUC</Label>
+                          <Input 
+                            id="ruc_manual" 
+                            value={createWithoutRuc ? rucInput : (searchedFicha?.ruc || '')} 
+                            onChange={createWithoutRuc ? (e) => setRucInput(e.target.value) : undefined}
+                            disabled={!createWithoutRuc} 
+                            className={createWithoutRuc ? "bg-gray-900/50 border-gray-700 font-mono" : "bg-gray-800 border-gray-700 text-gray-400 font-mono"}
+                            maxLength={11}
+                            placeholder="11 dígitos"
+                          />
+                        </div>
+                      </div>
                       <div>
-                        <Label htmlFor="proveedor">Proveedor</Label>
+                        <Label htmlFor="actividad">Actividad</Label>
                         <Input 
-                          id="proveedor" 
-                          value={createWithoutRuc ? solicitudFormData.proveedor : (searchedFicha?.nombre_empresa || '')} 
-                          onChange={createWithoutRuc ? handleFormChange : undefined}
+                          id="actividad" 
+                          value={createWithoutRuc ? (solicitudFormData as any).actividad || '' : (searchedFicha?.actividad_empresa || '')} 
+                          onChange={createWithoutRuc ? (e) => setSolicitudFormData(prev => ({ ...prev, actividad: e.target.value } as any)) : undefined}
                           disabled={!createWithoutRuc} 
                           className={createWithoutRuc ? "bg-gray-900/50 border-gray-700" : "bg-gray-800 border-gray-700 text-gray-400"} 
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="ruc_manual">Número de RUC</Label>
-                        <Input 
-                          id="ruc_manual" 
-                          value={createWithoutRuc ? rucInput : (searchedFicha?.ruc || '')} 
-                          onChange={createWithoutRuc ? (e) => setRucInput(e.target.value) : undefined}
-                          disabled={!createWithoutRuc} 
-                          className={createWithoutRuc ? "bg-gray-900/50 border-gray-700 font-mono" : "bg-gray-800 border-gray-700 text-gray-400 font-mono"}
-                          maxLength={11}
-                          placeholder="11 dígitos"
-                        />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label><Input id="orden_servicio" value={solicitudFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor="factura">Factura (Sí/No)</Label><Input id="factura" value={solicitudFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                       </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="actividad">Actividad</Label>
-                      <Input 
-                        id="actividad" 
-                        value={createWithoutRuc ? (solicitudFormData as any).actividad || '' : (searchedFicha?.actividad_empresa || '')} 
-                        onChange={createWithoutRuc ? (e) => setSolicitudFormData(prev => ({ ...prev, actividad: e.target.value } as any)) : undefined}
-                        disabled={!createWithoutRuc} 
-                        className={createWithoutRuc ? "bg-gray-900/50 border-gray-700" : "bg-gray-800 border-gray-700 text-gray-400"} 
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label htmlFor="orden_servicio">Orden de Servicio (Sí/No)</Label><Input id="orden_servicio" value={solicitudFormData.orden_servicio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="factura">Factura (Sí/No)</Label><Input id="factura" value={solicitudFormData.factura} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label htmlFor="tipo_cambio">Tipo de Cambio</Label><Input id="tipo_cambio" type="number" step="0.01" value={solicitudFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div>
-                        <Label htmlFor="moneda_operacion">Moneda de la Operación</Label>
-                        <Select value={solicitudFormData.moneda_operacion} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, moneda_operacion: value }))} disabled={!isAdmin}>
-                          <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
-                          <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                            <SelectItem value="Soles" className="hover:bg-gray-800">Soles</SelectItem>
-                            <SelectItem value="Dolares" className="hover:bg-gray-800">Dólares</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div><Label htmlFor="resumen_solicitud">Resumen de solicitud</Label><Textarea id="resumen_solicitud" value={solicitudFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="flex items-center text-white"><Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Proveedor</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    {riesgoRows.map((row, index) => (
-                      <div key={index} className="p-4 border border-gray-800 rounded-lg space-y-4 relative">
-                        {isAdmin && riesgoRows.length > 1 && (
-                          <Button variant="ghost" size="icon" onClick={() => handleRemoveRiesgoRow(index)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                          <div><Label>L/P</Label><Input value={row.lp || ''} onChange={(e) => handleRiesgoChange(index, 'lp', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Producto</Label><Input value={row.producto || ''} onChange={(e) => handleRiesgoChange(index, 'producto', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Deudor</Label><Input value={row.deudor || ''} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>L/P Vigente (GVE)</Label><Input value={row.lp_vigente_gve || ''} onChange={(e) => handleRiesgoChange(index, 'lp_vigente_gve', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Riesgo Aprobado</Label><Input type="number" step="0.01" value={row.riesgo_aprobado || ''} onChange={(e) => handleRiesgoChange(index, 'riesgo_aprobado', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Propuesta Comercial</Label><Input type="number" step="0.01" value={row.propuesta_comercial || ''} onChange={(e) => handleRiesgoChange(index, 'propuesta_comercial', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                          <div><Label>Exposición Total</Label><Input value={((parseFloat(row.riesgo_aprobado || '0') || 0) + (parseFloat(row.propuesta_comercial || '0') || 0)).toFixed(2)} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><Label htmlFor="tipo_cambio">Tipo de Cambio</Label><Input id="tipo_cambio" type="number" step="0.01" value={solicitudFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div>
+                          <Label htmlFor="moneda_operacion">Moneda de la Operación</Label>
+                          <Select value={solicitudFormData.moneda_operacion} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, moneda_operacion: value }))} disabled={!isAdmin}>
+                            <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
+                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                              <SelectItem value="Soles" className="hover:bg-gray-800">Soles</SelectItem>
+                              <SelectItem value="Dolares" className="hover:bg-gray-800">Dólares</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
-                    ))}
-                    {isAdmin && (
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="text-right flex-1">
-                          <Label className="text-gray-400 mr-2">Exposición Total (Soles):</Label>
-                          <span className="font-bold text-lg text-white">{solicitudFormData.exposicion_total}</span>
-                        </div>
-                        <Button variant="outline" onClick={handleAddRiesgoRow} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Agregar Fila
-                        </Button>
-                      </div>
-                    )}
-                    <div className="space-y-4 pt-4 border-t border-gray-800 mt-4">
-                      <div><Label htmlFor="garantias">Garantías</Label><Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label><Textarea id="condiciones_desembolso" value={solicitudFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="comentarios">Comentarios</Label><Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div><Label htmlFor="resumen_solicitud">Resumen de solicitud</Label><Textarea id="resumen_solicitud" value={solicitudFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                    </CardContent>
+                  </Card>
 
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="flex items-center text-white"><ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Deudor</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-gray-400">Buscar Deudor en TOP 10K</Label>
-                      <div className="flex gap-2">
-                        <AsyncCombobox
-                          value={deudorRucInput}
-                          onChange={(value) => setDeudorRucInput(value || '')}
-                          onSearch={searchTop10k}
-                          placeholder="Buscar por RUC o razón social..."
-                          searchPlaceholder="Escriba para buscar..."
-                          emptyMessage="No se encontraron empresas en TOP 10K."
-                          className="flex-1"
-                          disabled={!isAdmin}
-                        />
-                        <Button
-                          onClick={() => handleSearchDeudor(deudorRucInput)}
-                          disabled={searchingDeudor || !deudorRucInput || !isAdmin}
-                          className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
-                        >
-                          {searchingDeudor ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Search className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {top10kData ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-800">
-                        <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{top10kData.ruc}</p></div>
-                        <div className="lg:col-span-3"><Label className="text-gray-400">Razón Social</Label><p className="text-white">{top10kData.razon_social || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Sector</Label><p className="text-white">{top10kData.sector || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2024 || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Ranking 2023</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2023 || 'N/A'}</p></div>
-                        <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2024_soles_maximo)}</p></div>
-                        <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2023_soles_maximo)}</p></div>
-                        <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p></div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-gray-500 border-t border-gray-800">
-                        <ShieldCheck className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                        <p>Busque una empresa para ver sus datos de riesgo en TOP 10K</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Datos del deudor</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label htmlFor="direccion">Dirección</Label><Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="visita">Visita</Label><Input id="visita" value={solicitudFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><Label htmlFor="contacto">Contacto</Label><Input id="contacto" value={solicitudFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      <div><Label htmlFor="fianza">Fianza</Label><Input id="fianza" value={solicitudFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader><CardTitle className="text-white">2. Completar Datos de la Solicitud</CardTitle></CardHeader>
-                  <CardContent className="space-y-4">
-                    {editingSolicitud ? (
-                      <>
-                        <div className="flex flex-col space-y-4 text-sm text-gray-300">
-                          <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
-                          <div className="flex items-center gap-2">
-                            <ClipboardCopy className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                            <span className="text-gray-400">ID de Expediente:</span>
-                            <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">{editingSolicitud.id}</code>
-                            <Button variant="ghost" size="icon" onClick={handleCopyId} className="h-6 w-6 text-gray-400 hover:text-white">
-                              <ClipboardCopy className="h-4 w-4" />
+                  {/* Riesgos y Deudor Cards (Sin cambios grandes) */}
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="flex items-center text-white"><Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Proveedor</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      {riesgoRows.map((row, index) => (
+                        <div key={index} className="p-4 border border-gray-800 rounded-lg space-y-4 relative">
+                          {isAdmin && riesgoRows.length > 1 && (
+                            <Button variant="ghost" size="icon" onClick={() => handleRemoveRiesgoRow(index)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10">
+                              <Trash2 className="h-4 w-4" />
                             </Button>
-                          </div>
-                          {creatorInfo && (
-                            <div className="flex items-center gap-2"><User className="h-4 w-4 flex-shrink-0" /><span>Creado por: <strong className="text-gray-200">{creatorInfo.fullName || 'N/A'}</strong> ({creatorInfo.email || 'N/A'})</span></div>
                           )}
-                          <div className="flex items-center gap-2"><Calendar className="h-4 w-4 flex-shrink-0" /><span>Fecha de creación: <strong className="text-gray-200">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</strong></span></div>
-                          <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 flex-shrink-0" /><span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span></div>
-
-                          <div className="w-full pt-4 border-t border-gray-800">
-                            <AuditLogViewer solicitudId={editingSolicitud.id} />
+                          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                            <div><Label>L/P</Label><Input value={row.lp || ''} onChange={(e) => handleRiesgoChange(index, 'lp', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                            <div><Label>Producto</Label><Input value={row.producto || ''} onChange={(e) => handleRiesgoChange(index, 'producto', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                            <div><Label>Deudor</Label><Input value={row.deudor || ''} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                            <div><Label>L/P Vigente (GVE)</Label><Input value={row.lp_vigente_gve || ''} onChange={(e) => handleRiesgoChange(index, 'lp_vigente_gve', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                            <div><Label>Riesgo Aprobado</Label><Input type="number" step="0.01" value={row.riesgo_aprobado || ''} onChange={(e) => handleRiesgoChange(index, 'riesgo_aprobado', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                            <div><Label>Propuesta Comercial</Label><Input type="number" step="0.01" value={row.propuesta_comercial || ''} onChange={(e) => handleRiesgoChange(index, 'propuesta_comercial', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                            <div><Label>Exposición Total</Label><Input value={((parseFloat(row.riesgo_aprobado || '0') || 0) + (parseFloat(row.propuesta_comercial || '0') || 0)).toFixed(2)} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
                           </div>
                         </div>
+                      ))}
+                      {isAdmin && (
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="text-right flex-1">
+                            <Label className="text-gray-400 mr-2">Exposición Total (Soles):</Label>
+                            <span className="font-bold text-lg text-white">{solicitudFormData.exposicion_total}</span>
+                          </div>
+                          <Button variant="outline" onClick={handleAddRiesgoRow} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Agregar Fila
+                          </Button>
+                        </div>
+                      )}
+                      <div className="space-y-4 pt-4 border-t border-gray-800 mt-4">
+                        <div><Label htmlFor="garantias">Garantías</Label><Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label><Textarea id="condiciones_desembolso" value={solicitudFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor="comentarios">Comentarios</Label><Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                        <div className="pt-4 border-t border-gray-800">
-                          <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
-                          <Input id="validado_por" value={solicitudFormData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} />
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="flex items-center text-white"><ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Deudor</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-gray-400">Buscar Deudor en TOP 10K</Label>
+                        <div className="flex gap-2">
+                          <AsyncCombobox
+                            value={deudorRucInput}
+                            onChange={(value) => setDeudorRucInput(value || '')}
+                            onSearch={searchTop10k}
+                            placeholder="Buscar por RUC o razón social..."
+                            searchPlaceholder="Escriba para buscar..."
+                            emptyMessage="No se encontraron empresas en TOP 10K."
+                            className="flex-1"
+                            disabled={!isAdmin}
+                          />
+                          <Button
+                            onClick={() => handleSearchDeudor(deudorRucInput)}
+                            disabled={searchingDeudor || !deudorRucInput || !isAdmin}
+                            className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                          >
+                            {searchingDeudor ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Search className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
+                      </div>
 
-                        <div>
-                          <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
-                          <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}>
-                            <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                              <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
-                              <SelectItem value="En Revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
-                              <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      {top10kData ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-800">
+                          <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{top10kData.ruc}</p></div>
+                          <div className="lg:col-span-3"><Label className="text-gray-400">Razón Social</Label><p className="text-white">{top10kData.razon_social || 'N/A'}</p></div>
+                          <div><Label className="text-gray-400">Sector</Label><p className="text-white">{top10kData.sector || 'N/A'}</p></div>
+                          <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2024 || 'N/A'}</p></div>
+                          <div><Label className="text-gray-400">Ranking 2023</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2023 || 'N/A'}</p></div>
+                          <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2024_soles_maximo)}</p></div>
+                          <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2023_soles_maximo)}</p></div>
+                          <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p></div>
                         </div>
-                      </>
-                    ) : (
-                      <>
-                        <div>
-                          <Label htmlFor="validado_por_new" className="font-semibold text-white">Validado por</Label>
-                          <Input id="validado_por_new" value={solicitudFormData.validado_por || ''} onChange={(e) => setSolicitudFormData(prev => ({ ...prev, validado_por: e.target.value }))} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} placeholder="Nombre de quien valida" />
+                      ) : (
+                        <div className="text-center py-8 text-gray-500 border-t border-gray-800">
+                          <ShieldCheck className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                          <p>Busque una empresa para ver sus datos de riesgo en TOP 10K</p>
                         </div>
+                      )}
+                    </CardContent>
+                  </Card>
 
-                        <div>
-                          <Label htmlFor="status-new" className="font-semibold text-white">Estado de Solicitud</Label>
-                          <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}>
-                            <SelectTrigger id="status-new" className="bg-gray-900/50 border-gray-700 mt-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                              <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
-                              <SelectItem value="En Revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
-                              <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </>
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Datos del deudor</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><Label htmlFor="direccion">Dirección</Label><Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor="visita">Visita</Label><Input id="visita" value={solicitudFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><Label htmlFor="contacto">Contacto</Label><Input id="contacto" value={solicitudFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor="fianza">Fianza</Label><Input id="fianza" value={solicitudFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="text-white">Gestión</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      {editingSolicitud ? (
+                        <>
+                          <div className="flex flex-col space-y-4 text-sm text-gray-300">
+                            <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
+                            <div className="flex items-center gap-2">
+                              <ClipboardCopy className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                              <span className="text-gray-400">ID de Expediente:</span>
+                              <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">{editingSolicitud.id}</code>
+                              <Button variant="ghost" size="icon" onClick={handleCopyId} className="h-6 w-6 text-gray-400 hover:text-white">
+                                <ClipboardCopy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {creatorInfo && (
+                              <div className="flex items-center gap-2"><User className="h-4 w-4 flex-shrink-0" /><span>Creado por: <strong className="text-gray-200">{creatorInfo.fullName || 'N/A'}</strong> ({creatorInfo.email || 'N/A'})</span></div>
+                            )}
+                            <div className="flex items-center gap-2"><Calendar className="h-4 w-4 flex-shrink-0" /><span>Fecha de creación: <strong className="text-gray-200">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</strong></span></div>
+                            <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 flex-shrink-0" /><span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span></div>
+
+                            <div className="w-full pt-4 border-t border-gray-800">
+                              <AuditLogViewer solicitudId={editingSolicitud.id} />
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-gray-800">
+                            <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
+                            <Input id="validado_por" value={solicitudFormData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
+                            <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}>
+                              <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                                <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
+                                <SelectItem value="En Revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
+                                <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <Label htmlFor="validado_por_new" className="font-semibold text-white">Validado por</Label>
+                            <Input id="validado_por_new" value={solicitudFormData.validado_por || ''} onChange={(e) => setSolicitudFormData(prev => ({ ...prev, validado_por: e.target.value }))} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} placeholder="Nombre de quien valida" />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="status-new" className="font-semibold text-white">Estado de Solicitud</Label>
+                            <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}>
+                              <SelectTrigger id="status-new" className="bg-gray-900/50 border-gray-700 mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                                <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
+                                <SelectItem value="En Revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
+                                <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <div className="flex justify-end space-x-4">
+                    <Button variant="outline" onClick={handleCancel} className="border-gray-700 text-gray-300"><XCircle className="h-4 w-4 mr-2" />Cancelar</Button>
+                    {isAdmin && (
+                      <Button onClick={handleSave} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
+                        {id ? 'Actualizar Solicitud' : 'Confirmar y Crear Solicitud'}
+                      </Button>
                     )}
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-end space-x-4">
-                  <Button variant="outline" onClick={handleCancel} className="border-gray-700 text-gray-300"><XCircle className="h-4 w-4 mr-2" />Cancelar</Button>
-                  {isAdmin && (
-                    <Button onClick={handleSave} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
-                      {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
-                      {id ? 'Actualizar Solicitud' : 'Confirmar y Crear Solicitud'}
-                    </Button>
-                  )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
