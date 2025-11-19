@@ -1,7 +1,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Calendar, Copy, FileSearch } from 'lucide-react';
+import { Edit, Trash2, Calendar, Copy } from 'lucide-react';
 import { SolicitudOperacion } from '@/types/solicitud-operacion';
 import { useSession } from '@/contexts/SessionContext';
 import { showSuccess } from '@/utils/toast';
@@ -52,11 +52,6 @@ const SolicitudOperacionTable: React.FC<SolicitudOperacionTableProps> = ({ solic
 
   const handleEdit = (solicitud: SolicitudOperacion) => {
     navigate(`/solicitudes-operacion/edit/${solicitud.id}`);
-  };
-
-  const handleGoToRib = (solicitud: SolicitudOperacion) => {
-    // Navegar a la página de RIB pasando el ID de solicitud y el RUC como parámetros
-    navigate(`/rib?solicitud_id=${solicitud.id}&ruc=${solicitud.ruc}`);
   };
 
   return (
@@ -123,15 +118,6 @@ const SolicitudOperacionTable: React.FC<SolicitudOperacionTableProps> = ({ solic
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => handleGoToRib(solicitud)} 
-                    className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10" 
-                    title="Generar/Ver RIB"
-                  >
-                    <FileSearch className="h-4 w-4" />
-                  </Button>
                   {isAdmin && (
                     <>
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(solicitud)} className="text-gray-400 hover:text-white" title="Editar">
