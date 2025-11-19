@@ -305,13 +305,13 @@ const SolicitudOperacionCreateEditPage = () => {
       condiciones_desembolso: '',
       validado_por: '',
       deudor_ruc: '',
+      tasa_tea: '',
+      plazo_dias: '',
       porcentaje_anticipo: '',
       comision_estructuracion: '',
-      plazo_dias: '',
-      tasa_minima: '',
-      monto_original: '',
-      tasa_tea: '',
       tipo_garantia: '',
+      monto_original: '',
+      tasa_minima: '',
     });
   };
 
@@ -924,26 +924,6 @@ const SolicitudOperacionCreateEditPage = () => {
                         </div>
                       </div>
 
-                      {/* Tipo de Garantía (Mantenido pero separado) */}
-                      <div className="pt-4 border-t border-gray-800">
-                         <Label htmlFor="tipo_garantia" className="text-gray-300 block mb-2">Tipo de Garantía</Label>
-                          <Select 
-                            value={solicitudFormData.tipo_garantia} 
-                            onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, tipo_garantia: value }))} 
-                            disabled={!isAdmin}
-                          >
-                            <SelectTrigger className="bg-gray-900/50 border-gray-700">
-                              <SelectValue placeholder="Seleccione Garantía" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                              <SelectItem value="Fianza Solidaria">Fianza Solidaria</SelectItem>
-                              <SelectItem value="Carta Fianza">Carta Fianza</SelectItem>
-                              <SelectItem value="Garantía Mobiliaria">Garantía Mobiliaria</SelectItem>
-                              <SelectItem value="Sin Garantía">Sin Garantía</SelectItem>
-                            </SelectContent>
-                          </Select>
-                      </div>
-
                       {/* Otras condiciones */}
                       <div className="pt-2">
                         <Label htmlFor="condiciones_desembolso" className="text-gray-300">Otras Condiciones (Texto Libre)</Label>
@@ -1001,6 +981,7 @@ const SolicitudOperacionCreateEditPage = () => {
                     </CardContent>
                   </Card>
 
+                  {/* Datos del Deudor */}
                   <Card className="bg-[#121212] border border-gray-800">
                     <CardHeader><CardTitle className="flex items-center text-white"><ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Deudor</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
