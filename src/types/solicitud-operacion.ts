@@ -8,9 +8,18 @@ export interface SolicitudOperacion {
   status: SolicitudStatus;
   created_at: string;
   updated_at: string;
+  
+  // Campos generales
   direccion: string | null;
-  visita: string | null;
-  contacto: string | null;
+  visita: string | null; // Deprecado por estructura
+  contacto: string | null; // Deprecado por estructura
+  
+  // Estructura de Visita (Punto 4)
+  visita_tipo?: 'Presencial' | 'Virtual' | 'No Realizada' | null;
+  visita_fecha?: string | null;
+  visita_contacto_nombre?: string;
+  visita_contacto_cargo?: string;
+
   comentarios: string | null;
   fianza: string | null;
   lp: string | null;
@@ -33,15 +42,18 @@ export interface SolicitudOperacion {
   validado_por: string | null;
   deudor_ruc: string | null;
   
-  // Campos de lógica de negocio
+  // Lógica de negocio
   tipo_producto: TipoProducto | null;
   tipo_operacion: TipoOperacion | null;
 
-  // Nuevos campos financieros (Punto 8)
-  tasa_tea: number | null;
-  plazo_dias: number | null;
-  porcentaje_anticipo: number | null;
-  comision_estructuracion: number | null;
+  // Condiciones Comerciales (Punto 8 - Ajustado al Excel)
+  porcentaje_anticipo: number | null;      // % Adelanto
+  comision_estructuracion: number | null;  // Comisión (mínima)
+  plazo_dias: number | null;               // Plazo (días)
+  tasa_minima: number | null;              // Tasa (mínima)
+  monto_original: number | null;           // Monto Original
+  tasa_tea: number | null;                 // Tasa Global (% anual)
+  
   tipo_garantia: string | null;
 }
 

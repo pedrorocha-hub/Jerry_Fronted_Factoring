@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, ClipboardCopy, Layers, Percent, Clock, Wallet } from 'lucide-react';
+import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, ClipboardCopy, Layers, Percent, Clock, Wallet, MapPin, Phone, UserCheck, DollarSign } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -84,6 +84,11 @@ const SolicitudOperacionCreateEditPage = () => {
     direccion: '',
     visita: '',
     contacto: '',
+    visita_tipo: 'Presencial' as 'Presencial' | 'Virtual' | 'No Realizada' | null,
+    visita_fecha: '',
+    visita_contacto_nombre: '',
+    visita_contacto_cargo: '',
+    
     comentarios: '',
     fianza: '',
     proveedor: '',
@@ -98,11 +103,14 @@ const SolicitudOperacionCreateEditPage = () => {
     condiciones_desembolso: '',
     validado_por: '',
     deudor_ruc: '',
-    // Nuevos campos financieros
-    tasa_tea: '',
-    plazo_dias: '',
-    porcentaje_anticipo: '',
-    comision_estructuracion: '',
+    
+    // Nuevos campos financieros (Punto 8 - Excel)
+    porcentaje_anticipo: '',      // % Adelanto
+    comision_estructuracion: '',  // Comisión (mínima)
+    plazo_dias: '',               // Plazo (días)
+    tasa_minima: '',              // Tasa (mínima)
+    monto_original: '',           // Monto Original
+    tasa_tea: '',                 // Tasa Global (% anual)
     tipo_garantia: '',
   });
 
@@ -150,6 +158,12 @@ const SolicitudOperacionCreateEditPage = () => {
       direccion: solicitud.direccion || '',
       visita: solicitud.visita || '',
       contacto: solicitud.contacto || '',
+      
+      visita_tipo: solicitud.visita_tipo || 'Presencial',
+      visita_fecha: solicitud.visita_fecha || '',
+      visita_contacto_nombre: solicitud.visita_contacto_nombre || solicitud.contacto || '',
+      visita_contacto_cargo: solicitud.visita_contacto_cargo || '',
+
       comentarios: solicitud.comentarios || '',
       fianza: solicitud.fianza || '',
       proveedor: solicitud.proveedor || '',
@@ -164,11 +178,14 @@ const SolicitudOperacionCreateEditPage = () => {
       condiciones_desembolso: solicitud.condiciones_desembolso || '',
       validado_por: solicitud.validado_por || '',
       deudor_ruc: (solicitud as any).deudor_ruc || '',
-      // Nuevos campos financieros
-      tasa_tea: solicitud.tasa_tea?.toString() || '',
-      plazo_dias: solicitud.plazo_dias?.toString() || '',
+      
+      // Cargar campos financieros
       porcentaje_anticipo: solicitud.porcentaje_anticipo?.toString() || '',
       comision_estructuracion: solicitud.comision_estructuracion?.toString() || '',
+      plazo_dias: solicitud.plazo_dias?.toString() || '',
+      tasa_minima: solicitud.tasa_minima?.toString() || '',
+      monto_original: solicitud.monto_original?.toString() || '',
+      tasa_tea: solicitud.tasa_tea?.toString() || '', // Tasa Global
       tipo_garantia: solicitud.tipo_garantia || '',
     });
 
@@ -270,6 +287,10 @@ const SolicitudOperacionCreateEditPage = () => {
       direccion: '',
       visita: '',
       contacto: '',
+      visita_tipo: 'Presencial',
+      visita_fecha: '',
+      visita_contacto_nombre: '',
+      visita_contacto_cargo: '',
       comentarios: '',
       fianza: '',
       proveedor: '',
@@ -284,10 +305,12 @@ const SolicitudOperacionCreateEditPage = () => {
       condiciones_desembolso: '',
       validado_por: '',
       deudor_ruc: '',
-      tasa_tea: '',
-      plazo_dias: '',
       porcentaje_anticipo: '',
       comision_estructuracion: '',
+      plazo_dias: '',
+      tasa_minima: '',
+      monto_original: '',
+      tasa_tea: '',
       tipo_garantia: '',
     });
   };
@@ -421,11 +444,15 @@ const SolicitudOperacionCreateEditPage = () => {
         riesgo_aprobado: String(firstRiesgoRow.riesgo_aprobado || ''),
         propuesta_comercial: String(firstRiesgoRow.propuesta_comercial || ''),
         deudor_ruc: solicitudFormData.deudor_ruc || null,
-        // Nuevos campos financieros
-        tasa_tea: parseFloat(solicitudFormData.tasa_tea) || null,
-        plazo_dias: parseInt(solicitudFormData.plazo_dias) || null,
+        contacto: solicitudFormData.visita_contacto_nombre, 
+        
+        // Campos Financieros Numéricos
         porcentaje_anticipo: parseFloat(solicitudFormData.porcentaje_anticipo) || null,
         comision_estructuracion: parseFloat(solicitudFormData.comision_estructuracion) || null,
+        plazo_dias: parseInt(solicitudFormData.plazo_dias) || null,
+        tasa_minima: parseFloat(solicitudFormData.tasa_minima) || null,
+        monto_original: parseFloat(solicitudFormData.monto_original) || null,
+        tasa_tea: parseFloat(solicitudFormData.tasa_tea) || null, // Tasa Global
         tipo_garantia: solicitudFormData.tipo_garantia || null,
       };
 
@@ -437,7 +464,6 @@ const SolicitudOperacionCreateEditPage = () => {
         setShowSuccessModal(true);
         return;
       } else {
-        // Manejo de riesgos existentes...
         const { data: existingRiesgos } = await supabase.from('solicitud_operacion_riesgos').select('id').eq('solicitud_id', editingSolicitud.id);
         const existingIds = existingRiesgos?.map(r => r.id) || [];
         const currentIds = riesgoRows.map(r => r.id).filter((id): id is string => !!id);
@@ -726,9 +752,8 @@ const SolicitudOperacionCreateEditPage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Tarjeta de Datos de Solicitud (General) */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="flex items-center text-white"><FileText className="h-5 w-5 mr-2 text-[#00FF80]" />Datos Generales</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="flex items-center text-white"><FileText className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de la Solicitud</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
@@ -786,7 +811,7 @@ const SolicitudOperacionCreateEditPage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Nueva Tarjeta: CONDICIONES COMERCIALES */}
+                  {/* Nueva Tarjeta: CONDICIONES COMERCIALES (Ajustada al Excel) */}
                   <Card className="bg-[#121212] border border-gray-800">
                     <CardHeader>
                       <CardTitle className="flex items-center text-white">
@@ -795,10 +820,12 @@ const SolicitudOperacionCreateEditPage = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {/* Fila 1: Campos del Excel en orden */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* 1. % Adelanto */}
                         <div>
                           <Label htmlFor="porcentaje_anticipo" className="text-gray-300 flex items-center gap-2">
-                            <Percent className="h-3 w-3" /> % Financiamiento
+                            <Percent className="h-3 w-3" /> % Adelanto
                           </Label>
                           <Input 
                             id="porcentaje_anticipo" 
@@ -812,21 +839,23 @@ const SolicitudOperacionCreateEditPage = () => {
                             disabled={!isAdmin} 
                           />
                         </div>
+                        {/* 2. Comisión (Mínima) */}
                         <div>
-                          <Label htmlFor="tasa_tea" className="text-gray-300 flex items-center gap-2">
-                            <Percent className="h-3 w-3" /> Tasa (TEA/TSEM)
+                          <Label htmlFor="comision_estructuracion" className="text-gray-300 flex items-center gap-2">
+                            <Percent className="h-3 w-3" /> Comisión (Mínima)
                           </Label>
                           <Input 
-                            id="tasa_tea" 
+                            id="comision_estructuracion" 
                             type="number" 
-                            step="0.0001"
-                            value={solicitudFormData.tasa_tea} 
+                            step="0.01"
+                            value={solicitudFormData.comision_estructuracion} 
                             onChange={handleFormChange} 
-                            placeholder="Ej: 1.5"
+                            placeholder="Ej: 0.30"
                             className="bg-gray-900/50 border-gray-700" 
                             disabled={!isAdmin} 
                           />
                         </div>
+                        {/* 3. Plazo (Días) */}
                         <div>
                           <Label htmlFor="plazo_dias" className="text-gray-300 flex items-center gap-2">
                             <Clock className="h-3 w-3" /> Plazo (Días)
@@ -842,21 +871,62 @@ const SolicitudOperacionCreateEditPage = () => {
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                      {/* Fila 2: Resto de campos del Excel */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* 4. Tasa (Mínima) */}
                         <div>
-                          <Label htmlFor="comision_estructuracion" className="text-gray-300">Comisión de Estructuración</Label>
+                          <Label htmlFor="tasa_minima" className="text-gray-300 flex items-center gap-2">
+                            <Percent className="h-3 w-3" /> Tasa (Mínima)
+                          </Label>
                           <Input 
-                            id="comision_estructuracion" 
+                            id="tasa_minima" 
                             type="number" 
-                            step="0.01"
-                            value={solicitudFormData.comision_estructuracion} 
+                            step="0.0001"
+                            value={solicitudFormData.tasa_minima} 
                             onChange={handleFormChange} 
+                            placeholder="Ej: 1.70"
                             className="bg-gray-900/50 border-gray-700" 
                             disabled={!isAdmin} 
                           />
                         </div>
+                        {/* 5. Monto Original (USD/PEN) */}
                         <div>
-                          <Label htmlFor="tipo_garantia" className="text-gray-300">Tipo de Garantía</Label>
+                          <Label htmlFor="monto_original" className="text-gray-300 flex items-center gap-2">
+                            <DollarSign className="h-3 w-3" /> Monto Original
+                          </Label>
+                          <Input 
+                            id="monto_original" 
+                            type="number" 
+                            step="0.01"
+                            value={solicitudFormData.monto_original} 
+                            onChange={handleFormChange} 
+                            placeholder="0.00"
+                            className="bg-gray-900/50 border-gray-700" 
+                            disabled={!isAdmin} 
+                          />
+                        </div>
+                        {/* 6. Tasa Global (% anual) - Usamos tasa_tea */}
+                        <div>
+                          <Label htmlFor="tasa_tea" className="text-gray-300 flex items-center gap-2">
+                            <Percent className="h-3 w-3" /> Tasa Global (% anual)
+                          </Label>
+                          <Input 
+                            id="tasa_tea" 
+                            type="number" 
+                            step="0.0001"
+                            value={solicitudFormData.tasa_tea} 
+                            onChange={handleFormChange} 
+                            placeholder="Ej: 20.50"
+                            className="bg-gray-900/50 border-gray-700" 
+                            disabled={!isAdmin} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Tipo de Garantía (Mantenido pero separado) */}
+                      <div className="pt-4 border-t border-gray-800">
+                         <Label htmlFor="tipo_garantia" className="text-gray-300 block mb-2">Tipo de Garantía</Label>
                           <Select 
                             value={solicitudFormData.tipo_garantia} 
                             onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, tipo_garantia: value }))} 
@@ -872,9 +942,10 @@ const SolicitudOperacionCreateEditPage = () => {
                               <SelectItem value="Sin Garantía">Sin Garantía</SelectItem>
                             </SelectContent>
                           </Select>
-                        </div>
                       </div>
-                      <div className="pt-4 border-t border-gray-700">
+
+                      {/* Otras condiciones */}
+                      <div className="pt-2">
                         <Label htmlFor="condiciones_desembolso" className="text-gray-300">Otras Condiciones (Texto Libre)</Label>
                         <Textarea 
                           id="condiciones_desembolso" 
@@ -924,12 +995,12 @@ const SolicitudOperacionCreateEditPage = () => {
                       )}
                       <div className="space-y-4 pt-4 border-t border-gray-800 mt-4">
                         <div><Label htmlFor="garantias">Garantías</Label><Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                        <div><Label htmlFor="comentarios">Comentarios</Label><Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor="condiciones_desembolso">Condiciones de Desembolso</Label><Textarea id="condiciones_desembolso" value={solicitudFormData.condiciones_desembolso} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                        <div><Label htmlFor="comentarios">Comentarios Generales</Label><Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Datos del Deudor */}
                   <Card className="bg-[#121212] border border-gray-800">
                     <CardHeader><CardTitle className="flex items-center text-white"><ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Deudor</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
@@ -981,20 +1052,90 @@ const SolicitudOperacionCreateEditPage = () => {
                   </Card>
 
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Datos del deudor</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><Label htmlFor="direccion">Dirección</Label><Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                        <div><Label htmlFor="visita">Visita</Label><Input id="visita" value={solicitudFormData.visita} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                    <CardHeader><CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de Contacto y Visita Comercial</CardTitle></CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Sección 1: Dirección Física */}
+                      <div className="space-y-2">
+                         <Label htmlFor="direccion" className="flex items-center gap-2 text-gray-300">
+                           <MapPin className="h-4 w-4 text-[#00FF80]" /> Dirección Física
+                         </Label>
+                         <Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} placeholder="Dirección completa de la empresa" />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><Label htmlFor="contacto">Contacto</Label><Input id="contacto" value={solicitudFormData.contacto} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                        <div><Label htmlFor="fianza">Fianza</Label><Input id="fianza" value={solicitudFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+
+                      {/* Sección 2: Detalles de la Visita (Reemplaza input simple 'visita') */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-800">
+                         <div>
+                           <Label htmlFor="visita_tipo" className="flex items-center gap-2 text-gray-300 mb-2">
+                             <UserCheck className="h-4 w-4 text-[#00FF80]" /> Tipo de Visita
+                           </Label>
+                           <Select 
+                             value={solicitudFormData.visita_tipo || 'Presencial'} 
+                             onValueChange={(value: any) => setSolicitudFormData(prev => ({ ...prev, visita_tipo: value }))}
+                             disabled={!isAdmin}
+                           >
+                             <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                               <SelectItem value="Presencial">Presencial</SelectItem>
+                               <SelectItem value="Virtual">Virtual (Zoom/Meet)</SelectItem>
+                               <SelectItem value="No Realizada">No Realizada</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+                         <div>
+                           <Label htmlFor="visita_fecha" className="flex items-center gap-2 text-gray-300 mb-2">
+                             <Calendar className="h-4 w-4 text-[#00FF80]" /> Fecha de Visita
+                           </Label>
+                           <Input 
+                             id="visita_fecha" 
+                             type="date" 
+                             value={solicitudFormData.visita_fecha} 
+                             onChange={handleFormChange} 
+                             className="bg-gray-900/50 border-gray-700" 
+                             disabled={!isAdmin} 
+                           />
+                         </div>
+                      </div>
+
+                      {/* Sección 3: Detalles del Contacto (Reemplaza input simple 'contacto') */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-800">
+                        <div>
+                          <Label htmlFor="visita_contacto_nombre" className="flex items-center gap-2 text-gray-300">
+                            <User className="h-4 w-4 text-[#00FF80]" /> Nombre del Entrevistado
+                          </Label>
+                          <Input 
+                            id="visita_contacto_nombre" 
+                            value={solicitudFormData.visita_contacto_nombre} 
+                            onChange={handleFormChange} 
+                            className="bg-gray-900/50 border-gray-700 mt-2" 
+                            disabled={!isAdmin} 
+                            placeholder="Nombre completo"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="visita_contacto_cargo" className="flex items-center gap-2 text-gray-300">
+                            <Briefcase className="h-4 w-4 text-[#00FF80]" /> Cargo del Entrevistado
+                          </Label>
+                          <Input 
+                            id="visita_contacto_cargo" 
+                            value={solicitudFormData.visita_contacto_cargo} 
+                            onChange={handleFormChange} 
+                            className="bg-gray-900/50 border-gray-700 mt-2" 
+                            disabled={!isAdmin} 
+                            placeholder="Gerente General, Administrador, etc."
+                          />
+                        </div>
+                      </div>
+
+                      {/* Sección 4: Fianza (mantenida en este bloque temático) */}
+                      <div className="pt-4 border-t border-gray-800">
+                        <Label htmlFor="fianza">Fianza</Label>
+                        <Input id="fianza" value={solicitudFormData.fianza} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-2" disabled={!isAdmin} />
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Tarjeta de Gestión (Footer) */}
                   <Card className="bg-[#121212] border border-gray-800">
                     <CardHeader><CardTitle className="text-white">Gestión</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
