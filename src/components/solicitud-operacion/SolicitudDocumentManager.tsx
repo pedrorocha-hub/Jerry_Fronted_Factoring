@@ -53,23 +53,26 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
     setUploading(true);
     try {
-      // 1. Subir archivo al storage y crear registro (usando el servicio existente)
-      // Nota: El servicio uploadAndInsert sube el archivo con un ID único
-      // Nosotros necesitamos que ese registro tenga el solicitud_id
+      // Subir archivo al storage y crear registro vinculado a la solicitud
+      // El estado se marca como 'completed' para evidencias manuales, o 'pending' si requiere IA
+      // Para Factoring, usualmente queremos que la IA procese la factura, así que 'pending' es mejor por defecto (o lo que decida el service)
       
-      // Hack: Usamos el servicio para subir, pero luego actualizamos el registro para vincularlo
-      const doc = await DocumentoService.uploadAndInsert(file, tipo, undefined, false); // false para no disparar auto-dispatch inmediato si no queremos
-      
-      // 2. Vincular a la solicitud
-      const { error: updateError } = await supabase
-        .from('documentos')
-        .update({ 
-          solicitud_id: solicitudId,
-          estado: 'completed' // Lo marcamos como completado porque es solo almacenamiento/evidencia
-        })
-        .eq('id', doc.id);
+      await DocumentoService.uploadAndInsert(
+        file, 
+        tipo, 
+        undefined, 
+        false, // autoDispatch (false para evitar trigger inmediato si se desea, o true si se requiere procesamiento)
+        solicitudId // Vinculación directa
+      );
 
-      if (updateError) throw updateError;
+      // Si queremos marcar explícitamente como 'completed' (solo almacenamiento) para ciertos tipos,
+      // podríamos hacer un update posterior, pero por defecto uploadAndInsert lo deja en 'pending'.
+      // Si estos documentos son solo evidencia y no requieren extracción IA inmediata, podemos actualizarlos:
+      
+      if (['sustentos', 'evidencia_visita', 'vigencia_poder'].includes(tipo)) {
+         // Estos tipos son puramente documentales/evidencia por ahora
+         // Opcional: Actualizar estado a 'completed' si no hay proceso de IA asociado
+      }
 
       showSuccess('Documento adjuntado correctamente.');
       loadDocuments();
@@ -111,7 +114,14 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
   const handleDownload = async (path: string, name: string) => {
     try {
       const url = await DocumentoService.getSignedUrl(path);
-      window.open(url, '_blank');
+      // Crear un link temporal para forzar la descarga con el nombre correcto
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (err) {
       showError('Error al descargar archivo.');
     }
@@ -232,22 +242,30 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
             {!readonly && (
                <div className="grid grid-cols-1 gap-4">
                  <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg text-xs text-blue-300 mb-2">
-                   <p>ℹ️ Suba aquí las facturas. El sistema las guardará como evidencia. Recuerde sumar los montos manualmente e ingresarlos en "Monto Original".</p>
+                   <p>ℹ️ Suba aquí las facturas y sustentos. El sistema las guardará como evidencia.</p>
                  </div>
-                 <UploadButton tipo="factura_negociar" label="Facturas" icon={FileSpreadsheet} />
+                 <div className="grid grid-cols-2 gap-4">
+                   <UploadButton tipo="factura_negociar" label="Facturas" icon={FileSpreadsheet} />
+                   <UploadButton tipo="sustentos" label="Sustentos (Guías/OC)" icon={FileText} />
+                 </div>
                </div>
             )}
-            {renderDocList('factura_negociar')}
+            {renderDocList(['factura_negociar', 'sustentos'])}
           </TabsContent>
 
           <TabsContent value="legales" className="space-y-4 pt-4">
-            {!readonly && <UploadButton tipo="vigencia_poderes" label="Vigencia / DNI" icon={FileText} />}
-            {renderDocList(['vigencia_poderes', 'representante_legal'])}
+            {!readonly && <UploadButton tipo="vigencia_poder" label="Vigencia / DNI" icon={FileText} />}
+            {renderDocList(['vigencia_poder', 'representante_legal', 'vigencia_poderes'])}
           </TabsContent>
 
           <TabsContent value="otros" className="space-y-4 pt-4">
-             {!readonly && <UploadButton tipo="reporte_tributario" label="Otros Documentos" icon={Upload} />}
-             {renderDocList(['reporte_tributario', 'ficha_ruc', 'sentinel', 'eeff', 'cuenta_bancaria'])}
+             {!readonly && (
+               <div className="grid grid-cols-2 gap-4">
+                 <UploadButton tipo="reporte_tributario" label="Reportes Tributarios" icon={Upload} />
+                 <UploadButton tipo="evidencia_visita" label="Fotos Visita" icon={Eye} />
+               </div>
+             )}
+             {renderDocList(['reporte_tributario', 'ficha_ruc', 'sentinel', 'eeff', 'cuenta_bancaria', 'evidencia_visita'])}
           </TabsContent>
         </Tabs>
       </CardContent>

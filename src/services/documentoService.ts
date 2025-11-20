@@ -52,11 +52,19 @@ export class DocumentoService {
     file: File, 
     tipo: DocumentoTipo,
     onProgress?: (progress: number) => void,
-    autoDispatch: boolean = true
+    autoDispatch: boolean = true,
+    solicitudId?: string
   ): Promise<Documento> {
     const fileId = crypto.randomUUID();
-    const fileName = file.name;
-    const path = `${fileId}_${fileName}`;
+    
+    // Sanitizar nombre para el storage (eliminar tildes, ñ, caracteres raros)
+    // Mantiene solo letras, números, puntos, guiones y guiones bajos
+    const sanitizedFileName = file.name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
+      .replace(/[^a-zA-Z0-9._-]/g, "_"); // Reemplazar otros caracteres especiales con guion bajo
+      
+    const path = `${fileId}_${sanitizedFileName}`;
 
     try {
       console.log('DocumentoService: Starting upload with tipo:', tipo);
@@ -84,9 +92,10 @@ export class DocumentoService {
         tipo,
         storage_path: path,
         estado: 'pending',
-        nombre_archivo: fileName,
+        nombre_archivo: file.name, // Guardamos el nombre original para mostrarlo
         tamaño_archivo: file.size,
-        created_by: user?.id
+        created_by: user?.id,
+        solicitud_id: solicitudId
       };
 
       console.log('DocumentoService: Inserting document with data:', documentoData);
@@ -99,6 +108,7 @@ export class DocumentoService {
 
       if (dbError) {
         console.error('Database error:', dbError);
+        // Intentar limpiar el archivo subido si falla la BD
         await supabase.storage.from(this.BUCKET_NAME).remove([path]);
         throw new Error(`Error guardando registro: ${dbError.message}`);
       }
@@ -107,7 +117,7 @@ export class DocumentoService {
 
       // Solo despachamos si no es evidencia (las fotos no se procesan por IA por ahora)
       if (autoDispatch && tipo !== 'evidencia_visita') {
-         // Dispatch handled by webhook usually
+         // Dispatch handled by webhook usually (database trigger)
       }
 
       onProgress?.(100);
