@@ -1,165 +1,75 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Documento, DocumentoInsert, DocumentoTipo, UploadProgress } from '@/types/documento';
-import { DispatchService } from './dispatchService';
+import { Documento, DocumentoTipo } from '@/types/documento';
 
-export class DocumentoService {
-  private static readonly BUCKET_NAME = 'documentos';
-
-  // Verificar y crear bucket si no existe
-  private static async ensureBucketExists(): Promise<void> {
-    try {
-      const { data, error } = await supabase.storage
-        .from(this.BUCKET_NAME)
-        .list('', { limit: 1 });
-
-      if (error) {
-        const { data: createData, error: createError } = await supabase.storage
-          .createBucket(this.BUCKET_NAME, {
-            public: false,
-            fileSizeLimit: 52428800, // 50MB
-            allowedMimeTypes: ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg']
-          });
-
-        if (createError) {
-          throw new Error(`No se pudo crear el bucket: ${createError.message}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error verificando/creando bucket:', error);
-      throw error;
-    }
-  }
-
-  // Verificar qué tipos de documento están permitidos
-  static async getValidDocumentTypes(): Promise<string[]> {
-    return [
-      'ficha_ruc',
-      'representante_legal', 
-      'cuenta_bancaria',
-      'vigencia_poderes',
-      'factura_negociar',
-      'reporte_tributario',
-      'sentinel',
-      'sustentos',
-      'vigencia_poder',
-      'evidencia_visita',
-      'eeff'
-    ];
-  }
-
-  // Subir archivo y crear registro en base de datos
-  static async uploadAndInsert(
-    file: File, 
+export const DocumentoService = {
+  async uploadAndInsert(
+    file: File,
     tipo: DocumentoTipo,
-    onProgress?: (progress: number) => void,
-    autoDispatch: boolean = true,
+    oldPath?: string,
+    isUpdate: boolean = false,
     solicitudId?: string
-  ): Promise<Documento> {
-    const fileId = crypto.randomUUID();
-    
-    // Sanitizar nombre para el storage (eliminar tildes, ñ, caracteres raros)
-    // Mantiene solo letras, números, puntos, guiones y guiones bajos
-    const sanitizedFileName = file.name
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Eliminar acentos
-      .replace(/[^a-zA-Z0-9._-]/g, "_"); // Reemplazar otros caracteres especiales con guion bajo
-      
-    const path = `${fileId}_${sanitizedFileName}`;
-
+  ): Promise<Documento | null> {
     try {
-      console.log('DocumentoService: Starting upload with tipo:', tipo);
-      onProgress?.(5);
-      await this.ensureBucketExists();
-      onProgress?.(15);
-
+      // 1. Obtener usuario actual
       const { data: { user } } = await supabase.auth.getUser();
-      onProgress?.(25);
+      
+      // 2. Definir ruta de almacenamiento
+      // Estructura: solicitudes/{solicitudId}/{timestamp}_{filename}
+      // Limpiamos el nombre de archivo para evitar caracteres extraños
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const timestamp = new Date().getTime();
+      
+      let folderPath = 'general';
+      if (solicitudId) {
+        folderPath = `solicitudes/${solicitudId}`;
+      }
+      
+      const storagePath = `${folderPath}/${timestamp}_${cleanFileName}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(this.BUCKET_NAME)
-        .upload(path, file, {
+      // 3. Subir al Storage
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('documentos')
+        .upload(storagePath, file, {
           cacheControl: '3600',
           upsert: false
         });
 
-      if (uploadError) {
-        throw new Error(`Error subiendo archivo: ${uploadError.message}`);
-      }
+      if (storageError) throw storageError;
 
-      onProgress?.(50);
-
-      const documentoData: DocumentoInsert = {
-        tipo,
-        storage_path: path,
-        estado: 'pending',
-        nombre_archivo: file.name, // Guardamos el nombre original para mostrarlo
-        tamaño_archivo: file.size,
-        created_by: user?.id,
-        solicitud_id: solicitudId
-      };
-
-      console.log('DocumentoService: Inserting document with data:', documentoData);
-
+      // 4. Insertar registro en BD
       const { data: dbData, error: dbError } = await supabase
         .from('documentos')
-        .insert([documentoData])
+        .insert({
+          solicitud_id: solicitudId,
+          tipo: tipo,
+          storage_path: storagePath,
+          nombre_archivo: file.name,
+          tamaño_archivo: file.size,
+          estado: 'uploaded',
+          created_by: user?.id
+        })
         .select()
         .single();
 
       if (dbError) {
-        console.error('Database error:', dbError);
-        // Intentar limpiar el archivo subido si falla la BD
-        await supabase.storage.from(this.BUCKET_NAME).remove([path]);
-        throw new Error(`Error guardando registro: ${dbError.message}`);
+        // Si falla la BD, intentamos limpiar el archivo subido para no dejar basura
+        await supabase.storage.from('documentos').remove([storagePath]);
+        throw dbError;
       }
 
-      onProgress?.(70);
-
-      // Solo despachamos si no es evidencia (las fotos no se procesan por IA por ahora)
-      if (autoDispatch && tipo !== 'evidencia_visita') {
-         // Dispatch handled by webhook usually (database trigger)
-      }
-
-      onProgress?.(100);
       return dbData;
-
     } catch (error) {
-      console.error('Error en upload:', error);
+      console.error('Error en uploadAndInsert:', error);
       throw error;
     }
-  }
-
-  static async getSignedUrl(storagePath: string, expiresIn: number = 3600): Promise<string> {
+  },
+  
+  async getSignedUrl(path: string): Promise<string> {
     const { data, error } = await supabase.storage
-      .from(this.BUCKET_NAME)
-      .createSignedUrl(storagePath, expiresIn);
-
-    if (error) throw new Error(`Error creando URL firmada: ${error.message}`);
+      .from('documentos')
+      .createSignedUrl(path, 3600); // URL válida por 1 hora
+      
+    if (error) throw error;
     return data.signedUrl;
   }
-
-  // Métodos estándar de CRUD...
-  static async getAll(): Promise<Documento[]> {
-    const { data, error } = await supabase.from('documentos').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
-  }
-  
-  static async delete(id: string): Promise<void> {
-    const { data: doc } = await supabase.from('documentos').select('storage_path').eq('id', id).single();
-    if (doc) {
-        await supabase.storage.from(this.BUCKET_NAME).remove([doc.storage_path]);
-    }
-    const { error } = await supabase.from('documentos').delete().eq('id', id);
-    if (error) throw error;
-  }
-
-  static async reprocess(id: string): Promise<void> {
-     // Logic placeholder
-  }
-  
-  static async getStats() {
-      // Logic placeholder
-      return { total: 0, procesados: 0, pendientes: 0, errores: 0, thisMonth: 0 };
-  }
-}
+};

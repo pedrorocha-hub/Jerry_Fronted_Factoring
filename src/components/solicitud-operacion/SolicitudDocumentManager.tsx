@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError } from '@/utils/toast';
 import { DocumentoService } from '@/services/documentoService';
@@ -295,7 +295,12 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
       {/* Modal para vista previa */}
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden" aria-describedby="preview-description">
+           <DialogTitle className="sr-only">Vista Previa del Documento</DialogTitle>
+           <DialogDescription id="preview-description" className="sr-only">
+             Vista previa a pantalla completa del documento seleccionado.
+           </DialogDescription>
+           
            <div className="absolute top-4 right-4 z-50 bg-black/50 rounded-full">
              <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} className="text-white hover:bg-white/20 rounded-full">
                <X className="h-6 w-6" />
