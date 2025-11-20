@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -54,7 +54,6 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
     setUploading(true);
     try {
-      // El servicio ya maneja la estructura de carpetas: solicitudes/{id}/{archivo}
       await DocumentoService.uploadAndInsert(
         file, 
         tipo, 
@@ -182,7 +181,6 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                   ) : isExcel ? (
                     <FileSpreadsheet className="h-5 w-5 text-green-500" />
                   ) : isPdf ? (
-                    // Cambiado de text-red-400 a text-orange-400 para evitar parecer un error
                     <FileText className="h-5 w-5 text-orange-400" />
                   ) : (
                     <File className="h-5 w-5 text-blue-400" />
@@ -300,14 +298,25 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
       {/* Modal para vista previa */}
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden" aria-describedby="preview-description">
            <DialogTitle className="sr-only">Vista Previa del Documento</DialogTitle>
-           <DialogDescription className="sr-only">
+           <DialogDescription id="preview-description" className="sr-only">
              Vista previa a pantalla completa del documento seleccionado.
            </DialogDescription>
            
-           <div className="absolute top-4 right-4 z-50 bg-black/50 rounded-full">
-             <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} className="text-white hover:bg-white/20 rounded-full">
+           <div className="absolute top-4 right-4 z-50 flex gap-2">
+              {previewUrl && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => window.open(previewUrl, '_blank')} 
+                  className="text-white hover:bg-white/20 rounded-full bg-black/50"
+                  title="Abrir en nueva pestaña"
+                >
+                  <ExternalLink className="h-5 w-5" />
+                </Button>
+              )}
+             <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} className="text-white hover:bg-white/20 rounded-full bg-black/50">
                <X className="h-6 w-6" />
              </Button>
            </div>
@@ -321,12 +330,23 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                />
              )}
              {previewUrl && previewType === 'pdf' && (
-               <iframe
-                 src={previewUrl}
-                 className="w-full h-full border-none"
-                 title="Vista previa PDF"
-                 allowFullScreen // Permitir pantalla completa para evitar violaciones de política
-               />
+               <object
+                 data={previewUrl}
+                 type="application/pdf"
+                 className="w-full h-full"
+               >
+                 <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4 p-6 text-center">
+                   <FileText className="h-16 w-16 text-gray-600" />
+                   <p className="text-lg">No se puede previsualizar este documento directamente aquí.</p>
+                   <p className="text-sm text-gray-500 max-w-md">
+                     Esto puede suceder si el archivo fue subido sin el formato correcto o si tu navegador bloquea la vista previa de archivos PDF.
+                   </p>
+                   <Button variant="outline" className="mt-4 border-[#00FF80] text-[#00FF80] hover:bg-[#00FF80]/10" onClick={() => window.open(previewUrl, '_blank')}>
+                     <ExternalLink className="mr-2 h-4 w-4" />
+                     Abrir en nueva pestaña
+                   </Button>
+                 </div>
+               </object>
              )}
            </div>
         </DialogContent>

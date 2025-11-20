@@ -35,8 +35,6 @@ export const DocumentoService = {
       const { data: { user } } = await supabase.auth.getUser();
       
       // 2. Definir ruta de almacenamiento
-      // Estructura: solicitudes/{solicitudId}/{timestamp}_{filename}
-      // Limpiamos el nombre de archivo para evitar caracteres extraños
       const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const timestamp = new Date().getTime();
       
@@ -47,18 +45,18 @@ export const DocumentoService = {
       
       const storagePath = `${folderPath}/${timestamp}_${cleanFileName}`;
 
-      // 3. Subir al Storage
+      // 3. Subir al Storage (IMPORTANTE: especificar contentType)
       const { data: storageData, error: storageError } = await supabase.storage
         .from('documentos')
         .upload(storagePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type || 'application/octet-stream' // Corrección crítica para PDFs
         });
 
       if (storageError) throw storageError;
 
       // 4. Insertar registro en BD
-      // Usamos 'pending' como estado inicial para que coincida con los tipos y stats
       const { data: dbData, error: dbError } = await supabase
         .from('documentos')
         .insert({
@@ -74,7 +72,6 @@ export const DocumentoService = {
         .single();
 
       if (dbError) {
-        // Si falla la BD, intentamos limpiar el archivo subido para no dejar basura
         await supabase.storage.from('documentos').remove([storagePath]);
         throw dbError;
       }
@@ -89,14 +86,13 @@ export const DocumentoService = {
   async getSignedUrl(path: string): Promise<string> {
     const { data, error } = await supabase.storage
       .from('documentos')
-      .createSignedUrl(path, 3600); // URL válida por 1 hora
+      .createSignedUrl(path, 3600); 
       
     if (error) throw error;
     return data.signedUrl;
   },
 
   async delete(id: string): Promise<void> {
-    // Primero obtenemos el archivo para saber su path y borrarlo del storage
     const { data: doc } = await supabase.from('documentos').select('storage_path').eq('id', id).single();
     
     if (doc?.storage_path) {
@@ -112,8 +108,6 @@ export const DocumentoService = {
   },
 
   async reprocess(id: string): Promise<void> {
-    // Reiniciar el estado a pending para que el webhook/trigger lo procese nuevamente si es necesario
-    // o para indicar que requiere atención manual
     const { error } = await supabase
       .from('documentos')
       .update({ 
@@ -130,19 +124,16 @@ export const DocumentoService = {
     const date = new Date();
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
 
-    // Total de documentos este mes
     const { count: thisMonth } = await supabase
       .from('documentos')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', firstDay);
 
-    // Documentos pendientes o procesando
     const { count: pendientes } = await supabase
       .from('documentos')
       .select('*', { count: 'exact', head: true })
       .in('estado', ['pending', 'processing']);
 
-    // Documentos con error
     const { count: errores } = await supabase
       .from('documentos')
       .select('*', { count: 'exact', head: true })
