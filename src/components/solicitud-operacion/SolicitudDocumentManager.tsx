@@ -92,10 +92,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
   const handlePreview = async (doc: Documento) => {
     try {
-      console.log('Generando vista previa para:', doc.storage_path);
       const url = await DocumentoService.getSignedUrl(doc.storage_path);
-      console.log('URL generada:', url);
-
       setPreviewDocName(doc.nombre_archivo || 'Documento');
 
       const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
@@ -108,7 +105,6 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
         setPreviewType('pdf');
         setPreviewUrl(url);
       } else {
-        // Fallback para otros tipos: intentar abrir en nueva pestaña directamente
         window.open(url, '_blank');
       }
     } catch (err) {
@@ -299,17 +295,18 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
         </CardContent>
       </Card>
 
-      {/* Modal para vista previa */}
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden">
-           <DialogHeader className="px-4 py-3 border-b border-gray-800 flex flex-row items-center justify-between space-y-0">
-             <div className="flex flex-col gap-0.5">
-               <DialogTitle className="text-sm font-medium">Vista Previa</DialogTitle>
-               <DialogDescription className="text-xs text-gray-400">
+        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden gap-0">
+           <DialogHeader className="px-4 py-3 border-b border-gray-800 flex flex-row items-center justify-between space-y-0 shrink-0">
+             <div className="flex flex-col gap-0.5 overflow-hidden">
+               <DialogTitle className="text-sm font-medium truncate max-w-[300px] md:max-w-[500px]" title={previewDocName}>
                  {previewDocName}
+               </DialogTitle>
+               <DialogDescription className="text-xs text-gray-400">
+                 Vista previa del documento
                </DialogDescription>
              </div>
-             <div className="flex items-center gap-2">
+             <div className="flex items-center gap-2 shrink-0">
                 {previewUrl && (
                   <Button 
                     variant="outline" 
@@ -318,7 +315,8 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                     className="text-xs h-8 border-gray-700 bg-gray-900 hover:bg-gray-800 text-gray-300"
                   >
                     <ExternalLink className="h-3 w-3 mr-2" />
-                    Abrir en nueva pestaña
+                    <span className="hidden sm:inline">Abrir en nueva pestaña</span>
+                    <span className="sm:hidden">Abrir</span>
                   </Button>
                 )}
                <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} className="text-gray-400 hover:text-white h-8 w-8">
@@ -327,12 +325,12 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
              </div>
            </DialogHeader>
            
-           <div className="flex-1 flex items-center justify-center h-full w-full bg-[#1a1a1a] relative">
+           <div className="flex-1 w-full h-full bg-[#121212] relative overflow-hidden">
              {previewUrl && previewType === 'image' && (
                <img 
                  src={previewUrl} 
                  alt="Vista previa" 
-                 className="max-w-full max-h-full object-contain p-4"
+                 className="w-full h-full object-contain p-4"
                />
              )}
              {previewUrl && previewType === 'pdf' && (
@@ -340,6 +338,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                  src={previewUrl}
                  className="w-full h-full border-none"
                  title="Vista previa PDF"
+                 allow="fullscreen"
                />
              )}
            </div>
