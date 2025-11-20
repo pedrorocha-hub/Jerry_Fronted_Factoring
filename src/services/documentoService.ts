@@ -2,6 +2,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { Documento, DocumentoTipo } from '@/types/documento';
 
 export const DocumentoService = {
+  async getAll(): Promise<Documento[]> {
+    const { data, error } = await supabase
+      .from('documentos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getById(id: string): Promise<Documento | null> {
+    const { data, error } = await supabase
+      .from('documentos')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async uploadAndInsert(
     file: File,
     tipo: DocumentoTipo,
@@ -37,6 +58,7 @@ export const DocumentoService = {
       if (storageError) throw storageError;
 
       // 4. Insertar registro en BD
+      // Usamos 'pending' como estado inicial para que coincida con los tipos y stats
       const { data: dbData, error: dbError } = await supabase
         .from('documentos')
         .insert({
@@ -45,7 +67,7 @@ export const DocumentoService = {
           storage_path: storagePath,
           nombre_archivo: file.name,
           tamaño_archivo: file.size,
-          estado: 'uploaded',
+          estado: 'pending', 
           created_by: user?.id
         })
         .select()
@@ -71,5 +93,65 @@ export const DocumentoService = {
       
     if (error) throw error;
     return data.signedUrl;
+  },
+
+  async delete(id: string): Promise<void> {
+    // Primero obtenemos el archivo para saber su path y borrarlo del storage
+    const { data: doc } = await supabase.from('documentos').select('storage_path').eq('id', id).single();
+    
+    if (doc?.storage_path) {
+      await supabase.storage.from('documentos').remove([doc.storage_path]);
+    }
+
+    const { error } = await supabase
+      .from('documentos')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async reprocess(id: string): Promise<void> {
+    // Reiniciar el estado a pending para que el webhook/trigger lo procese nuevamente si es necesario
+    // o para indicar que requiere atención manual
+    const { error } = await supabase
+      .from('documentos')
+      .update({ 
+        estado: 'pending', 
+        error_msg: null,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async getStats() {
+    const date = new Date();
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
+
+    // Total de documentos este mes
+    const { count: thisMonth } = await supabase
+      .from('documentos')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDay);
+
+    // Documentos pendientes o procesando
+    const { count: pendientes } = await supabase
+      .from('documentos')
+      .select('*', { count: 'exact', head: true })
+      .in('estado', ['pending', 'processing']);
+
+    // Documentos con error
+    const { count: errores } = await supabase
+      .from('documentos')
+      .select('*', { count: 'exact', head: true })
+      .eq('estado', 'error');
+
+    return {
+      thisMonth: thisMonth || 0,
+      pendientes: pendientes || 0,
+      errores: errores || 0
+    };
   }
 };
