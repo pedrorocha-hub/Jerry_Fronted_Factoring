@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError } from '@/utils/toast';
 import { DocumentoService } from '@/services/documentoService';
@@ -25,6 +25,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'pdf' | null>(null);
+  const [previewDocName, setPreviewDocName] = useState<string>('');
 
   useEffect(() => {
     loadDocuments();
@@ -95,6 +96,8 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
       const url = await DocumentoService.getSignedUrl(doc.storage_path);
       console.log('URL generada:', url);
 
+      setPreviewDocName(doc.nombre_archivo || 'Documento');
+
       const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
       const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
       
@@ -105,7 +108,8 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
         setPreviewType('pdf');
         setPreviewUrl(url);
       } else {
-        showError('Vista previa no disponible para este formato. Descárguelo para ver.');
+        // Fallback para otros tipos: intentar abrir en nueva pestaña directamente
+        window.open(url, '_blank');
       }
     } catch (err) {
       console.error('Error preview:', err);
@@ -200,10 +204,9 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className={`h-8 w-8 ${isPreviewable ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-400/10' : 'text-gray-600 cursor-not-allowed'}`}
-                  onClick={() => isPreviewable && handlePreview(doc)}
-                  title={isPreviewable ? "Vista previa" : "Vista previa no disponible"}
-                  disabled={!isPreviewable}
+                  className={`h-8 w-8 ${isPreviewable ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-400/10' : 'text-gray-600 hover:text-gray-300'}`}
+                  onClick={() => handlePreview(doc)}
+                  title={isPreviewable ? "Vista previa" : "Abrir archivo"}
                 >
                   <Eye className="h-4 w-4" />
                 </Button>
@@ -298,55 +301,46 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
       {/* Modal para vista previa */}
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden" aria-describedby="preview-description">
-           <DialogTitle className="sr-only">Vista Previa del Documento</DialogTitle>
-           <DialogDescription id="preview-description" className="sr-only">
-             Vista previa a pantalla completa del documento seleccionado.
-           </DialogDescription>
+        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden">
+           <DialogHeader className="px-4 py-3 border-b border-gray-800 flex flex-row items-center justify-between space-y-0">
+             <div className="flex flex-col gap-0.5">
+               <DialogTitle className="text-sm font-medium">Vista Previa</DialogTitle>
+               <DialogDescription className="text-xs text-gray-400">
+                 {previewDocName}
+               </DialogDescription>
+             </div>
+             <div className="flex items-center gap-2">
+                {previewUrl && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.open(previewUrl, '_blank')} 
+                    className="text-xs h-8 border-gray-700 bg-gray-900 hover:bg-gray-800 text-gray-300"
+                  >
+                    <ExternalLink className="h-3 w-3 mr-2" />
+                    Abrir en nueva pestaña
+                  </Button>
+                )}
+               <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} className="text-gray-400 hover:text-white h-8 w-8">
+                 <X className="h-5 w-5" />
+               </Button>
+             </div>
+           </DialogHeader>
            
-           <div className="absolute top-4 right-4 z-50 flex gap-2">
-              {previewUrl && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => window.open(previewUrl, '_blank')} 
-                  className="text-white hover:bg-white/20 rounded-full bg-black/50"
-                  title="Abrir en nueva pestaña"
-                >
-                  <ExternalLink className="h-5 w-5" />
-                </Button>
-              )}
-             <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} className="text-white hover:bg-white/20 rounded-full bg-black/50">
-               <X className="h-6 w-6" />
-             </Button>
-           </div>
-           
-           <div className="flex-1 flex items-center justify-center h-full w-full bg-[#0a0a0a] relative">
+           <div className="flex-1 flex items-center justify-center h-full w-full bg-[#1a1a1a] relative">
              {previewUrl && previewType === 'image' && (
                <img 
                  src={previewUrl} 
                  alt="Vista previa" 
-                 className="max-w-full max-h-full object-contain"
+                 className="max-w-full max-h-full object-contain p-4"
                />
              )}
              {previewUrl && previewType === 'pdf' && (
-               <object
-                 data={previewUrl}
-                 type="application/pdf"
-                 className="w-full h-full"
-               >
-                 <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4 p-6 text-center">
-                   <FileText className="h-16 w-16 text-gray-600" />
-                   <p className="text-lg">No se puede previsualizar este documento directamente aquí.</p>
-                   <p className="text-sm text-gray-500 max-w-md">
-                     Esto puede suceder si el archivo fue subido sin el formato correcto o si tu navegador bloquea la vista previa de archivos PDF.
-                   </p>
-                   <Button variant="outline" className="mt-4 border-[#00FF80] text-[#00FF80] hover:bg-[#00FF80]/10" onClick={() => window.open(previewUrl, '_blank')}>
-                     <ExternalLink className="mr-2 h-4 w-4" />
-                     Abrir en nueva pestaña
-                   </Button>
-                 </div>
-               </object>
+               <iframe
+                 src={previewUrl}
+                 className="w-full h-full border-none"
+                 title="Vista previa PDF"
+               />
              )}
            </div>
         </DialogContent>
