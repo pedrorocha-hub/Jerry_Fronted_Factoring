@@ -138,7 +138,7 @@ const RibPage = () => {
       if (solicitud) {
          // Intentamos obtener el nombre de la empresa, si ya lo buscamos en handleSearch estará en searchedFicha
          // pero handleSearch es asíncrono, así que hacemos una consulta rápida por si acaso
-         const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', ruc).single();
+         const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', ruc).maybeSingle();
          const nombre = ficha?.nombre_empresa || ruc;
          setInitialSolicitudLabel(`${nombre} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
       }
@@ -350,7 +350,7 @@ const RibPage = () => {
           .eq('id', rib.solicitud_id)
           .single();
         if (solicitud) {
-          const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
+          const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
           setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
         }
       } catch (err) {

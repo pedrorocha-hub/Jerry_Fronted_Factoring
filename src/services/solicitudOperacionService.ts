@@ -20,7 +20,7 @@ export class SolicitudOperacionService {
           .from('ficha_ruc')
           .select('nombre_empresa')
           .eq('ruc', solicitud.ruc)
-          .single();
+          .maybeSingle();
 
         return {
           ...solicitud,
@@ -50,7 +50,7 @@ export class SolicitudOperacionService {
         .from('ficha_ruc')
         .select('nombre_empresa')
         .eq('ruc', data.ruc)
-        .single();
+        .maybeSingle();
 
       return {
         ...data,
