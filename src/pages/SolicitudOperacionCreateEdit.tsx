@@ -81,7 +81,7 @@ const SolicitudOperacionCreateEditPage = () => {
   const [solicitudFormData, setSolicitudFormData] = useState({
     status: 'Borrador' as SolicitudStatus,
     tipo_producto: null as TipoProducto | null,
-    tipo_operacion: null as TipoOperacion | null,
+    tipo_operacion: 'PUNTUAL' as TipoOperacion | null, // Default a PUNTUAL
     direccion: '',
     visita: '',
     contacto: '',
@@ -155,7 +155,7 @@ const SolicitudOperacionCreateEditPage = () => {
     setSolicitudFormData({
       status: solicitud.status || 'Borrador',
       tipo_producto: solicitud.tipo_producto,
-      tipo_operacion: solicitud.tipo_operacion,
+      tipo_operacion: solicitud.tipo_operacion || 'PUNTUAL',
       direccion: solicitud.direccion || '',
       visita: solicitud.visita || '',
       contacto: solicitud.contacto || '',
@@ -285,7 +285,7 @@ const SolicitudOperacionCreateEditPage = () => {
     setSolicitudFormData({
       status: 'Borrador',
       tipo_producto: null,
-      tipo_operacion: null,
+      tipo_operacion: 'PUNTUAL', // Default a PUNTUAL
       direccion: '',
       visita: '',
       contacto: '',
@@ -393,7 +393,8 @@ const SolicitudOperacionCreateEditPage = () => {
       const newSolicitud = await SolicitudOperacionService.create({ 
         ruc: rucInput, 
         status: 'Borrador',
-        tipo_producto: createProductType // Incluimos el tipo seleccionado
+        tipo_producto: createProductType, // Incluimos el tipo seleccionado
+        tipo_operacion: 'PUNTUAL' // Por defecto PUNTUAL para satisfacer el check constraint
       });
       showSuccess('Expediente creado. Redirigiendo a la página de edición...');
       navigate(`/solicitudes-operacion/edit/${newSolicitud.id}`);
@@ -474,7 +475,8 @@ const SolicitudOperacionCreateEditPage = () => {
         
         // Asegurar que los tipos sean null si no están seleccionados (Borrador)
         tipo_producto: solicitudFormData.tipo_producto || null,
-        tipo_operacion: solicitudFormData.tipo_operacion || null,
+        // Asegurar que tipo_operacion tenga valor si es null/undefined (para manual create)
+        tipo_operacion: solicitudFormData.tipo_operacion || 'PUNTUAL',
       };
 
       if (editingSolicitud) {
@@ -772,7 +774,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <div>
                           <Label htmlFor="tipo_operacion" className="font-semibold text-white mb-2 block">Tipo de Operación</Label>
                           <Select 
-                            value={solicitudFormData.tipo_operacion || ''} 
+                            value={solicitudFormData.tipo_operacion || 'PUNTUAL'} 
                             onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, tipo_operacion: value as TipoOperacion }))}
                             disabled={!isAdmin}
                           >
