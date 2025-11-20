@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, Upload, RefreshCw, Eye } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Upload, RefreshCw, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,10 +14,10 @@ interface DocumentChecklistProps {
   ruc: string;
   tipoProducto: TipoProducto | null;
   onValidationChange: (isValid: boolean) => void;
-  solicitudId?: string; // Nuevo prop opcional
+  solicitudId?: string; // Prop opcional pero crucial para subir archivos
 }
 
-// Mapeo entre las claves del checklist y los tipos de documentos en la BD/Storage
+// Mapeo entre las claves del checklist y los tipos de documentos en la BD
 const CHECKLIST_TO_DOC_TYPE: Record<DocumentTypeKey, DocumentoTipo> = {
   FICHA_RUC: 'ficha_ruc',
   SENTINEL: 'sentinel',
@@ -47,13 +47,12 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     VIGENCIA_PODER: false
   });
 
-  // Función para verificar existencia de documentos (Tabla de Datos + Tabla Documentos)
   const checkDocuments = async () => {
     if (!ruc || ruc.length !== 11) return;
     
     setLoading(true);
     try {
-      // 1. Consultamos las tablas de datos procesados (tablas específicas)
+      // 1. Consultamos las tablas de datos procesados
       const [ficha, sentinel, tributario, facturasData, eeff] = await Promise.all([
         supabase.from('ficha_ruc').select('id').eq('ruc', ruc).maybeSingle(),
         supabase.from('sentinel').select('id').eq('ruc', ruc).maybeSingle(),
@@ -62,8 +61,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
       ]);
 
-      // 2. Consultamos la tabla de 'documentos' (archivos adjuntos)
-      // Buscamos por RUC O por SolicitudID si existe
+      // 2. Consultamos la tabla de 'documentos'
       let docQuery = supabase.from('documentos').select('tipo');
       
       if (solicitudId) {
@@ -74,23 +72,20 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
       
       const { data: uploadedDocs } = await docQuery;
       
-      // Helper para saber si existe el archivo físico
       const hasUploadedDoc = (key: DocumentTypeKey) => {
         const mappedType = CHECKLIST_TO_DOC_TYPE[key];
         return uploadedDocs?.some(d => d.tipo === mappedType);
       };
 
-      // El estado es TRUE si existe el dato procesado O si existe el archivo subido
-      const newStatus = {
+      setDocStatus({
         FICHA_RUC: !!ficha.data || hasUploadedDoc('FICHA_RUC'),
         SENTINEL: !!sentinel.data || hasUploadedDoc('SENTINEL'),
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0 || hasUploadedDoc('REPORTE_TRIBUTARIO'),
         FACTURA: (facturasData.data?.length || 0) > 0 || hasUploadedDoc('FACTURA'),
         EEFF: (eeff.data?.length || 0) > 0 || hasUploadedDoc('EEFF'),
-        VIGENCIA_PODER: hasUploadedDoc('VIGENCIA_PODER') // Este solo depende del archivo
-      };
+        VIGENCIA_PODER: hasUploadedDoc('VIGENCIA_PODER')
+      });
 
-      setDocStatus(newStatus);
     } catch (error) {
       console.error("Error verificando documentos:", error);
     } finally {
@@ -100,21 +95,18 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
   useEffect(() => {
     checkDocuments();
-  }, [ruc, solicitudId]); // Re-verificar si cambia el RUC o el ID
+  }, [ruc, solicitudId]);
 
-  // Validar cumplimiento y notificar al padre
   useEffect(() => {
     if (!tipoProducto) {
       onValidationChange(true); 
       return;
     }
-
     const reqs = PRODUCT_REQUIREMENTS[tipoProducto];
     const allRequiredMet = reqs.required.every(docType => docStatus[docType]);
     onValidationChange(allRequiredMet);
   }, [docStatus, tipoProducto, onValidationChange]);
 
-  // Manejador de click en "Subir"
   const handleUploadClick = (key: DocumentTypeKey) => {
     if (!solicitudId) {
       showError("Debe guardar la solicitud antes de subir documentos.");
@@ -122,12 +114,11 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     }
     setSelectedDocKey(key);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // Reset
+      fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
   };
 
-  // Manejador de cambio en el input file
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedDocKey || !solicitudId) return;
@@ -136,24 +127,22 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     try {
       const docType = CHECKLIST_TO_DOC_TYPE[selectedDocKey];
       
-      // 1. Subir usando el servicio
+      // 1. Subir
       const doc = await DocumentoService.uploadAndInsert(file, docType, undefined, false);
 
-      // 2. Vincular explícitamente a la solicitud y asegurar el RUC
+      // 2. Vincular
       const { error } = await supabase
         .from('documentos')
         .update({ 
           solicitud_id: solicitudId,
-          ruc_extraido: ruc, // Aseguramos que quede vinculado al RUC también para el RIB
-          estado: 'completed' // Lo marcamos como listo
+          ruc_extraido: ruc,
+          estado: 'completed'
         })
         .eq('id', doc.id);
 
       if (error) throw error;
 
-      showSuccess(`Documento subido correctamente`);
-      
-      // 3. Actualizar estado local
+      showSuccess(`${DOCUMENT_LABELS[selectedDocKey]} subido correctamente`);
       await checkDocuments();
 
     } catch (err: any) {
@@ -162,10 +151,10 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     } finally {
       setUploadingKey(null);
       setSelectedDocKey(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  // Renderizado si no hay producto
   if (!tipoProducto) {
     return (
       <Card className="bg-[#121212] border border-gray-800 opacity-50 h-full">
@@ -183,6 +172,9 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   const renderItem = (key: DocumentTypeKey, isRequired: boolean) => {
     const exists = docStatus[key];
     const isUploading = uploadingKey === key;
+    
+    // Permitir subir múltiples si es FACTURA o si no existe aún
+    const showUploadButton = !exists || key === 'FACTURA';
     
     return (
       <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2 hover:bg-gray-900/50 transition-colors">
@@ -210,19 +202,20 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {!exists && !isUploading && (
+          {showUploadButton && !isUploading && (
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-7 text-xs text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-1"
+              className={`h-7 text-xs gap-1 ${exists ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10' : 'text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10'}`}
               onClick={() => handleUploadClick(key)}
-              disabled={!solicitudId} // Deshabilitado si no se ha creado el ID
+              disabled={!solicitudId}
               title={!solicitudId ? "Guarde la solicitud primero" : "Subir archivo"}
             >
-              <Upload className="h-3 w-3" />
-              Subir
+              {exists ? <Plus className="h-3 w-3" /> : <Upload className="h-3 w-3" />}
+              {exists ? 'Agregar' : 'Subir'}
             </Button>
           )}
+          
           {isUploading && <span className="text-xs text-gray-500">Subiendo...</span>}
           
           {exists && (
@@ -230,16 +223,20 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
                <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5">
                  OK
                </Badge>
-               {/* Opcional: Botón para re-subir si se desea */}
-               <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 text-gray-500 hover:text-white"
-                  onClick={() => handleUploadClick(key)}
-                  title="Actualizar archivo"
-                >
-                  <RefreshCw className="h-3 w-3" />
-               </Button>
+               
+               {/* Botón de refrescar solo para documentos únicos (no facturas) */}
+               {key !== 'FACTURA' && !isUploading && (
+                 <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 text-gray-500 hover:text-white"
+                    onClick={() => handleUploadClick(key)}
+                    title="Actualizar archivo"
+                    disabled={!solicitudId}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                 </Button>
+               )}
              </div>
           )}
         </div>
@@ -263,7 +260,6 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
-        {/* Input oculto para carga de archivos */}
         <input 
           type="file" 
           ref={fileInputRef} 
