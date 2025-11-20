@@ -352,7 +352,7 @@ const SolicitudOperacionCreateEditPage = () => {
         .select('ruc, razon_social, descripcion_ciiu_rev3, sector, ranking_2024, ranking_2023, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
         .eq('ruc', rucToSearch)
         .limit(1)
-        .maybeSingle(); // FIX: Use maybeSingle to avoid 406 error
+        .maybeSingle();
 
       if (topError) {
         console.error("Top 10k search error:", topError);
@@ -470,9 +470,10 @@ const SolicitudOperacionCreateEditPage = () => {
         return isNaN(parsed) ? null : parsed;
       };
       
+      // Use base 10 explicitly to avoid any octal confusion, although standard modern JS behaves well
       const parseIntNullable = (value: string | number | null) => {
         if (value === '' || value === null || value === undefined) return null;
-        const parsed = typeof value === 'string' ? parseInt(value) : value;
+        const parsed = typeof value === 'string' ? parseInt(value, 10) : value;
         return isNaN(parsed) ? null : parsed;
       };
 
@@ -507,8 +508,6 @@ const SolicitudOperacionCreateEditPage = () => {
         condicion_pago_dias: parseIntNullable(solicitudFormData.condicion_pago_dias),
         experiencia_lcp: solicitudFormData.experiencia_lcp || null,
         check_pagos_observados: solicitudFormData.check_pagos_observados,
-        // Mapeo de detalle_pagos_observados al campo correcto en DB si es necesario, 
-        // o usar el campo existente si ya está en la interfaz TS
         observacion_pagos: solicitudFormData.detalle_pagos_observados || null,
         detalle_pagos_observados: solicitudFormData.detalle_pagos_observados || null,
 

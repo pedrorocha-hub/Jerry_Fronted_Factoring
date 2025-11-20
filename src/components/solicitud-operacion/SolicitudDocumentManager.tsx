@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError } from '@/utils/toast';
 import { DocumentoService } from '@/services/documentoService';
@@ -24,7 +24,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewType, setPreviewType] = useState<'image' | 'pdf'>('image');
+  const [previewType, setPreviewType] = useState<'image' | 'pdf' | null>(null);
 
   useEffect(() => {
     loadDocuments();
@@ -89,26 +89,38 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
     }
   };
 
-  const handlePreviewOrDownload = async (doc: Documento) => {
+  const handlePreview = async (doc: Documento) => {
     try {
       const url = await DocumentoService.getSignedUrl(doc.storage_path);
       const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+      const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
       
       if (isImage) {
         setPreviewType('image');
         setPreviewUrl(url);
+      } else if (isPdf) {
+        setPreviewType('pdf');
+        setPreviewUrl(url);
       } else {
-        // Descargar si no es imagen
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = doc.nombre_archivo || 'documento';
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        showError('Vista previa no disponible para este formato. Descárguelo para ver.');
       }
     } catch (err) {
-      showError('Error al acceder al archivo.');
+      showError('Error al cargar vista previa.');
+    }
+  };
+
+  const handleDownload = async (doc: Documento) => {
+    try {
+      const url = await DocumentoService.getSignedUrl(doc.storage_path);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.nombre_archivo || 'documento';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      showError('Error al descargar el archivo.');
     }
   };
 
@@ -118,7 +130,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
         type="file"
         id={`upload-${tipo}`}
         className="hidden"
-        accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls"
+        accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls,.doc,.docx"
         onChange={(e) => handleFileUpload(e, tipo)}
         disabled={uploading || readonly}
       />
@@ -154,19 +166,20 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
           const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
           const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
           const isExcel = doc.nombre_archivo?.match(/\.(xlsx|xls)$/i);
+          const isPreviewable = isImage || isPdf;
 
           return (
             <div key={doc.id} className="group flex items-center justify-between p-2 bg-gray-900/50 border border-gray-800 rounded-lg hover:border-gray-600 transition-colors">
               <div className="flex items-center space-x-3 overflow-hidden">
                 <div className="h-10 w-10 flex-shrink-0 bg-gray-800 rounded-md flex items-center justify-center overflow-hidden">
                   {isImage ? (
-                     // Miniatura de imagen (hack simple: intentar cargar la url firmada al vuelo sería lento para listas grandes, 
-                     // mejor usamos el icono por defecto y la vista previa al click, o un icono de imagen)
                     <ImageIcon className="h-5 w-5 text-[#00FF80]" />
                   ) : isExcel ? (
                     <FileSpreadsheet className="h-5 w-5 text-green-500" />
+                  ) : isPdf ? (
+                    <FileText className="h-5 w-5 text-red-400" />
                   ) : (
-                    <FileText className="h-5 w-5 text-blue-400" />
+                    <File className="h-5 w-5 text-blue-400" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -183,18 +196,31 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8 text-gray-400 hover:text-[#00FF80]" 
-                  onClick={() => handlePreviewOrDownload(doc)}
-                  title={isImage ? "Ver imagen" : "Descargar"}
+                  className={`h-8 w-8 ${isPreviewable ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-400/10' : 'text-gray-600 cursor-not-allowed'}`}
+                  onClick={() => isPreviewable && handlePreview(doc)}
+                  title={isPreviewable ? "Vista previa" : "Vista previa no disponible"}
+                  disabled={!isPreviewable}
                 >
-                  {isImage ? <Eye className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                  <Eye className="h-4 w-4" />
                 </Button>
+                
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10" 
+                  onClick={() => handleDownload(doc)}
+                  title="Descargar"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+
                 {!readonly && (
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-8 w-8 text-gray-500 hover:text-red-500" 
+                    className="h-8 w-8 text-gray-500 hover:text-red-500 hover:bg-red-500/10" 
                     onClick={() => handleDelete(doc.id, doc.storage_path)}
+                    title="Eliminar"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -231,11 +257,11 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
             <TabsContent value="operacion" className="space-y-2 m-0">
               {!readonly && (
-                <div className="grid grid-cols-2 gap-2">
-                  <UploadButton tipo="factura_negociar" label="Subir Facturas" icon={FileSpreadsheet} />
-                  <UploadButton tipo="sustentos" label="Subir Sustentos" icon={FileText} />
+                <div className="grid grid-cols-1 gap-2">
+                  <UploadButton tipo="sustentos" label="Subir Documentos Operativos (Facturas/Sustentos)" icon={FileText} />
                 </div>
               )}
+              {/* Mostramos tanto sustentos como facturas antiguas si existen */}
               {renderDocList(['factura_negociar', 'sustentos'])}
               {documents.filter(d => ['factura_negociar', 'sustentos'].includes(d.tipo)).length === 0 && (
                 <div className="text-center py-6 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg mt-2">
@@ -267,20 +293,27 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
         </CardContent>
       </Card>
 
-      {/* Modal para vista previa de imágenes */}
+      {/* Modal para vista previa */}
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-4xl w-full h-[80vh] flex flex-col p-0 overflow-hidden">
-           <div className="absolute top-4 right-4 z-50">
+        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden">
+           <div className="absolute top-4 right-4 z-50 bg-black/50 rounded-full">
              <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)} className="text-white hover:bg-white/20 rounded-full">
                <X className="h-6 w-6" />
              </Button>
            </div>
-           <div className="flex-1 flex items-center justify-center p-4 h-full">
-             {previewUrl && (
+           <div className="flex-1 flex items-center justify-center h-full w-full bg-[#0a0a0a]">
+             {previewUrl && previewType === 'image' && (
                <img 
                  src={previewUrl} 
                  alt="Vista previa" 
-                 className="max-w-full max-h-full object-contain rounded-md shadow-2xl"
+                 className="max-w-full max-h-full object-contain"
+               />
+             )}
+             {previewUrl && previewType === 'pdf' && (
+               <iframe
+                 src={previewUrl}
+                 className="w-full h-full border-none"
+                 title="Vista previa PDF"
                />
              )}
            </div>
