@@ -52,6 +52,19 @@ interface RiesgoRow {
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
+// Helper function to format currency safely
+const formatCurrency = (amount: number | string | null | undefined) => {
+  if (amount === null || amount === undefined) return 'N/A';
+  const num = typeof amount === 'string' ? parseFloat(amount.replace(/,/g, '')) : amount;
+  if (isNaN(num)) return 'N/A';
+  return new Intl.NumberFormat('es-PE', { 
+    style: 'currency', 
+    currency: 'PEN', 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  }).format(num);
+};
+
 const SolicitudOperacionCreateEditPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -328,8 +341,7 @@ const SolicitudOperacionCreateEditPage = () => {
 
   const handleSearchDeudor = async (rucToSearch: string) => {
     if (!rucToSearch || rucToSearch.length !== 11) {
-      showError('Por favor, ingrese un RUC válido de 11 dígitos.');
-      return;
+      return; // Silently fail on invalid length to avoid spam
     }
     setSearchingDeudor(true);
     setTop10kData(null);
@@ -339,10 +351,12 @@ const SolicitudOperacionCreateEditPage = () => {
         .from('top_10k')
         .select('ruc, razon_social, descripcion_ciiu_rev3, sector, ranking_2024, ranking_2023, facturado_2024_soles_maximo, facturado_2023_soles_maximo')
         .eq('ruc', rucToSearch)
-        .single();
+        .limit(1)
+        .maybeSingle(); // FIX: Use maybeSingle to avoid 406 error
 
-      if (topError && topError.code !== 'PGRST116') {
-        throw topError;
+      if (topError) {
+        console.error("Top 10k search error:", topError);
+        return;
       }
 
       if (topData) {
@@ -350,11 +364,14 @@ const SolicitudOperacionCreateEditPage = () => {
         setSolicitudFormData(prev => ({ ...prev, deudor_ruc: rucToSearch }));
         showSuccess('Datos del deudor encontrados en TOP 10K.');
       } else {
-        showError('No se encontraron datos para este RUC en la base TOP 10K.');
+        // Optionally try to fetch from ficha_ruc if not in top 10k
+        const ficha = await FichaRucService.getByRuc(rucToSearch);
+        if (ficha) {
+           setSolicitudFormData(prev => ({ ...prev, deudor_ruc: rucToSearch }));
+        }
       }
     } catch (err) {
-      showError('Error al buscar los datos del deudor.');
-      console.error(err);
+      console.error('Error al buscar los datos del deudor:', err);
     } finally {
       setSearchingDeudor(false);
     }
@@ -445,14 +462,27 @@ const SolicitudOperacionCreateEditPage = () => {
             console.warn("Failed to update ficha activity", e);
         }
       }
+      
+      // Helper para convertir strings vacíos a null para campos numéricos
+      const parseNumber = (value: string | number | null) => {
+        if (value === '' || value === null || value === undefined) return null;
+        const parsed = typeof value === 'string' ? parseFloat(value) : value;
+        return isNaN(parsed) ? null : parsed;
+      };
+      
+      const parseIntNullable = (value: string | number | null) => {
+        if (value === '' || value === null || value === undefined) return null;
+        const parsed = typeof value === 'string' ? parseInt(value) : value;
+        return isNaN(parsed) ? null : parsed;
+      };
 
-      const dataToSave: Partial<SolicitudOperacion> & { deudor_ruc?: string } = {
+      const dataToSave: Partial<SolicitudOperacion> & { deudor_ruc?: string, observacion_pagos?: string } = {
         ...cleanFormData,
         ruc,
         visita_fecha: solicitudFormData.visita_fecha || null,
         fecha_ficha: solicitudFormData.fecha_ficha || null,
         
-        tipo_cambio: parseFloat(solicitudFormData.tipo_cambio) || null,
+        tipo_cambio: parseNumber(solicitudFormData.tipo_cambio),
         lp: firstRiesgoRow.lp || null,
         producto: firstRiesgoRow.producto || null,
         deudor: firstRiesgoRow.deudor || null,
@@ -462,21 +492,24 @@ const SolicitudOperacionCreateEditPage = () => {
         deudor_ruc: solicitudFormData.deudor_ruc || null,
         contacto: solicitudFormData.visita_contacto_nombre, 
         
-        porcentaje_anticipo: parseFloat(solicitudFormData.porcentaje_anticipo) || null,
-        comision_estructuracion: parseFloat(solicitudFormData.comision_estructuracion) || null,
-        plazo_dias: parseInt(solicitudFormData.plazo_dias) || null,
-        tasa_minima: parseFloat(solicitudFormData.tasa_minima) || null,
-        monto_original: parseFloat(solicitudFormData.monto_original) || null,
-        tasa_tea: parseFloat(solicitudFormData.tasa_tea) || null, 
+        porcentaje_anticipo: parseNumber(solicitudFormData.porcentaje_anticipo),
+        comision_estructuracion: parseNumber(solicitudFormData.comision_estructuracion),
+        plazo_dias: parseIntNullable(solicitudFormData.plazo_dias),
+        tasa_minima: parseNumber(solicitudFormData.tasa_minima),
+        monto_original: parseNumber(solicitudFormData.monto_original),
+        tasa_tea: parseNumber(solicitudFormData.tasa_tea), 
         tipo_garantia: solicitudFormData.tipo_garantia || null,
         
-        valor_neto: parseFloat(solicitudFormData.valor_neto) || null,
+        valor_neto: parseNumber(solicitudFormData.valor_neto),
         vigencia_aprobacion: solicitudFormData.vigencia_aprobacion || null,
         antiguedad_vinculo: solicitudFormData.antiguedad_vinculo || null,
-        volumen_estimado: parseFloat(solicitudFormData.volumen_estimado) || null,
-        condicion_pago_dias: parseInt(solicitudFormData.condicion_pago_dias) || null,
+        volumen_estimado: parseNumber(solicitudFormData.volumen_estimado),
+        condicion_pago_dias: parseIntNullable(solicitudFormData.condicion_pago_dias),
         experiencia_lcp: solicitudFormData.experiencia_lcp || null,
         check_pagos_observados: solicitudFormData.check_pagos_observados,
+        // Mapeo de detalle_pagos_observados al campo correcto en DB si es necesario, 
+        // o usar el campo existente si ya está en la interfaz TS
+        observacion_pagos: solicitudFormData.detalle_pagos_observados || null,
         detalle_pagos_observados: solicitudFormData.detalle_pagos_observados || null,
 
         tipo_producto: solicitudFormData.tipo_producto || null,
@@ -491,7 +524,6 @@ const SolicitudOperacionCreateEditPage = () => {
         setShowSuccessModal(true);
         return;
       } else {
-        // Logic for creating/updating risks (omitted for brevity, assumed handled by service/trigger or existing logic if not shown)
         showSuccess('Solicitud actualizada exitosamente.');
         navigate('/solicitudes-operacion');
       }
@@ -505,8 +537,8 @@ const SolicitudOperacionCreateEditPage = () => {
             producto: row.producto,
             deudor: row.deudor,
             lp_vigente_gve: row.lp_vigente_gve,
-            riesgo_aprobado: parseFloat(row.riesgo_aprobado || '0') || null,
-            propuesta_comercial: parseFloat(row.propuesta_comercial || '0') || null,
+            riesgo_aprobado: parseNumber(row.riesgo_aprobado),
+            propuesta_comercial: parseNumber(row.propuesta_comercial),
           }));
           
           if (riesgosToUpsert.length > 0) {
