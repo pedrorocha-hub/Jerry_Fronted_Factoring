@@ -23,6 +23,42 @@ export const FichaRucService = {
     }
   },
 
+  async getAll(): Promise<FichaRuc[]> {
+    const { data, error } = await supabase
+      .from('ficha_ruc')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getStats() {
+    const { count: total } = await supabase
+      .from('ficha_ruc')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: active } = await supabase
+      .from('ficha_ruc')
+      .select('*', { count: 'exact', head: true })
+      .ilike('estado_contribuyente', '%activo%');
+
+    const date = new Date();
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
+
+    const { count: thisMonth } = await supabase
+      .from('ficha_ruc')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDay);
+
+    return {
+      total: total || 0,
+      active: active || 0,
+      inactive: (total || 0) - (active || 0),
+      thisMonth: thisMonth || 0
+    };
+  },
+
   async create(ficha: Partial<FichaRuc>): Promise<FichaRuc> {
     const { data, error } = await supabase
       .from('ficha_ruc')
@@ -46,26 +82,20 @@ export const FichaRucService = {
     return data;
   },
 
-  async search(term: string): Promise<FichaRuc[]> {
-    const { data, error } = await supabase.rpc('search_ficha_ruc', {
-      search_term: term
-    });
+  async search(term: string): Promise<any[]> {
+    // Buscar por RUC o nombre usando ILIKE para búsqueda flexible
+    const { data, error } = await supabase
+      .from('ficha_ruc')
+      .select('ruc, nombre_empresa')
+      .or(`ruc.ilike.%${term}%,nombre_empresa.ilike.%${term}%`)
+      .limit(10);
 
     if (error) throw error;
     
-    // Mapper simple ya que la función RPC retorna {value, label}
-    // En una implementación real idealmente la RPC retornaría toda la fila o usaríamos .ilike()
-    // Por compatibilidad con el componente, retornamos array vacío si es búsqueda RPC,
-    // o hacemos búsqueda directa si es necesario.
-    
-    // Fallback a búsqueda directa si la RPC es solo para autocompletar
-    const { data: directData, error: directError } = await supabase
-      .from('ficha_ruc')
-      .select('*')
-      .or(`ruc.ilike.%${term}%,nombre_empresa.ilike.%${term}%`)
-      .limit(10);
-      
-    if (directError) throw directError;
-    return directData || [];
+    // Retornar formato compatible con AsyncCombobox {value, label}
+    return (data || []).map(item => ({
+      value: item.ruc,
+      label: `${item.nombre_empresa} (${item.ruc})`
+    }));
   }
 };
