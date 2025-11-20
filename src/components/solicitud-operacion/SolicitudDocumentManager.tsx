@@ -54,6 +54,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
     setUploading(true);
     try {
+      // El servicio ya maneja la estructura de carpetas: solicitudes/{id}/{archivo}
       await DocumentoService.uploadAndInsert(
         file, 
         tipo, 
@@ -91,7 +92,10 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
   const handlePreview = async (doc: Documento) => {
     try {
+      console.log('Generando vista previa para:', doc.storage_path);
       const url = await DocumentoService.getSignedUrl(doc.storage_path);
+      console.log('URL generada:', url);
+
       const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
       const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
       
@@ -105,6 +109,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
         showError('Vista previa no disponible para este formato. Descárguelo para ver.');
       }
     } catch (err) {
+      console.error('Error preview:', err);
       showError('Error al cargar vista previa.');
     }
   };
@@ -177,7 +182,8 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                   ) : isExcel ? (
                     <FileSpreadsheet className="h-5 w-5 text-green-500" />
                   ) : isPdf ? (
-                    <FileText className="h-5 w-5 text-red-400" />
+                    // Cambiado de text-red-400 a text-orange-400 para evitar parecer un error
+                    <FileText className="h-5 w-5 text-orange-400" />
                   ) : (
                     <File className="h-5 w-5 text-blue-400" />
                   )}
@@ -261,7 +267,6 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                   <UploadButton tipo="sustentos" label="Subir Documentos Operativos (Facturas/Sustentos)" icon={FileText} />
                 </div>
               )}
-              {/* Mostramos tanto sustentos como facturas antiguas si existen */}
               {renderDocList(['factura_negociar', 'sustentos'])}
               {documents.filter(d => ['factura_negociar', 'sustentos'].includes(d.tipo)).length === 0 && (
                 <div className="text-center py-6 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg mt-2">
@@ -295,9 +300,9 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
       {/* Modal para vista previa */}
       <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
-        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden" aria-describedby="preview-description">
+        <DialogContent className="bg-black/95 border-gray-800 text-white max-w-5xl w-full h-[85vh] flex flex-col p-0 overflow-hidden">
            <DialogTitle className="sr-only">Vista Previa del Documento</DialogTitle>
-           <DialogDescription id="preview-description" className="sr-only">
+           <DialogDescription className="sr-only">
              Vista previa a pantalla completa del documento seleccionado.
            </DialogDescription>
            
@@ -306,7 +311,8 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                <X className="h-6 w-6" />
              </Button>
            </div>
-           <div className="flex-1 flex items-center justify-center h-full w-full bg-[#0a0a0a]">
+           
+           <div className="flex-1 flex items-center justify-center h-full w-full bg-[#0a0a0a] relative">
              {previewUrl && previewType === 'image' && (
                <img 
                  src={previewUrl} 
@@ -319,6 +325,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                  src={previewUrl}
                  className="w-full h-full border-none"
                  title="Vista previa PDF"
+                 allowFullScreen // Permitir pantalla completa para evitar violaciones de política
                />
              )}
            </div>
