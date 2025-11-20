@@ -11,14 +11,15 @@ export interface SolicitudOperacion {
   
   // Campos generales
   direccion: string | null;
-  visita: string | null; // Deprecado por estructura
-  contacto: string | null; // Deprecado por estructura
+  visita: string | null; 
+  contacto: string | null;
   
-  // Estructura de Visita (Punto 4)
+  // Estructura de Visita
   visita_tipo?: 'Presencial' | 'Virtual' | 'No Realizada' | null;
   visita_fecha?: string | null;
   visita_contacto_nombre?: string;
   visita_contacto_cargo?: string;
+  visita_fotos?: string[] | null; // Nuevo: Array de rutas de fotos
 
   comentarios: string | null;
   fianza: string | null;
@@ -46,15 +47,28 @@ export interface SolicitudOperacion {
   tipo_producto: TipoProducto | null;
   tipo_operacion: TipoOperacion | null;
 
-  // Condiciones Comerciales (Punto 8 - Ajustado al Excel)
-  porcentaje_anticipo: number | null;      // % Adelanto
-  comision_estructuracion: number | null;  // Comisión (mínima)
-  plazo_dias: number | null;               // Plazo (días)
-  tasa_minima: number | null;              // Tasa (mínima)
-  monto_original: number | null;           // Monto Original
-  tasa_tea: number | null;                 // Tasa Global (% anual)
-  
+  // Condiciones Comerciales
+  porcentaje_anticipo: number | null;
+  comision_estructuracion: number | null;
+  plazo_dias: number | null;
+  tasa_minima: number | null;
+  monto_original: number | null;
+  tasa_tea: number | null;
   tipo_garantia: string | null;
+
+  // Nuevos Campos RIB
+  valor_neto: number | null;
+  vigencia_aprobacion: string | null;
+  
+  // Relación Comercial
+  antiguedad_vinculo: string | null;
+  volumen_estimado: number | null;
+  condicion_pago_dias: number | null; // Nuevo
+
+  // Experiencia
+  experiencia_lcp: 'Nueva' | 'Recurrente' | 'Con Mora' | null;
+  check_pagos_observados: boolean | null;
+  detalle_pagos_observados: string | null; // Nuevo (alias para observacion_pagos en el frontend si se prefiere)
 }
 
 export interface SolicitudOperacionRiesgo {

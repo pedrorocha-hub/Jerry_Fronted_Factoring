@@ -5,31 +5,68 @@ export type DocumentTypeKey =
   | 'SENTINEL' 
   | 'REPORTE_TRIBUTARIO' 
   | 'FACTURA' 
+  | 'SUSTENTOS' // Nuevo: Guías, OC, Conformidad
   | 'EEFF' 
-  | 'VIGENCIA_PODER';
+  | 'VIGENCIA_PODER' // Nuevo: Vigencia de poder
+  | 'EVIDENCIA_VISITA'; // Nuevo: Fotos de visita
 
 export const DOCUMENT_LABELS: Record<DocumentTypeKey, string> = {
-  FICHA_RUC: 'Ficha RUC',
+  FICHA_RUC: 'Ficha RUC (Opcional)',
   SENTINEL: 'Reporte Sentinel',
-  REPORTE_TRIBUTARIO: 'Reporte Tributario (SUNAT)',
+  REPORTE_TRIBUTARIO: 'Reporte Tributario SUNAT',
   FACTURA: 'Factura a Negociar',
-  EEFF: 'Estados Financieros (EEFF)',
-  VIGENCIA_PODER: 'Vigencia de Poder / DNI'
+  SUSTENTOS: 'Sustentos (Guías/OC)',
+  EEFF: 'Estados Financieros',
+  VIGENCIA_PODER: 'Vigencia de Poder / DNI',
+  EVIDENCIA_VISITA: 'Fotos/Evidencia Visita'
 };
 
 export const PRODUCT_REQUIREMENTS: Record<TipoProducto, { required: DocumentTypeKey[], optional: DocumentTypeKey[] }> = {
   FACTORING: {
-    // Factoring exige la FACTURA
-    required: ['FICHA_RUC', 'SENTINEL', 'FACTURA', 'REPORTE_TRIBUTARIO'],
-    optional: ['EEFF', 'VIGENCIA_PODER']
+    // A. FACTORING: Factura y Reporte Tributario IMPRESCINDIBLES
+    required: [
+      'REPORTE_TRIBUTARIO', 
+      'FACTURA', 
+      'SUSTENTOS', 
+      'VIGENCIA_PODER'
+    ],
+    // Ficha RUC y EEFF son Opcionales/Adicionales
+    optional: [
+      'EEFF', 
+      'FICHA_RUC', 
+      'SENTINEL',
+      'EVIDENCIA_VISITA'
+    ]
   },
   CONFIRMING: {
-    // Confirming exige los EEFF
-    required: ['FICHA_RUC', 'SENTINEL', 'EEFF', 'REPORTE_TRIBUTARIO'],
-    optional: ['FACTURA', 'VIGENCIA_PODER']
+    // B. CONFIRMING: EEFF y Reporte Tributario IMPRESCINDIBLES
+    required: [
+      'REPORTE_TRIBUTARIO', 
+      'EEFF', 
+      'VIGENCIA_PODER'
+    ],
+    // Factura es Opcional (puede ser línea sin factura aún)
+    optional: [
+      'FACTURA', 
+      'SUSTENTOS', 
+      'FICHA_RUC', 
+      'SENTINEL',
+      'EVIDENCIA_VISITA'
+    ]
   },
   LINEA: {
-    required: ['FICHA_RUC', 'SENTINEL', 'EEFF', 'REPORTE_TRIBUTARIO', 'VIGENCIA_PODER'],
-    optional: ['FACTURA']
+    // Criterio general para Línea
+    required: [
+      'REPORTE_TRIBUTARIO', 
+      'EEFF', 
+      'VIGENCIA_PODER'
+    ],
+    optional: [
+      'FACTURA', 
+      'SUSTENTOS', 
+      'FICHA_RUC', 
+      'SENTINEL',
+      'EVIDENCIA_VISITA'
+    ]
   }
 };
