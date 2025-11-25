@@ -191,7 +191,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
                     {doc.nombre_archivo}
                   </p>
                   <p className="text-[10px] text-gray-500 uppercase">
-                    {(doc.tamaño_archivo ? doc.tamaño_archivo / 1024 / 1024 : 0).toFixed(2)} MB • {doc.tipo.replace('_', ' ')}
+                    {(doc.tamaño_archivo ? doc.tamaño_archivo / 1024 / 1024 : 0).toFixed(2)} MB • {doc.tipo.replace(/_/g, ' ')}
                   </p>
                 </div>
               </div>
@@ -261,8 +261,11 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
             <TabsContent value="operacion" className="space-y-2 m-0">
               {!readonly && (
                 <div className="grid grid-cols-2 gap-2">
-                  <UploadButton tipo="sustentos" label="Docs Operativos" icon={FileText} />
-                  <UploadButton tipo="evidencia_visita" label="Fotos/Evidencias Visita" icon={ImageIcon} />
+                  <UploadButton tipo="factura_negociar" label="Factura" icon={FileText} />
+                  <UploadButton tipo="sustentos" label="Sustentos (Guías/OC)" icon={FileText} />
+                  <div className="col-span-2">
+                    <UploadButton tipo="evidencia_visita" label="Fotos/Evidencias Visita" icon={ImageIcon} />
+                  </div>
                 </div>
               )}
               {renderDocList(['factura_negociar', 'sustentos', 'evidencia_visita'])}
@@ -276,17 +279,28 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
             <TabsContent value="legal" className="space-y-2 m-0">
               {!readonly && (
                 <div className="grid grid-cols-2 gap-2">
-                   <UploadButton tipo="vigencia_poder" label="Vigencia/DNI" icon={FileText} />
+                   <UploadButton tipo="vigencia_poder" label="Vigencia Poder" icon={FileText} />
+                   <UploadButton tipo="dni_representante" label="DNI Rep. Legal" icon={FileText} />
+                   <UploadButton tipo="copia_literal" label="Copia Literal" icon={FileText} />
                    <UploadButton tipo="reporte_tributario" label="Reporte Trib." icon={FileText} />
+                   <UploadButton tipo="representante_legal" label="Ficha Rep. Legal" icon={FileText} />
                 </div>
               )}
-              {renderDocList(['vigencia_poder', 'representante_legal', 'vigencia_poderes', 'reporte_tributario'])}
+              {renderDocList(['vigencia_poder', 'dni_representante', 'copia_literal', 'representante_legal', 'vigencia_poderes', 'reporte_tributario'])}
+              {documents.filter(d => ['vigencia_poder', 'dni_representante', 'copia_literal', 'representante_legal', 'vigencia_poderes', 'reporte_tributario'].includes(d.tipo)).length === 0 && (
+                <div className="text-center py-6 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg mt-2">
+                  Sin documentos legales
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="visita" className="space-y-2 m-0">
                {!readonly && (
-                 <div className="grid grid-cols-1 gap-2">
-                   <UploadButton tipo="eeff" label="EEFF / Otros" icon={Upload} />
+                 <div className="grid grid-cols-2 gap-2">
+                   <UploadButton tipo="eeff" label="EEFF" icon={Upload} />
+                   <UploadButton tipo="sentinel" label="Sentinel" icon={Upload} />
+                   <UploadButton tipo="ficha_ruc" label="Ficha RUC" icon={Upload} />
+                   <UploadButton tipo="cuenta_bancaria" label="Cta. Bancaria" icon={Upload} />
                  </div>
                )}
                {renderDocList(['ficha_ruc', 'sentinel', 'eeff', 'cuenta_bancaria'])}
