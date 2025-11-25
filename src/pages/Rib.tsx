@@ -104,8 +104,8 @@ const RibPage = () => {
 
     if (existingRib) {
       // Si existe, editarlo directamente
-      // Necesitamos asegurarnos de cargar la ficha RUC primero
       const fichaData = await FichaRucService.getByRuc(existingRib.ruc);
+      
       if (fichaData) {
         setSearchedFicha(fichaData);
         // Cargar accionistas y gerentes
@@ -116,20 +116,83 @@ const RibPage = () => {
         setAccionistas(accionistasData);
         setGerentes(gerentesData);
         setCreateWithoutRuc(false);
-        
-        await handleSelectRibForEdit(existingRib);
-        showSuccess('Se encontró un RIB existente para esta solicitud.');
+      } else {
+        // Fallback: RIB existe pero no tiene Ficha RUC asociada (modo manual)
+        setSearchedFicha({
+            id: 0,
+            ruc: existingRib.ruc,
+            nombre_empresa: existingRib.nombre_empresa || 'Empresa Manual',
+            actividad_empresa: '',
+            created_at: existingRib.created_at,
+            updated_at: existingRib.updated_at,
+        } as FichaRuc);
+        setCreateWithoutRuc(true);
+        setInitialSearchedFicha({ 
+            ruc: existingRib.ruc, 
+            nombre_empresa: existingRib.nombre_empresa || 'Empresa Manual' 
+        });
+        setAccionistas([]);
+        setGerentes([]);
       }
+      
+      await handleSelectRibForEdit(existingRib);
+      showSuccess('Se encontró un RIB existente para esta solicitud.');
+      
     } else {
       // Si no existe, preparar formulario de creación
       setRucInput(ruc);
-      // Buscar datos de la empresa
-      await handleSearch(ruc);
+      
+      // 1. Intentar buscar ficha RUC
+      const fichaData = await FichaRucService.getByRuc(ruc);
+      let empresaNombreForLabel = '';
+      
+      if (fichaData) {
+         // Caso: Ficha RUC existe en el sistema
+         setSearchedFicha(fichaData);
+         empresaNombreForLabel = fichaData.nombre_empresa;
+         
+         const [ribData, accionistasData, gerentesData] = await Promise.all([
+            RibService.getByRuc(ruc),
+            AccionistaService.getByRuc(ruc),
+            GerenciaService.getAllByRuc(ruc)
+         ]);
+         setExistingRibs(ribData);
+         setAccionistas(accionistasData);
+         setGerentes(gerentesData);
+         setCreateWithoutRuc(false);
+      } else {
+         // Caso: Ficha RUC NO existe -> Activar MODO MANUAL usando datos de la Solicitud
+         const { data: solicitudData } = await supabase
+            .from('solicitudes_operacion')
+            .select('proveedor')
+            .eq('id', solicitudId)
+            .single();
+            
+         const nombreProveedor = solicitudData?.proveedor || 'Empresa sin nombre';
+         empresaNombreForLabel = nombreProveedor;
+         
+         const manualFicha = {
+            id: 0,
+            ruc: ruc,
+            nombre_empresa: nombreProveedor,
+            actividad_empresa: '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+         } as FichaRuc;
+         
+         setSearchedFicha(manualFicha);
+         setCreateWithoutRuc(true);
+         setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
+         setAccionistas([]);
+         setGerentes([]);
+         
+         showSuccess('Ficha RUC no encontrada. Iniciando modo manual con datos de la solicitud.');
+      }
       
       // Pre-seleccionar la solicitud en el formulario
       setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
       
-      // Buscar etiqueta de la solicitud para el combobox
+      // Buscar datos de la solicitud para el label del combobox
       const { data: solicitud } = await supabase
         .from('solicitudes_operacion')
         .select('id, created_at')
@@ -137,15 +200,10 @@ const RibPage = () => {
         .single();
         
       if (solicitud) {
-         // Intentamos obtener el nombre de la empresa, si ya lo buscamos en handleSearch estará en searchedFicha
-         // pero handleSearch es asíncrono, así que hacemos una consulta rápida por si acaso
-         const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', ruc).maybeSingle();
-         const nombre = ficha?.nombre_empresa || ruc;
-         setInitialSolicitudLabel(`${nombre} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+         setInitialSolicitudLabel(`${empresaNombreForLabel} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
       }
       
       setView('form');
-      showSuccess('Creando nuevo RIB para la solicitud seleccionada.');
     }
   };
 
