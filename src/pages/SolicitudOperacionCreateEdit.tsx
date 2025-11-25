@@ -23,6 +23,7 @@ import AuditLogViewer from '@/components/audit/AuditLogViewer';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import DocumentChecklist from '@/components/solicitud-operacion/DocumentChecklist';
 import SolicitudDocumentManager from '@/components/solicitud-operacion/SolicitudDocumentManager';
+import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 interface Top10kData {
   ruc: string;
@@ -777,6 +778,9 @@ const SolicitudOperacionCreateEditPage = () => {
               </div>
             </div>
           </div>
+          
+          {/* WIZARD PROCESS INDICATOR */}
+          <RibProcessWizard solicitudId={id} currentStep="solicitud" />
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Columna izquierda: Checklist y Documentos */}
