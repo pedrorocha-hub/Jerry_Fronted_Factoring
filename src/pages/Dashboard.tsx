@@ -62,15 +62,15 @@ const Dashboard = () => {
               ))}
             </div>
             
-            {/* Recent Activity Skeleton */}
-            <div className="grid grid-cols-1 gap-6">
-              <Skeleton className="h-[400px] w-full rounded-xl" />
-            </div>
-
-            {/* Bottom Cards Skeletons */}
+            {/* Middle Cards Skeletons (Documents & Rib) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Skeleton className="h-[350px] w-full rounded-xl" />
               <Skeleton className="h-[350px] w-full rounded-xl" />
+            </div>
+
+            {/* Recent Activity Skeleton (Now at bottom) */}
+            <div className="grid grid-cols-1 gap-6">
+              <Skeleton className="h-[400px] w-full rounded-xl" />
             </div>
           </div>
         ) : (
@@ -81,12 +81,14 @@ const Dashboard = () => {
               <StatsCard title="Pendientes de Revisión" value={stats.pendingReview} icon={Clock} href="/upload" />
               <StatsCard title="Documentos con Error" value={stats.errors} icon={AlertCircle} href="/upload" />
             </div>
-            <div className="grid grid-cols-1 gap-6">
-              <RecentActivity activities={recentActivity} />
-            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <DocumentsCard />
               <RibCard />
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              <RecentActivity activities={recentActivity} />
             </div>
           </>
         )}
