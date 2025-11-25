@@ -124,7 +124,20 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                const queryParams = new URLSearchParams();
                if (solicitudId) queryParams.set('solicitud_id', solicitudId);
                if (solicitudRuc) queryParams.set('ruc', solicitudRuc);
-               linkPath = `${step.path}?${queryParams.toString()}`;
+               
+               const queryString = queryParams.toString();
+
+               if (step.id === 'reporte') {
+                   linkPath = `/rib-reporte-tributario/new?${queryString}`;
+               } else if (step.id === 'ventas') {
+                   // Ventas mensuales usa un formulario especial que soporta edit/new en la misma ruta base o /edit
+                   linkPath = `/ventas-mensuales/edit?${queryString}`;
+               } else if (step.id === 'eeff') {
+                   linkPath = `/rib-eeff/nuevo?${queryString}`;
+               } else {
+                   // Para RIB, Comportamiento y Comentarios que son Single Page Apps (List + Form)
+                   linkPath = `${step.path}?${queryString}`;
+               }
              }
           }
 

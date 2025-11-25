@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Building2, Loader2, AlertCircle, ClipboardList, ArrowLeft, FileText } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { FichaRucService } from '@/services/fichaRucService';
 import { RibReporteTributarioDocument, RibReporteTributarioService } from '@/services/ribReporteTributarioService';
@@ -34,6 +33,7 @@ interface SearchSuggestion {
 
 const RibReporteTributarioForm = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const isEditMode = !!id;
 
@@ -52,7 +52,6 @@ const RibReporteTributarioForm = () => {
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Search suggestions state
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -65,10 +64,109 @@ const RibReporteTributarioForm = () => {
   useEffect(() => {
     if (isEditMode && id) {
       handleLoadForEdit(id);
+    } else {
+      // Check for query params for new record
+      const rucParam = searchParams.get('ruc');
+      const solicitudIdParam = searchParams.get('solicitud_id');
+      
+      if (rucParam && solicitudIdParam) {
+        handleAutoInit(rucParam, solicitudIdParam);
+      }
     }
-  }, [isEditMode, id]);
+  }, [isEditMode, id, searchParams]);
 
-  // Track dirty state for manual RUC/nombre changes
+  const handleAutoInit = async (ruc: string, solicitudId: string) => {
+    setSearching(true);
+    try {
+      // 1. Fetch Solicitud info for label
+      const { data: solicitud } = await supabase
+        .from('solicitudes_operacion')
+        .select('id, ruc, created_at, proveedor')
+        .eq('id', solicitudId)
+        .single();
+        
+      let nombreProveedor = solicitud?.proveedor || 'Empresa sin nombre';
+      
+      if (solicitud) {
+         const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
+         setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+      }
+
+      // 2. Try to find Ficha RUC
+      const fichaData = await FichaRucService.getByRuc(ruc);
+      let newDocument: RibReporteTributarioDocument;
+
+      if (fichaData) {
+        setSearchedFicha(fichaData);
+        setCreateWithoutRuc(false);
+        nombreProveedor = fichaData.nombre_empresa;
+        
+        // Load financial data
+        const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
+        
+        newDocument = {
+          deudor: {
+            ruc: fichaData.ruc,
+            tipo_entidad: 'deudor',
+            anio: 2024,
+            cuentas_por_cobrar_giro: situacion.data_2024.cuentas_por_cobrar_del_giro,
+            total_activos: situacion.data_2024.total_activos,
+            cuentas_por_pagar_giro: situacion.data_2024.cuentas_por_pagar_del_giro,
+            total_pasivos: situacion.data_2024.total_pasivos,
+            capital_pagado: situacion.data_2024.capital_pagado,
+            total_patrimonio: situacion.data_2024.total_patrimonio,
+            total_pasivo_patrimonio: situacion.data_2024.total_pasivo_y_patrimonio
+          },
+          proveedor: null,
+          solicitud_id: solicitudId,
+          status: 'Borrador',
+          user_id: null
+        };
+      } else {
+        // Manual Mode
+        setCreateWithoutRuc(true);
+        const mockFicha: FichaRuc = {
+            id: 0,
+            ruc: ruc,
+            nombre_empresa: nombreProveedor,
+            actividad_empresa: '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        setSearchedFicha(mockFicha);
+        setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
+        
+        newDocument = {
+          deudor: {
+            ruc: ruc,
+            tipo_entidad: 'deudor',
+            anio: 2024
+          },
+          proveedor: null,
+          solicitud_id: solicitudId,
+          status: 'Borrador',
+          user_id: null,
+          nombre_empresa: nombreProveedor
+        };
+        
+        showSuccess('Ficha RUC no encontrada. Iniciando modo manual.');
+      }
+      
+      setDocumentData(newDocument);
+      setView('form');
+      setHasUnsavedChanges(true);
+      
+    } catch (err) {
+      console.error("Error auto-initializing:", err);
+      showError('Error al inicializar el reporte.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // ... rest of the file content (copying logic from previous version but ensuring useEffect is correct) ...
+  // Need to include all functions: handleLoadForEdit, handleSave, etc.
+  
   useEffect(() => {
     if (createWithoutRuc && searchedFicha && initialSearchedFicha) {
       const rucChanged = searchedFicha.ruc !== initialSearchedFicha.ruc;
@@ -139,11 +237,9 @@ const RibReporteTributarioForm = () => {
         const fichaData = await FichaRucService.getByRuc(existingDocument.deudor.ruc);
         
         if (fichaData) {
-          // Normal mode: FichaRuc exists
           setSearchedFicha(fichaData);
           setCreateWithoutRuc(false);
         } else {
-          // Manual mode: No FichaRuc, use stored nombre_empresa or default
           const mockFicha: FichaRuc = {
             id: 0,
             ruc: existingDocument.deudor.ruc || '',
@@ -220,7 +316,6 @@ const RibReporteTributarioForm = () => {
     setShowSuggestions(false);
 
     try {
-      // Search by RUC or nombre_empresa
       const { data: fichasData, error: searchError } = await supabase
         .from('ficha_ruc')
         .select('*')
@@ -241,7 +336,6 @@ const RibReporteTributarioForm = () => {
       
       const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
       
-      // Crear estructura de documento con deudor
       const newDocument: RibReporteTributarioDocument = {
         deudor: {
           ruc: fichaData.ruc,
@@ -319,7 +413,6 @@ const RibReporteTributarioForm = () => {
     setShowSuggestions(false);
     setSelectedSuggestionIndex(-1);
     
-    // Automatically search with selected RUC
     setSearching(true);
     setError(null);
     setSearchedFicha(null);
@@ -430,7 +523,6 @@ const RibReporteTributarioForm = () => {
       return;
     }
     
-    // Validar RUC o nombre_empresa en modo manual
     if (createWithoutRuc) {
       if (!searchedFicha?.ruc && !searchedFicha?.nombre_empresa) {
         showError('Debe ingresar al menos el RUC o la Razón Social');
@@ -448,7 +540,6 @@ const RibReporteTributarioForm = () => {
     
     setIsSaving(true);
     try {
-      // Update RUC and nombre_empresa from searchedFicha if in manual mode
       const dataToSave = { ...documentData };
       if (createWithoutRuc && searchedFicha) {
         dataToSave.deudor.ruc = searchedFicha.ruc || '';
@@ -459,7 +550,6 @@ const RibReporteTributarioForm = () => {
       setDocumentData(savedDocument);
       setHasUnsavedChanges(false);
       
-      // Update initialSearchedFicha after save
       if (createWithoutRuc && searchedFicha) {
         setInitialSearchedFicha({
           ruc: searchedFicha.ruc,
@@ -468,7 +558,17 @@ const RibReporteTributarioForm = () => {
       }
       
       showSuccess('Reporte RIB guardado exitosamente.');
-      navigate('/rib-reporte-tributario');
+      // Clean params but stay on page? Or go to list?
+      // If it was a new record, we might want to replace URL with /edit/ID
+      // navigate('/rib-reporte-tributario'); // Going to list is safe
+      
+      // Better: Navigate to edit URL to allow continued editing
+      if (!isEditMode && savedDocument.id) {
+          navigate(`/rib-reporte-tributario/edit/${savedDocument.id}`, { replace: true });
+      } else {
+          // navigate('/rib-reporte-tributario');
+      }
+      
     } catch (err) {
       showError(`Error al guardar el reporte RIB: ${err instanceof Error ? err.message : 'Error desconocido'}`);
     } finally {

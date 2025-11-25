@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Save, ArrowLeft, Building, DollarSign, TrendingUp, TrendingDown, Download, User, Users, Plus, Trash2, Calendar } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -159,6 +159,7 @@ const FinancialTable = ({ title, fields, years, yearsData, handleChange, icon, e
 
 const RibEeffForm = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useSession();
   const isEditMode = !!id;
@@ -229,7 +230,77 @@ const RibEeffForm = () => {
   };
 
   useEffect(() => {
-    const fetchInitialData = async () => {
+    if (isEditMode && id) {
+      fetchInitialData();
+    } else {
+      const rucParam = searchParams.get('ruc');
+      const solicitudIdParam = searchParams.get('solicitud_id');
+      
+      if (rucParam && solicitudIdParam) {
+        handleAutoInit(rucParam, solicitudIdParam);
+      } else {
+        setLoading(false);
+      }
+    }
+  }, [id, isEditMode, searchParams]);
+
+  const handleAutoInit = async (ruc: string, solicitudId: string) => {
+    setLoading(true);
+    try {
+      // 1. Fetch Solicitud info for label
+      const { data: solicitud } = await supabase
+        .from('solicitudes_operacion')
+        .select('id, ruc, created_at, proveedor')
+        .eq('id', solicitudId)
+        .single();
+        
+      let nombreProveedor = solicitud?.proveedor || 'Empresa sin nombre';
+      
+      if (solicitud) {
+         const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
+         setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+      }
+      
+      setSolicitudId(solicitudId);
+      setProveedorRuc(ruc);
+
+      // 2. Try to find Ficha RUC
+      const fichaData = await FichaRucService.getByRuc(ruc);
+      
+      if (fichaData) {
+        setProveedorNombre(fichaData.nombre_empresa);
+        setInitialProveedorLabel(`${fichaData.nombre_empresa} (${fichaData.ruc})`);
+      } else {
+        // Manual Mode
+        setManualMode(true);
+        setProveedorNombre(nombreProveedor);
+        showSuccess('Ficha RUC no encontrada. Iniciando modo manual.');
+      }
+      
+      // Initialize with current year if new
+      const currentYear = new Date().getFullYear();
+      setYears([currentYear]);
+      setYearsData(prev => ({
+        ...prev,
+        proveedor: {
+          [currentYear]: {
+            ruc: ruc,
+            tipo_entidad: 'proveedor',
+            anio_reporte: currentYear,
+            solicitud_id: solicitudId
+          }
+        }
+      }));
+      
+    } catch (err) {
+      console.error("Error auto-initializing:", err);
+      toast.error('Error al inicializar el formulario.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchInitialData = async () => {
       setLoading(true);
       try {
         // Check for ID in params. The ID here might be a single UUID from rib_eeff or a composite one.
@@ -316,8 +387,6 @@ const RibEeffForm = () => {
         setLoading(false);
       }
     };
-    fetchInitialData();
-  }, [id, isEditMode]);
 
   const handleLoadEeffData = async () => {
     if (!proveedorRuc) {
@@ -479,12 +548,6 @@ const RibEeffForm = () => {
           // No detener el guardado del reporte si falla la ficha
         }
       }
-      // Keep existing IDs if updating existing records, otherwise generate new ones or use random for new sets?
-      // The previous logic used a single reportId for all rows in a set. We should maintain that if possible, or use existing IDs.
-      // If editing, use existing IDs from yearsData. If new year, generate new ID or reuse set ID?
-      // RibEeff schema: PK is (id, anio_reporte, tipo_entidad) usually? No, ID is UUID PK.
-      // So each row (year/entity) has unique ID.
-      // We need to preserve IDs for existing rows to update them properly.
       
       const recordsToUpsert: Partial<RibEeff>[] = [];
       
@@ -498,47 +561,12 @@ const RibEeffForm = () => {
             
             const { created_at, ...restOfYearData } = yearData;
             
-            // If existing record had an ID, use it. Otherwise generate new.
-            // Wait, if we are creating a NEW report set (no ID in URL), we might want to link them?
-            // The previous code used `const reportId = id || crypto.randomUUID();` and applied it to all rows.
-            // This implies `id` column is NOT the PK, but a grouping ID?
-            // Let's check schema for rib_eeff. Usually it's just `id` UUID PK.
-            // If `id` is PK, then we cannot reuse it for multiple rows.
-            // If `id` is meant to group them, then yes. But looking at `src/types/rib-eeff.ts`, it's just `id: string`.
-            
-            // Correction: In RibEeffService, upsert uses `onConflict: 'id,anio_reporte,tipo_entidad'`. This implies composite key or constraint?
-            // If `id` is unique PK, then each row needs unique ID.
-            // If `id` is a group ID, then multiple rows can share it.
-            // Based on `getById` returning an array: `async getById(id: string): Promise<RibEeff[]>`, it suggests `id` IS a grouping ID or we are querying by something else?
-            // `const { data, error } = await supabase.from(TABLE_NAME).select('*').eq('id', id);`
-            // If `id` is PK, this returns 1 row. If it returns array, then `id` is not unique PK?
-            // Let's assume for now each row needs its own ID if `id` is PK, or we use `solicitud_id` to group.
-            // But the code was `const reportId = id || crypto.randomUUID();`... which suggests grouping.
-            
-            // However, `RibEeffForm.tsx` previous implementation:
-            // `const reportId = id || crypto.randomUUID();`
-            // `const record: Partial<RibEeff> = { ... id: reportId ... }`
-            // This strongly suggests `id` column is used as a Group ID.
-            
-            // Let's stick to that pattern to avoid breaking existing logic.
-            
-            const recordId = yearData.id || (id ? id : crypto.randomUUID()); 
-            // If we are editing (`id` exists), we try to use it. 
-            // But if `id` param in URL was just one of the IDs of the set (if they are unique), 
-            // then we might be overwriting IDs?
-            // If `rib_eeff` has `id` as PK, then we cannot force it.
-            
-            // SAFE APPROACH:
-            // If `yearData.id` exists, use it.
-            // If not, let DB generate it (undefined) OR generate new UUID if we are sure it's a new row.
-            
-            // If the previous code worked, it means `id` column IS NOT UNIQUE or is part of composite PK.
-            // Let's assume previous code was correct about `id` being shared or handled via upsert logic.
+            // Using existing ID if present, otherwise generating a new one for fresh inserts
+            // Note: If 'id' is present in yearData (from fetchInitialData), it's used for update.
+            // If not present (new year or new report), a new UUID is generated or we use the URL id if available (though typically ID in URL is for edit).
             
             const record: Partial<RibEeff> = {
               ...restOfYearData,
-              // id: recordId, // Let's try NOT sending ID for new rows if it's PK, or rely on yearData.id
-              // If yearData has ID, use it to update.
               ...(yearData.id ? { id: yearData.id } : {}),
               
               ruc: ruc,
