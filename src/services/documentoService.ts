@@ -1,9 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Documento, DocumentoTipo } from '@/types/documento';
 
-// Tipos de documentos que requieren procesamiento por IA (Webhook)
-const AI_PROCESS_TYPES: DocumentoTipo[] = ['ficha_ruc', 'reporte_tributario', 'sentinel'];
-
 export const DocumentoService = {
   async getAll(): Promise<Documento[]> {
     const { data, error } = await supabase
@@ -54,15 +51,10 @@ export const DocumentoService = {
         .upload(storagePath, file, {
           cacheControl: '3600',
           upsert: false,
-          contentType: file.type || 'application/octet-stream'
+          contentType: file.type || 'application/octet-stream' // Corrección crítica para PDFs
         });
 
       if (storageError) throw storageError;
-
-      // Determinar estado inicial
-      // Si es un tipo que requiere IA, va a 'pending' -> webhook -> processing
-      // Si NO requiere IA (evidencias, facturas, etc.), va directo a 'completed'
-      const initialStatus = AI_PROCESS_TYPES.includes(tipo) ? 'pending' : 'completed';
 
       // 4. Insertar registro en BD
       const { data: dbData, error: dbError } = await supabase
@@ -73,7 +65,7 @@ export const DocumentoService = {
           storage_path: storagePath,
           nombre_archivo: file.name,
           tamaño_archivo: file.size,
-          estado: initialStatus, 
+          estado: 'pending', 
           created_by: user?.id
         })
         .select()
