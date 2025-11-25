@@ -686,7 +686,7 @@ const SolicitudOperacionCreateEditPage = () => {
                 </div>
                 <div className="space-y-3">
                    <div className="ml-8">
-                    <Button variant="outline" onClick={() => setCreateWithoutRuc(true)} className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" size="lg">
+                    <Button variant="outline" onClick={handleCreateWithoutRuc} className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white" size="lg">
                       <FileText className="h-4 w-4 mr-2" />
                       Llenar Formulario Manualmente
                     </Button>
