@@ -25,6 +25,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import RibAuditLogViewer from '@/components/audit/RibAuditLogViewer';
 import { useSearchParams } from 'react-router-dom';
+import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 const getStatusColor = (status: RibStatus | null | undefined) => {
   switch (status) {
@@ -743,6 +744,9 @@ const RibPage = () => {
 
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
+              {/* WIZARD PROCESS INDICATOR */}
+              <RibProcessWizard solicitudId={formData.solicitud_id || undefined} currentStep="rib" />
+
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="flex items-center text-white">

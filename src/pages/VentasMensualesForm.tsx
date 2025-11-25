@@ -19,6 +19,7 @@ import { ProfileService } from '@/services/profileService';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption, AsyncCombobox } from '@/components/ui/async-combobox';
 import { SalesData } from '@/types/salesData';
+import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'setiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -627,6 +628,9 @@ const VentasMensualesForm = () => {
 
           {view === 'form' && proveedorFicha && (
             <div className="space-y-6">
+              {/* WIZARD PROCESS INDICATOR */}
+              <RibProcessWizard solicitudId={solicitudId || undefined} currentStep="ventas" />
+
               {manualMode && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>

@@ -23,6 +23,7 @@ import ExperienciaPagoManager from '@/components/comportamiento-crediticio/Exper
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import ComportamientoCrediticioAuditLogViewer from '@/components/audit/ComportamientoCrediticioAuditLogViewer';
 import { cn } from '@/lib/utils';
+import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 interface ReporteWithDetails extends ComportamientoCrediticio {
   nombre_empresa?: string;
@@ -1222,6 +1223,9 @@ const ComportamientoCrediticioPage = () => {
 
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
+              {/* WIZARD PROCESS INDICATOR */}
+              <RibProcessWizard solicitudId={formData.solicitud_id || undefined} currentStep="comportamiento" />
+              
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">

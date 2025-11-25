@@ -23,6 +23,7 @@ import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
 import { EstadoSituacionService } from '@/services/estadoSituacionService';
+import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
 
@@ -638,6 +639,9 @@ const RibReporteTributarioForm = () => {
 
           {searchedFicha && documentData && view === 'form' && (
             <div className="space-y-8">
+               {/* WIZARD PROCESS INDICATOR */}
+               <RibProcessWizard solicitudId={documentData.solicitud_id || undefined} currentStep="reporte" />
+               
               {/* Editable RUC and Razón Social for Manual Mode */}
               {createWithoutRuc && (
                 <Card className="bg-[#121212] border border-gray-800">

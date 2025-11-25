@@ -19,6 +19,7 @@ import { useSession } from '@/contexts/SessionContext';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import { supabase } from '@/integrations/supabase/client';
 import RibEeffAuditLogViewer from '@/components/audit/RibEeffAuditLogViewer';
+import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 const sum = (...args: (number | null | undefined)[]): number => {
   return args.reduce((acc, val) => acc + (val || 0), 0);
@@ -538,6 +539,10 @@ const RibEeffForm = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* WIZARD PROCESS INDICATOR */}
+            <RibProcessWizard solicitudId={solicitudId || undefined} currentStep="eeff" />
+
             <Card className="bg-[#121212] border border-gray-800">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">

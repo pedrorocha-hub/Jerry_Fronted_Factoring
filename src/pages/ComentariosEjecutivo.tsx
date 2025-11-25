@@ -18,6 +18,7 @@ import { useSession } from '@/contexts/SessionContext';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import ComentariosEjecutivoForm from '@/components/rib/ComentariosEjecutivoForm';
 import ComentariosEjecutivoAuditLogViewer from '@/components/audit/ComentariosEjecutivoAuditLogViewer';
+import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 const ComentariosEjecutivoPage = () => {
   const { isAdmin } = useSession();
@@ -256,6 +257,9 @@ const ComentariosEjecutivoPage = () => {
 
           {view === 'form' && (
             <div className="space-y-6">
+              {/* WIZARD PROCESS INDICATOR */}
+              <RibProcessWizard solicitudId={solicitudId || undefined} currentStep="comentarios" />
+
               <Card className="bg-[#121212] border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">
