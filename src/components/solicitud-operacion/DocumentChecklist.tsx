@@ -1,45 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, ExternalLink, RefreshCw, Briefcase, Scale, Image, FileText, Paperclip } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TipoProducto } from '@/types/solicitud-operacion';
 import { DOCUMENT_LABELS, PRODUCT_REQUIREMENTS, DocumentTypeKey } from '@/config/documentRequirements';
 import { supabase } from '@/integrations/supabase/client';
-import { Separator } from '@/components/ui/separator';
 
 interface DocumentChecklistProps {
   ruc: string;
-  solicitudId?: string;
   tipoProducto: TipoProducto | null;
   onValidationChange: (isValid: boolean) => void;
 }
 
-// Definición de grupos de evidencia
-const EVIDENCE_GROUPS = {
-  OPERACION: {
-    label: 'Operación',
-    icon: Briefcase,
-    keys: ['FACTURA', 'SUSTENTOS'] as DocumentTypeKey[]
-  },
-  LEGAL: {
-    label: 'Legal',
-    icon: Scale,
-    keys: ['VIGENCIA_PODER'] as DocumentTypeKey[]
-  },
-  VISITA: {
-    label: 'Visita / Otros',
-    icon: Image,
-    keys: ['FOTOS_VISITA'] as DocumentTypeKey[]
-  }
-};
-
-// Keys que pertenecen al grupo de Análisis Financiero / Riesgos (Lo que queda arriba)
-const ANALYSIS_KEYS: DocumentTypeKey[] = ['FICHA_RUC', 'SENTINEL', 'REPORTE_TRIBUTARIO', 'EEFF'];
-
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
   ruc, 
-  solicitudId,
   tipoProducto,
   onValidationChange 
 }) => {
@@ -50,18 +25,17 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     REPORTE_TRIBUTARIO: false,
     FACTURA: false,
     EEFF: false,
-    VIGENCIA_PODER: false,
-    SUSTENTOS: false,
-    FOTOS_VISITA: false
+    VIGENCIA_PODER: false
   });
 
+  // Función para verificar existencia de documentos en BD
   const checkDocuments = async () => {
     if (!ruc || ruc.length !== 11) return;
     
     setLoading(true);
     try {
-      // 1. Tablas Estructuradas
-      const [ficha, sentinel, tributario, facturasTabla, eeff] = await Promise.all([
+      // Consultamos las tablas procesadas para ver si existe información para este RUC
+      const [ficha, sentinel, tributario, facturas, eeff] = await Promise.all([
         supabase.from('ficha_ruc').select('id').eq('ruc', ruc).maybeSingle(),
         supabase.from('sentinel').select('id').eq('ruc', ruc).maybeSingle(),
         supabase.from('reporte_tributario').select('id').eq('ruc', ruc).limit(1),
@@ -69,34 +43,13 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
       ]);
 
-      // 2. Documentos Adjuntos (Tabla 'documentos')
-      // Buscamos por RUC o por Solicitud ID si existe
-      let query = supabase.from('documentos').select('tipo');
-      
-      if (solicitudId) {
-        // Si hay solicitud, buscamos documentos asociados a la solicitud O al RUC
-        query = query.or(`solicitud_id.eq.${solicitudId},ruc_extraido.eq.${ruc}`);
-      } else {
-        query = query.eq('ruc_extraido', ruc);
-      }
-
-      const { data: adjuntos } = await query;
-
-      const tiposAdjuntos = new Set(adjuntos?.map(d => d.tipo) || []);
-
       const newStatus = {
         FICHA_RUC: !!ficha.data,
         SENTINEL: !!sentinel.data,
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
+        FACTURA: (facturas.data?.length || 0) > 0,
         EEFF: (eeff.data?.length || 0) > 0,
-        
-        // Factura: Puede estar estructurada o como adjunto
-        FACTURA: (facturasTabla.data?.length || 0) > 0 || tiposAdjuntos.has('factura'),
-        
-        // Documentos que suelen ser solo adjuntos
-        VIGENCIA_PODER: tiposAdjuntos.has('vigencia_poder') || tiposAdjuntos.has('vigencia'),
-        SUSTENTOS: tiposAdjuntos.has('sustento_comercial') || tiposAdjuntos.has('guia_remision') || tiposAdjuntos.has('orden_compra') || tiposAdjuntos.has('conformidad'),
-        FOTOS_VISITA: tiposAdjuntos.has('foto_visita') || tiposAdjuntos.has('evidencia_visita')
+        VIGENCIA_PODER: false // Por ahora false, ya que no tenemos tabla específica aun
       };
 
       setDocStatus(newStatus);
@@ -109,8 +62,9 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
   useEffect(() => {
     checkDocuments();
-  }, [ruc, solicitudId]);
+  }, [ruc]);
 
+  // Validar cumplimiento de requisitos y notificar al padre
   useEffect(() => {
     if (!tipoProducto) {
       onValidationChange(true); 
@@ -118,15 +72,9 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     }
 
     const reqs = PRODUCT_REQUIREMENTS[tipoProducto];
-    
-    if (!reqs) {
-      // Si no hay requisitos definidos para el producto, asumimos que es válido
-      onValidationChange(true);
-      return;
-    }
-
     const allRequiredMet = reqs.required.every(docType => docStatus[docType]);
     
+    // Notificamos al componente padre si cumple los requisitos
     onValidationChange(allRequiredMet);
   }, [docStatus, tipoProducto, onValidationChange]);
 
@@ -142,34 +90,22 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   }
 
   const requirements = PRODUCT_REQUIREMENTS[tipoProducto];
-  
-  if (!requirements) {
-     return (
-      <Card className="bg-[#121212] border border-gray-800 opacity-50 h-full">
-        <CardContent className="p-6 text-center text-gray-500 flex flex-col items-center justify-center h-full">
-          <AlertTriangle className="h-10 w-10 mb-2 opacity-50" />
-          <p>No hay requisitos definidos para {tipoProducto}.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   const missingCount = requirements.required.filter(k => !docStatus[k]).length;
 
   const renderItem = (key: DocumentTypeKey, isRequired: boolean) => {
     const exists = docStatus[key];
     
     return (
-      <div key={key} className="flex items-center justify-between p-2.5 bg-gray-900/30 rounded-md border border-gray-800/50 mb-2 hover:bg-gray-900/50 transition-colors group">
+      <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2 hover:bg-gray-900/50 transition-colors">
         <div className="flex items-center gap-3">
           {loading ? (
-            <Loader2 className="h-4 w-4 text-gray-500 animate-spin" />
+            <Loader2 className="h-5 w-5 text-gray-500 animate-spin" />
           ) : exists ? (
-            <CheckCircle2 className="h-4 w-4 text-[#00FF80]" />
+            <CheckCircle2 className="h-5 w-5 text-[#00FF80]" />
           ) : isRequired ? (
-            <XCircle className="h-4 w-4 text-red-400" />
+            <XCircle className="h-5 w-5 text-red-400" />
           ) : (
-            <AlertTriangle className="h-4 w-4 text-yellow-500/30" />
+            <AlertTriangle className="h-5 w-5 text-yellow-500/50" />
           )}
           
           <div>
@@ -177,8 +113,8 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
               {DOCUMENT_LABELS[key]}
             </p>
             {!exists && (
-              <p className={`text-[10px] ${isRequired ? 'text-red-400/70' : 'text-gray-600'}`}>
-                {isRequired ? 'Requerido' : 'Opcional'}
+              <p className={`text-[10px] ${isRequired ? 'text-red-400/80' : 'text-gray-600'}`}>
+                {isRequired ? 'IMPRESCINDIBLE' : 'Adicional / Opcional'}
               </p>
             )}
           </div>
@@ -189,7 +125,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              className="h-6 text-[10px] text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-7 text-xs text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10"
               onClick={() => window.open('/upload', '_blank')}
             >
               Subir
@@ -197,7 +133,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
             </Button>
           )}
           {exists && (
-             <Badge variant="outline" className="bg-[#00FF80]/5 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5 h-5">
+             <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5">
                OK
              </Badge>
           )}
@@ -205,29 +141,6 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
       </div>
     );
   };
-
-  const renderEvidenceGroup = (groupKey: keyof typeof EVIDENCE_GROUPS) => {
-    const group = EVIDENCE_GROUPS[groupKey];
-    // Filtrar solo los documentos que son relevantes para este producto (están en required o optional)
-    const relevantKeys = group.keys.filter(k => requirements.required.includes(k) || requirements.optional.includes(k));
-    
-    if (relevantKeys.length === 0) return null;
-
-    return (
-      <div key={groupKey} className="mb-4">
-        <div className="flex items-center gap-2 mb-2 text-gray-400">
-          <group.icon className="h-3.5 w-3.5" />
-          <span className="text-xs font-semibold uppercase tracking-wider">{group.label}</span>
-        </div>
-        <div className="space-y-1 ml-1">
-          {relevantKeys.map(key => renderItem(key, requirements.required.includes(key)))}
-        </div>
-      </div>
-    );
-  };
-
-  // Filtrar documentos de análisis
-  const analysisDocs = ANALYSIS_KEYS.filter(k => requirements.required.includes(k) || requirements.optional.includes(k));
 
   return (
     <Card className={`bg-[#121212] border transition-all ${missingCount > 0 ? 'border-red-500/20' : 'border-green-500/20'}`}>
@@ -244,38 +157,26 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
           </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-4 max-h-[600px] overflow-y-auto custom-scrollbar">
-        
-        {/* 1. SECCIÓN DE ANÁLISIS FINANCIERO Y RIESGOS */}
-        {analysisDocs.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3 text-[#00FF80]">
-              <FileText className="h-4 w-4" />
-              <h3 className="text-sm font-bold uppercase tracking-wider">Análisis & Riesgos</h3>
-            </div>
-            <div className="space-y-1">
-              {analysisDocs.map(key => renderItem(key, requirements.required.includes(key)))}
-            </div>
-          </div>
-        )}
-
-        {/* SEPARADOR */}
-        {(analysisDocs.length > 0) && <Separator className="bg-gray-800 mb-6" />}
-
-        {/* 2. SECCIÓN DE EVIDENCIA */}
-        <div>
-          <div className="flex items-center gap-2 mb-4 text-blue-400">
-            <Paperclip className="h-4 w-4" />
-            <h3 className="text-sm font-bold uppercase tracking-wider">Evidencia</h3>
+      <CardContent className="pt-4">
+        <div className="space-y-1">
+          <div className="mb-4">
+            <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></span>
+              Imprescindibles ({tipoProducto})
+            </p>
+            {requirements.required.map(doc => renderItem(doc, true))}
           </div>
           
-          <div className="pl-2 border-l border-gray-800 ml-1.5">
-            {renderEvidenceGroup('OPERACION')}
-            {renderEvidenceGroup('LEGAL')}
-            {renderEvidenceGroup('VISITA')}
-          </div>
+          {requirements.optional.length > 0 && (
+            <div>
+               <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+                 <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-2"></span>
+                 Adicionales
+               </p>
+               {requirements.optional.map(doc => renderItem(doc, false))}
+            </div>
+          )}
         </div>
-
       </CardContent>
     </Card>
   );
