@@ -13,6 +13,9 @@ interface DocumentChecklistProps {
   onValidationChange: (isValid: boolean) => void;
 }
 
+// Keys for which the "Subir" button should be hidden (handled in Operation tab)
+const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = ['FACTURA', 'SUSTENTOS', 'EVIDENCIA_VISITA'];
+
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
   ruc, 
   tipoProducto,
@@ -25,7 +28,9 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     REPORTE_TRIBUTARIO: false,
     FACTURA: false,
     EEFF: false,
-    VIGENCIA_PODER: false
+    VIGENCIA_PODER: false,
+    SUSTENTOS: false,
+    EVIDENCIA_VISITA: false
   });
 
   // Función para verificar existencia de documentos en BD
@@ -43,13 +48,22 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
       ]);
 
+      // Para documentos que no tienen tabla propia procesada, buscamos en la tabla documentos
+      const [sustentosDoc, vigenciaDoc, evidenciaDoc] = await Promise.all([
+        supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1),
+        supabase.from('documentos').select('id').eq('tipo', 'vigencia_poder').ilike('nombre_archivo', `%${ruc}%`).limit(1),
+        supabase.from('documentos').select('id').eq('tipo', 'evidencia_visita').ilike('nombre_archivo', `%${ruc}%`).limit(1)
+      ]);
+
       const newStatus = {
         FICHA_RUC: !!ficha.data,
         SENTINEL: !!sentinel.data,
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
         FACTURA: (facturas.data?.length || 0) > 0,
         EEFF: (eeff.data?.length || 0) > 0,
-        VIGENCIA_PODER: false // Por ahora false, ya que no tenemos tabla específica aun
+        VIGENCIA_PODER: (vigenciaDoc.data?.length || 0) > 0,
+        SUSTENTOS: (sustentosDoc.data?.length || 0) > 0,
+        EVIDENCIA_VISITA: (evidenciaDoc.data?.length || 0) > 0
       };
 
       setDocStatus(newStatus);
@@ -121,6 +135,16 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {!exists && !HIDDEN_UPLOAD_KEYS.includes(key) && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 text-xs text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10"
+              onClick={() => window.open('/upload', '_blank')}
+            >
+              Subir
+            </Button>
+          )}
           {exists && (
              <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5">
                OK
