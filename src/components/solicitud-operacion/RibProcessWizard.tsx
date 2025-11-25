@@ -10,9 +10,7 @@ import {
   Calendar, 
   FileSpreadsheet, 
   MessageSquare,
-  Check,
-  ChevronRight,
-  Loader2
+  Check
 } from 'lucide-react';
 
 interface RibProcessWizardProps {
@@ -32,6 +30,7 @@ const steps = [
 
 const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, currentStep }) => {
   const [relatedIds, setRelatedIds] = useState<Record<string, string | null>>({});
+  const [solicitudRuc, setSolicitudRuc] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,6 +42,17 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
     const fetchRelatedRecords = async () => {
       setLoading(true);
       try {
+        // Fetch solicitud RUC first to enable auto-fill links
+        const { data: solicitudData } = await supabase
+            .from('solicitudes_operacion')
+            .select('ruc')
+            .eq('id', solicitudId)
+            .single();
+        
+        if (solicitudData) {
+            setSolicitudRuc(solicitudData.ruc);
+        }
+
         const results: Record<string, string | null> = {};
 
         // Helper to fetch ID safely
@@ -75,7 +85,7 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
         results['ventas'] = ventasId;
         results['eeff'] = eeffId;
         results['comentarios'] = comId;
-        results['solicitud'] = solicitudId; // Always exists if we are here
+        results['solicitud'] = solicitudId;
 
         setRelatedIds(results);
       } catch (error) {
@@ -98,24 +108,23 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
         <div className="absolute left-0 top-1/2 w-full h-0.5 bg-gray-800 -z-0 transform -translate-y-1/2 hidden md:block" />
         
         {steps.map((step, index) => {
-          const isCurrent = step.id === currentStep;
-          // A step is completed if we have a record ID for it
           const hasRecord = !!relatedIds[step.id];
-          const isCompleted = hasRecord; 
-          
-          // Make all steps clickable if we have a solicitudId (except the current one, which is just active)
-          // This allows jumping to any step to create or edit it.
-          const isClickable = !!solicitudId;
+          const isCurrent = step.id === currentStep;
+          const isClickable = !!solicitudId; // Always clickable if we have a context ID
           
           let linkPath = '#';
           if (step.id === 'solicitud') {
              linkPath = `/solicitudes-operacion/edit/${solicitudId}`;
           } else {
-             // If record exists, go to edit, otherwise create with solicitud_id param
              if (hasRecord) {
+               // Edit existing record
                linkPath = `${step.path}/edit/${relatedIds[step.id]}`;
              } else {
-               linkPath = `${step.path}/create?solicitud_id=${solicitudId}`;
+               // Create new record with context params
+               const queryParams = new URLSearchParams();
+               if (solicitudId) queryParams.set('solicitud_id', solicitudId);
+               if (solicitudRuc) queryParams.set('ruc', solicitudRuc);
+               linkPath = `${step.path}?${queryParams.toString()}`;
              }
           }
 
@@ -135,9 +144,9 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                     isCurrent ? "border-[#00FF80] text-[#00FF80] shadow-[0_0_10px_rgba(0,255,128,0.3)] scale-110" : 
                     // Completed step styling (has record)
                     hasRecord ? "border-[#00FF80] bg-[#00FF80]/10 text-[#00FF80]" : 
-                    // Pending step styling (clickable but no record yet)
-                    isClickable ? "border-gray-600 text-gray-400 hover:border-gray-400 hover:text-gray-200" :
-                    // Disabled styling
+                    // Available to create (Clickable)
+                    isClickable ? "border-gray-600 text-gray-400 hover:border-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/5 group-hover:scale-105" :
+                    // Disabled
                     "border-gray-800 text-gray-600"
                   )}
                 >
@@ -152,7 +161,7 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                   "mt-2 text-xs font-medium whitespace-nowrap transition-colors",
                   isCurrent ? "text-[#00FF80]" : 
                   hasRecord ? "text-gray-300" : 
-                  isClickable ? "text-gray-500 group-hover:text-gray-300" : "text-gray-700"
+                  isClickable ? "text-gray-500 group-hover:text-[#00FF80]" : "text-gray-700"
                 )}>
                   {step.label}
                 </span>
@@ -160,6 +169,11 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                 {/* Status Indicator Dot for existing records not currently selected */}
                 {hasRecord && !isCurrent && (
                   <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00FF80] rounded-full border-2 border-[#121212]" />
+                )}
+                
+                {/* Optional: Indicator for "Create New" available */}
+                {!hasRecord && !isCurrent && isClickable && (
+                   <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gray-600 rounded-full border-2 border-[#121212] opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}
               </Link>
             </div>
