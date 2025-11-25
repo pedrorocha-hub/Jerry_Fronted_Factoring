@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FichaRuc } from '@/types/ficha-ruc';
 import { SolicitudOperacion, SolicitudOperacionRiesgo, SolicitudOperacionWithRiesgos, SolicitudStatus, TipoProducto, TipoOperacion } from '@/types/solicitud-operacion';
 import { SolicitudOperacionService } from '@/services/solicitudOperacionService';
@@ -75,6 +76,7 @@ const SolicitudOperacionCreateEditPage = () => {
   const [createdSolicitudId, setCreatedSolicitudId] = useState<string | null>(null);
 
   const [rucInput, setRucInput] = useState('');
+  const [searchSource, setSearchSource] = useState<'FICHA' | 'REPORTE'>('FICHA');
   const [createProductType, setCreateProductType] = useState<TipoProducto | null>(null);
   const [deudorRucInput, setDeudorRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -584,6 +586,15 @@ const SolicitudOperacionCreateEditPage = () => {
     return data || [];
   };
 
+  const searchReporteTributario = async (query: string): Promise<ComboboxOption[]> => {
+    if (query.length < 2) return [];
+    const { data, error } = await supabase.rpc('search_reporte_tributario', {
+      search_term: query,
+    });
+    if (error) return [];
+    return data || [];
+  };
+
   const searchTop10k = async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     const { data, error } = await supabase.rpc('search_top_10k', {
@@ -607,9 +618,8 @@ const SolicitudOperacionCreateEditPage = () => {
       }
   };
 
-  // Renders for create mode omitted for brevity (same as before)
+  // Renders for create mode
   if (isCreateMode && !createWithoutRuc) {
-    // ... existing create mode UI ...
      return (
       <Layout>
         <div className="min-h-screen bg-black p-6 flex items-center justify-center">
@@ -620,30 +630,71 @@ const SolicitudOperacionCreateEditPage = () => {
                 Crear Nuevo Expediente
               </CardTitle>
               <p className="text-gray-400 text-sm mt-2">
-                Seleccione cómo desea crear la solicitud de operación
+                Seleccione cómo desea buscar la empresa o ingrese los datos manualmente
               </p>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-6">
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="bg-[#00FF80] text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
                     <h3 className="text-white font-semibold">Buscar Empresa Existente</h3>
                   </div>
-                  <div className="ml-8 space-y-3">
-                    <AsyncCombobox
-                      value={rucInput}
-                      onChange={(value) => setRucInput(value || '')}
-                      onSearch={searchFichas}
-                      placeholder="Buscar por RUC o nombre de empresa..."
-                      searchPlaceholder="Escriba para buscar..."
-                      emptyMessage="No se encontraron empresas."
-                    />
+                  
+                  <div className="ml-8 space-y-4">
+                    <Tabs 
+                      defaultValue="FICHA" 
+                      value={searchSource} 
+                      onValueChange={(val) => { 
+                        setSearchSource(val as 'FICHA' | 'REPORTE'); 
+                        setRucInput(''); 
+                      }} 
+                      className="w-full"
+                    >
+                      <TabsList className="grid w-full grid-cols-2 bg-gray-900 border border-gray-800">
+                        <TabsTrigger 
+                          value="FICHA" 
+                          className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black text-gray-400"
+                        >
+                          En Fichas RUC
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="REPORTE" 
+                          className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black text-gray-400"
+                        >
+                          En Reportes Trib.
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      <div className="mt-4">
+                        {searchSource === 'FICHA' ? (
+                          <AsyncCombobox
+                            key="search-ficha"
+                            value={rucInput}
+                            onChange={(value) => setRucInput(value || '')}
+                            onSearch={searchFichas}
+                            placeholder="Buscar por RUC o Nombre en Fichas RUC..."
+                            searchPlaceholder="Escriba RUC o Razón Social..."
+                            emptyMessage="No se encontraron en Fichas RUC."
+                          />
+                        ) : (
+                          <AsyncCombobox
+                            key="search-reporte"
+                            value={rucInput}
+                            onChange={(value) => setRucInput(value || '')}
+                            onSearch={searchReporteTributario}
+                            placeholder="Buscar por RUC o Razón Social en Reportes..."
+                            searchPlaceholder="Escriba RUC o Razón Social..."
+                            emptyMessage="No se encontraron en Reportes Tributarios."
+                          />
+                        )}
+                      </div>
+                    </Tabs>
                     
-                    <div className="mt-3">
-                      <Label className="text-gray-400 mb-1 block">Tipo de Producto *</Label>
+                    <div className="mt-4 p-4 bg-gray-900/30 border border-gray-800 rounded-lg">
+                      <Label className="text-gray-400 mb-2 block">Tipo de Producto *</Label>
                       <Select value={createProductType || undefined} onValueChange={(val) => setCreateProductType(val as TipoProducto)}>
-                        <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                        <SelectTrigger className="bg-gray-900 border-gray-700 text-white w-full">
                           <SelectValue placeholder="Seleccione Factoring o Confirming" />
                         </SelectTrigger>
                         <SelectContent className="bg-[#121212] border-gray-800 text-white">
@@ -663,7 +714,7 @@ const SolicitudOperacionCreateEditPage = () => {
                     <Button 
                       onClick={handleCreateAndRedirect} 
                       disabled={saving || !rucInput || !createProductType} 
-                      className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black w-full mt-4"
+                      className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black w-full mt-2"
                       size="lg"
                     >
                       {saving ? (
