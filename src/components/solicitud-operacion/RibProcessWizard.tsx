@@ -98,10 +98,14 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
         <div className="absolute left-0 top-1/2 w-full h-0.5 bg-gray-800 -z-0 transform -translate-y-1/2 hidden md:block" />
         
         {steps.map((step, index) => {
-          const isCompleted = index < currentStepIndex || (index > 0 && !!relatedIds[step.id]);
           const isCurrent = step.id === currentStep;
-          const isClickable = solicitudId && (isCompleted || isCurrent || index === 0 || index === currentStepIndex + 1);
+          // A step is completed if we have a record ID for it
           const hasRecord = !!relatedIds[step.id];
+          const isCompleted = hasRecord; 
+          
+          // Make all steps clickable if we have a solicitudId (except the current one, which is just active)
+          // This allows jumping to any step to create or edit it.
+          const isClickable = !!solicitudId;
           
           let linkPath = '#';
           if (step.id === 'solicitud') {
@@ -115,8 +119,6 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
              }
           }
 
-          if (!solicitudId && index > 0) isClickable &&= false; // Disable forward nav if no solicitud created
-
           return (
             <div key={step.id} className="relative flex flex-col items-center group z-10 px-4 md:px-0">
               <Link 
@@ -129,12 +131,17 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                 <div 
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 bg-[#121212]",
+                    // Current step styling
                     isCurrent ? "border-[#00FF80] text-[#00FF80] shadow-[0_0_10px_rgba(0,255,128,0.3)] scale-110" : 
-                    isCompleted ? "border-[#00FF80] bg-[#00FF80]/10 text-[#00FF80]" : 
-                    "border-gray-700 text-gray-500 hover:border-gray-500"
+                    // Completed step styling (has record)
+                    hasRecord ? "border-[#00FF80] bg-[#00FF80]/10 text-[#00FF80]" : 
+                    // Pending step styling (clickable but no record yet)
+                    isClickable ? "border-gray-600 text-gray-400 hover:border-gray-400 hover:text-gray-200" :
+                    // Disabled styling
+                    "border-gray-800 text-gray-600"
                   )}
                 >
-                  {isCompleted && !isCurrent ? (
+                  {hasRecord && !isCurrent ? (
                     <Check className="w-5 h-5" />
                   ) : (
                     <step.icon className="w-5 h-5" />
@@ -144,12 +151,13 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                 <span className={cn(
                   "mt-2 text-xs font-medium whitespace-nowrap transition-colors",
                   isCurrent ? "text-[#00FF80]" : 
-                  isCompleted ? "text-gray-300" : "text-gray-600"
+                  hasRecord ? "text-gray-300" : 
+                  isClickable ? "text-gray-500 group-hover:text-gray-300" : "text-gray-700"
                 )}>
                   {step.label}
                 </span>
 
-                {/* Status Indicator Dot */}
+                {/* Status Indicator Dot for existing records not currently selected */}
                 {hasRecord && !isCurrent && (
                   <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00FF80] rounded-full border-2 border-[#121212]" />
                 )}
