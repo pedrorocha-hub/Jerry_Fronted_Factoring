@@ -255,17 +255,18 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
             <TabsList className="grid w-full grid-cols-3 h-9 bg-gray-900 mb-4">
               <TabsTrigger value="operacion" className="text-xs">Operación</TabsTrigger>
               <TabsTrigger value="legal" className="text-xs">Legal</TabsTrigger>
-              <TabsTrigger value="visita" className="text-xs">Visita/Otros</TabsTrigger>
+              <TabsTrigger value="visita" className="text-xs">Otros</TabsTrigger>
             </TabsList>
 
             <TabsContent value="operacion" className="space-y-2 m-0">
               {!readonly && (
-                <div className="grid grid-cols-1 gap-2">
-                  <UploadButton tipo="sustentos" label="Subir Documentos Operativos (Facturas/Sustentos)" icon={FileText} />
+                <div className="grid grid-cols-2 gap-2">
+                  <UploadButton tipo="sustentos" label="Docs Operativos" icon={FileText} />
+                  <UploadButton tipo="evidencia_visita" label="Fotos/Evidencias Visita" icon={ImageIcon} />
                 </div>
               )}
-              {renderDocList(['factura_negociar', 'sustentos'])}
-              {documents.filter(d => ['factura_negociar', 'sustentos'].includes(d.tipo)).length === 0 && (
+              {renderDocList(['factura_negociar', 'sustentos', 'evidencia_visita'])}
+              {documents.filter(d => ['factura_negociar', 'sustentos', 'evidencia_visita'].includes(d.tipo)).length === 0 && (
                 <div className="text-center py-6 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg mt-2">
                   Sin documentos operativos
                 </div>
@@ -284,12 +285,11 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
             <TabsContent value="visita" className="space-y-2 m-0">
                {!readonly && (
-                 <div className="grid grid-cols-2 gap-2">
-                   <UploadButton tipo="evidencia_visita" label="Fotos Visita" icon={ImageIcon} />
+                 <div className="grid grid-cols-1 gap-2">
                    <UploadButton tipo="eeff" label="EEFF / Otros" icon={Upload} />
                  </div>
                )}
-               {renderDocList(['evidencia_visita', 'ficha_ruc', 'sentinel', 'eeff', 'cuenta_bancaria'])}
+               {renderDocList(['ficha_ruc', 'sentinel', 'eeff', 'cuenta_bancaria'])}
             </TabsContent>
           </Tabs>
         </CardContent>
