@@ -118,6 +118,13 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     }
 
     const reqs = PRODUCT_REQUIREMENTS[tipoProducto];
+    
+    if (!reqs) {
+      // Si no hay requisitos definidos para el producto, asumimos que es válido
+      onValidationChange(true);
+      return;
+    }
+
     const allRequiredMet = reqs.required.every(docType => docStatus[docType]);
     
     onValidationChange(allRequiredMet);
@@ -135,6 +142,18 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   }
 
   const requirements = PRODUCT_REQUIREMENTS[tipoProducto];
+  
+  if (!requirements) {
+     return (
+      <Card className="bg-[#121212] border border-gray-800 opacity-50 h-full">
+        <CardContent className="p-6 text-center text-gray-500 flex flex-col items-center justify-center h-full">
+          <AlertTriangle className="h-10 w-10 mb-2 opacity-50" />
+          <p>No hay requisitos definidos para {tipoProducto}.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const missingCount = requirements.required.filter(k => !docStatus[k]).length;
 
   const renderItem = (key: DocumentTypeKey, isRequired: boolean) => {
