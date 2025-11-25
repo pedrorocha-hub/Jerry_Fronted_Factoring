@@ -98,12 +98,15 @@ const AppRoutes = () => {
       <Route path="/ventas-mensuales" element={<PrivateRoute><VentasMensualesPage /></PrivateRoute>} />
       <Route path="/ventas-mensuales/new" element={<PrivateRoute><VentasMensualesForm /></PrivateRoute>} />
       <Route path="/ventas-mensuales/edit" element={<PrivateRoute><VentasMensualesForm /></PrivateRoute>} />
+      <Route path="/ventas-mensuales/edit/:id" element={<PrivateRoute><VentasMensualesForm /></PrivateRoute>} />
 
       {/* RIB */}
       <Route path="/rib" element={<PrivateRoute><Rib /></PrivateRoute>} />
+      <Route path="/rib/edit/:id" element={<PrivateRoute><Rib /></PrivateRoute>} />
 
       {/* Comportamiento Crediticio */}
       <Route path="/comportamiento-crediticio" element={<PrivateRoute><ComportamientoCrediticio /></PrivateRoute>} />
+      <Route path="/comportamiento-crediticio/edit/:id" element={<PrivateRoute><ComportamientoCrediticio /></PrivateRoute>} />
 
       {/* RIB EEFF */}
       <Route path="/rib-eeff" element={<PrivateRoute><RibEeffPage /></PrivateRoute>} />
@@ -112,6 +115,7 @@ const AppRoutes = () => {
 
       {/* Comentarios del Ejecutivo */}
       <Route path="/comentarios-ejecutivo" element={<PrivateRoute><ComentariosEjecutivoPage /></PrivateRoute>} />
+      <Route path="/comentarios-ejecutivo/edit/:id" element={<PrivateRoute><ComentariosEjecutivoPage /></PrivateRoute>} />
 
       {/* Otras */}
       <Route path="/upload" element={<PrivateRoute><UploadPage /></PrivateRoute>} />

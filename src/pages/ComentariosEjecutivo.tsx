@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Search, Building2, Loader2, AlertCircle, Save, ArrowLeft, MessageSquare, Plus, ClipboardList } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard'
 
 const ComentariosEjecutivoPage = () => {
   const { isAdmin } = useSession();
+  const { id } = useParams<{ id: string }>(); // Obtener ID de la URL
+  const [searchParams] = useSearchParams();
   const [view, setView] = useState<'list' | 'form'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,10 +34,83 @@ const ComentariosEjecutivoPage = () => {
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
   useEffect(() => {
-    if (view === 'list') {
+    if (view === 'list' && !id && !searchParams.get('solicitud_id')) {
       loadComentarios();
     }
-  }, [view]);
+  }, [view, id, searchParams]);
+
+  // Efecto para cargar por ID si existe en la URL
+  useEffect(() => {
+    const loadById = async () => {
+      if (id && !selectedComentario) {
+        setLoading(true);
+        try {
+          // Since we don't have a getById in service, we'll fetch all and find it, or implement getById later
+          // For now, let's fetch all as a workaround or fix service if needed.
+          // Actually, ComentariosEjecutivoService does not have getById.
+          // Let's use Supabase directly for this single fetch to be efficient
+          const { data, error } = await supabase
+             .from('comentarios_ejecutivo')
+             .select('*')
+             .eq('id', id)
+             .single();
+          
+          if (error) throw error;
+          if (data) {
+            handleEdit(data);
+          }
+        } catch (err) {
+          console.error('Error loading comentario by ID:', err);
+          showError('Error al cargar el comentario');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    if (id) {
+        loadById();
+    }
+  }, [id]);
+
+  // Efecto para redirección automática desde Wizard (creación)
+  useEffect(() => {
+    const solicitudIdParam = searchParams.get('solicitud_id');
+    
+    if (solicitudIdParam && !id) {
+       const handleAutoCreate = async () => {
+         // Verificar si ya existe comentario para esta solicitud
+         try {
+           const existing = await ComentariosEjecutivoService.getBySolicitudId(solicitudIdParam);
+           if (existing) {
+             handleEdit(existing);
+             showSuccess('Se encontraron comentarios existentes para esta solicitud.');
+           } else {
+             // Crear nuevo
+             setSelectedComentario(null);
+             setSolicitudId(solicitudIdParam);
+             
+             // Cargar label de la solicitud
+             const { data: solicitud } = await supabase
+                .from('solicitudes_operacion')
+                .select('id, ruc, created_at')
+                .eq('id', solicitudIdParam)
+                .single();
+                
+             if (solicitud) {
+                const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
+                setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+             }
+             
+             setView('form');
+           }
+         } catch (err) {
+           console.error("Error checking existing comments:", err);
+         }
+       };
+       handleAutoCreate();
+    }
+  }, [searchParams, id]);
 
   const loadComentarios = async () => {
     setLoading(true);
@@ -69,18 +144,37 @@ const ComentariosEjecutivoPage = () => {
     setView('form');
   };
 
-  const handleEdit = (comentario: ComentarioEjecutivo) => {
+  const handleEdit = async (comentario: ComentarioEjecutivo) => {
     setSelectedComentario(comentario);
     setSolicitudId(comentario.solicitud_id);
-    setInitialSolicitudLabel(null);
+    
+    // Cargar label de la solicitud
+    if (comentario.solicitud_id) {
+         const { data: solicitud } = await supabase
+            .from('solicitudes_operacion')
+            .select('id, ruc, created_at')
+            .eq('id', comentario.solicitud_id)
+            .single();
+            
+         if (solicitud) {
+            const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
+            setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+         }
+    }
+    
     setView('form');
   };
 
   const handleBackToList = () => {
+    // Limpiar URL
+    window.history.replaceState({}, '', '/comentarios-ejecutivo');
     setView('list');
     setSelectedComentario(null);
     setSolicitudId('');
     setInitialSolicitudLabel(null);
+    if (!id && !searchParams.get('solicitud_id')) {
+        loadComentarios(); // Reload list if going back manually
+    }
   };
 
   const handleSave = async (comentarioData: ComentarioEjecutivo) => {

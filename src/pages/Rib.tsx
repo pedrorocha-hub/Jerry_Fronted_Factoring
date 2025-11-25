@@ -24,7 +24,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DatePicker } from '@/components/ui/date-picker';
 import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import RibAuditLogViewer from '@/components/audit/RibAuditLogViewer';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 
 const getStatusColor = (status: RibStatus | null | undefined) => {
@@ -41,7 +41,8 @@ const getStatusColor = (status: RibStatus | null | undefined) => {
 
 const RibPage = () => {
   const { isAdmin } = useSession();
-  const [searchParams] = useSearchParams(); // Hook para leer URL params
+  const { id } = useParams<{ id: string }>(); // Obtener ID de la URL
+  const [searchParams] = useSearchParams();
   const [view, setView] = useState<'list' | 'search_results' | 'form' | 'create_mode'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -84,15 +85,25 @@ const RibPage = () => {
     loadAllRibs();
   }, []);
 
+  // Efecto para cargar registro por ID
+  useEffect(() => {
+    if (id && allRibs.length > 0) {
+      const ribToEdit = allRibs.find(r => r.id === id);
+      if (ribToEdit) {
+        handleEditFromList(ribToEdit);
+      }
+    }
+  }, [id, allRibs]);
+
   // Efecto para manejar la redirección automática desde Solicitudes
   useEffect(() => {
     const solicitudIdParam = searchParams.get('solicitud_id');
     const rucParam = searchParams.get('ruc');
 
-    if (solicitudIdParam && rucParam && allRibs.length > 0) {
+    if (solicitudIdParam && rucParam && !id && allRibs.length > 0) {
       handleAutoSelect(solicitudIdParam, rucParam);
     }
-  }, [searchParams, allRibs]); // Dependencia en allRibs para asegurar que la data está cargada
+  }, [searchParams, allRibs, id]);
 
   const handleAutoSelect = async (solicitudId: string, ruc: string) => {
     // Verificar si ya existe un RIB para esta solicitud
@@ -287,7 +298,7 @@ const RibPage = () => {
   const handleSearch = async (rucToSearch: string = rucInput) => {
     if (!rucToSearch || rucToSearch.length !== 11) {
       // Solo mostrar error si no estamos en un proceso automático (para evitar spam de toasts)
-      if (!searchParams.get('ruc')) {
+      if (!searchParams.get('ruc') && !id) {
         setError('Por favor, ingrese un RUC válido de 11 dígitos.');
       }
       return;
@@ -313,8 +324,8 @@ const RibPage = () => {
         setExistingRibs(ribData);
         setAccionistas(accionistasData);
         setGerentes(gerentesData);
-        // Si venimos de redirección automática, no cambiamos la vista a search_results
-        if (!searchParams.get('solicitud_id')) {
+        // Si venimos de redirección automática o edición por ID, no cambiamos la vista a search_results
+        if (!searchParams.get('solicitud_id') && !id) {
             setView('search_results');
         }
       } else {

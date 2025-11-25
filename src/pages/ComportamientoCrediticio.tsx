@@ -24,6 +24,7 @@ import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import ComportamientoCrediticioAuditLogViewer from '@/components/audit/ComportamientoCrediticioAuditLogViewer';
 import { cn } from '@/lib/utils';
 import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
+import { useSearchParams, useParams } from 'react-router-dom';
 
 interface ReporteWithDetails extends ComportamientoCrediticio {
   nombre_empresa?: string;
@@ -41,6 +42,8 @@ const getStatusColor = (status: CrediticioStatus | null | undefined) => {
 
 const ComportamientoCrediticioPage = () => {
   const { isAdmin } = useSession();
+  const { id } = useParams<{ id: string }>(); // Obtener ID de la URL
+  const [searchParams] = useSearchParams();
   const [view, setView] = useState<'list' | 'search_results' | 'form' | 'create_mode'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -106,6 +109,119 @@ const ComportamientoCrediticioPage = () => {
   useEffect(() => {
     loadAllReports();
   }, []);
+
+  // Efecto para cargar por ID
+  useEffect(() => {
+    if (id && allReports.length > 0) {
+      const report = allReports.find(r => r.id === id);
+      if (report) {
+        handleEditFromList(report);
+      }
+    }
+  }, [id, allReports]);
+
+  // Efecto para manejar redirección automática
+  useEffect(() => {
+    const solicitudIdParam = searchParams.get('solicitud_id');
+    const rucParam = searchParams.get('ruc');
+
+    if (solicitudIdParam && rucParam && !id && allReports.length > 0) {
+      handleAutoSelect(solicitudIdParam, rucParam);
+    }
+  }, [searchParams, allReports, id]);
+
+  const handleAutoSelect = async (solicitudId: string, ruc: string) => {
+    const { data: existingReport } = await supabase
+      .from('comportamiento_crediticio')
+      .select('*')
+      .eq('solicitud_id', solicitudId)
+      .maybeSingle();
+
+    if (existingReport) {
+       // Existing report found - Edit mode
+       const fichaData = await FichaRucService.getByRuc(existingReport.ruc);
+       
+       if (fichaData) {
+         setSearchedFicha(fichaData);
+         setCreateWithoutRuc(false);
+       } else {
+         // Manual mode
+         setSearchedFicha({
+           id: 0,
+           ruc: existingReport.ruc,
+           nombre_empresa: existingReport.nombre_empresa || 'Empresa Manual',
+           actividad_empresa: '',
+           created_at: existingReport.created_at,
+           updated_at: existingReport.updated_at,
+         } as FichaRuc);
+         setCreateWithoutRuc(true);
+         setInitialSearchedFicha({
+           ruc: existingReport.ruc,
+           nombre_empresa: existingReport.nombre_empresa || 'Empresa Manual'
+         });
+       }
+       
+       await handleSelectReport(existingReport);
+       showSuccess('Se encontró un reporte existente para esta solicitud.');
+       setView('form');
+       
+    } else {
+       // No existing report - Create mode
+       setRucInput(ruc);
+       
+       const fichaData = await FichaRucService.getByRuc(ruc);
+       let empresaNombreForLabel = '';
+       
+       if (fichaData) {
+         setSearchedFicha(fichaData);
+         empresaNombreForLabel = fichaData.nombre_empresa;
+         setCreateWithoutRuc(false);
+         
+         // Try to autocomplete Sentinel data
+         await autocompleteSentinelData(ruc, false);
+       } else {
+         // Manual mode setup
+         const { data: solicitudData } = await supabase
+            .from('solicitudes_operacion')
+            .select('proveedor')
+            .eq('id', solicitudId)
+            .single();
+            
+         const nombreProveedor = solicitudData?.proveedor || 'Empresa sin nombre';
+         empresaNombreForLabel = nombreProveedor;
+         
+         const manualFicha = {
+            id: 0,
+            ruc: ruc,
+            nombre_empresa: nombreProveedor,
+            actividad_empresa: '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+         } as FichaRuc;
+         
+         setSearchedFicha(manualFicha);
+         setCreateWithoutRuc(true);
+         setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
+         
+         showSuccess('Ficha RUC no encontrada. Iniciando modo manual.');
+       }
+       
+       // Pre-fill solicitud_id
+       setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
+       
+       const { data: solicitud } = await supabase
+         .from('solicitudes_operacion')
+         .select('id, created_at')
+         .eq('id', solicitudId)
+         .single();
+         
+       if (solicitud) {
+          setInitialSolicitudLabel(`${empresaNombreForLabel} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+       }
+       
+       setView('form');
+    }
+  };
 
   useEffect(() => {
     let hasChanges = 
@@ -272,7 +388,10 @@ const ComportamientoCrediticioPage = () => {
 
   const handleSearch = async (searchTerm: string) => {
     if (!searchTerm || searchTerm.trim() === '') {
-      setError('Por favor, ingrese un RUC o nombre de empresa para buscar.');
+      // Avoid toast if auto-navigating
+      if (!searchParams.get('ruc') && !id) {
+        setError('Por favor, ingrese un RUC o nombre de empresa para buscar.');
+      }
       return;
     }
     
@@ -324,7 +443,9 @@ const ComportamientoCrediticioPage = () => {
           setExistingReports([]);
         }
         
-        setView('search_results');
+        if (!searchParams.get('solicitud_id') && !id) {
+            setView('search_results');
+        }
       } else {
         setError('No se encontró ninguna empresa con ese RUC o nombre. Puede crear un reporte manualmente.');
         showError('Empresa no encontrada en el sistema.');
@@ -569,6 +690,7 @@ const ComportamientoCrediticioPage = () => {
       }
       
       await loadAllReports();
+      window.history.replaceState({}, '', '/comportamiento-crediticio');
     } catch (err) {
       showError('Error al guardar el reporte.');
     } finally {
@@ -593,6 +715,7 @@ const ComportamientoCrediticioPage = () => {
 
   const handleBackToList = () => {
     if (isDirty && !window.confirm('Hay cambios sin guardar. ¿Desea descartarlos?')) return;
+    window.history.replaceState({}, '', '/comportamiento-crediticio');
     setView('list');
     setSearchedFicha(null);
     setRucInput('');
