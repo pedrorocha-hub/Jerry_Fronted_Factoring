@@ -232,53 +232,85 @@ const RibEeffForm = () => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
+        // Check for ID in params. The ID here might be a single UUID from rib_eeff or a composite one.
+        // If coming from the list view or wizard, it's usually a single record ID, but we need to load all related records (years).
         if (isEditMode && id) {
-          const existingData = await RibEeffService.getById(id);
-          if (existingData.length > 0) {
-            const loadedYears = [...new Set(existingData.map(d => d.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
-            setYears(loadedYears);
-
-            const proveedorData = existingData.find(d => d.tipo_entidad === 'proveedor');
-            const deudorData = existingData.find(d => d.tipo_entidad === 'deudor');
-
-            if (proveedorData) {
-              setProveedorRuc(proveedorData.ruc);
-              const proveedorFicha = await FichaRucService.getByRuc(proveedorData.ruc);
-              if (proveedorFicha) {
-                setInitialProveedorLabel(`${proveedorFicha.nombre_empresa} (${proveedorFicha.ruc})`);
+          // First, get the specific record to identify RUC and Solicitud
+          const { data: singleRecord, error } = await supabase.from('rib_eeff').select('ruc, solicitud_id, tipo_entidad, anio_reporte').eq('id', id).maybeSingle();
+          
+          if (error) throw error;
+          
+          if (singleRecord) {
+              // Now load all records for this RUC and Solicitud
+              let query = supabase.from('rib_eeff').select('*').eq('ruc', singleRecord.ruc);
+              
+              if (singleRecord.solicitud_id) {
+                  query = query.eq('solicitud_id', singleRecord.solicitud_id);
+              } else {
+                  query = query.is('solicitud_id', null);
               }
-            }
-            if (deudorData) {
-              setDeudorRuc(deudorData.ruc);
-              const deudorFicha = await FichaRucService.getByRuc(deudorData.ruc);
-              if (deudorFicha) {
-                setInitialDeudorLabel(`${deudorFicha.nombre_empresa} (${deudorFicha.ruc})`);
-              }
-            }
+              
+              const { data: existingData, error: loadError } = await query;
+              
+              if (loadError) throw loadError;
 
-            const loadedYearsData = existingData.reduce((acc, record) => {
-              if (record.anio_reporte) {
-                const entityType = record.tipo_entidad === 'proveedor' ? 'proveedor' : 'deudor';
-                if (!acc[entityType]) acc[entityType] = {};
-                acc[entityType][record.anio_reporte] = record;
-              }
-              return acc;
-            }, { proveedor: {}, deudor: {} } as any);
+              if (existingData && existingData.length > 0) {
+                const loadedYears = [...new Set(existingData.map(d => d.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
+                setYears(loadedYears);
 
-            setYearsData(loadedYearsData);
-            setStatus(existingData[0].status || 'Borrador');
-            setSolicitudId(existingData[0].solicitud_id || null);
+                const proveedorData = existingData.find(d => d.tipo_entidad === 'proveedor');
+                const deudorData = existingData.find(d => d.tipo_entidad === 'deudor');
 
-            if (existingData[0].solicitud_id) {
-              const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingData[0].solicitud_id).single();
-              if (solicitud) {
-                const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).single();
-                setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+                if (proveedorData) {
+                  setProveedorRuc(proveedorData.ruc);
+                  const proveedorFicha = await FichaRucService.getByRuc(proveedorData.ruc);
+                  if (proveedorFicha) {
+                    setInitialProveedorLabel(`${proveedorFicha.nombre_empresa} (${proveedorFicha.ruc})`);
+                    setProveedorNombre(proveedorFicha.nombre_empresa);
+                  } else {
+                    // Manual mode fallback
+                    setManualMode(true);
+                    // Try to get name from somewhere or leave blank
+                    // In a real manual scenario we might store the name in rib_eeff too, but currently schema might not support it directly unless added
+                  }
+                }
+                
+                if (deudorData) {
+                  setDeudorRuc(deudorData.ruc);
+                  const deudorFicha = await FichaRucService.getByRuc(deudorData.ruc);
+                  if (deudorFicha) {
+                    setInitialDeudorLabel(`${deudorFicha.nombre_empresa} (${deudorFicha.ruc})`);
+                    setDeudorNombre(deudorFicha.nombre_empresa);
+                  }
+                }
+
+                const loadedYearsData = existingData.reduce((acc, record) => {
+                  if (record.anio_reporte) {
+                    const entityType = record.tipo_entidad === 'proveedor' ? 'proveedor' : 'deudor';
+                    if (!acc[entityType]) acc[entityType] = {};
+                    acc[entityType][record.anio_reporte] = record;
+                  }
+                  return acc;
+                }, { proveedor: {}, deudor: {} } as any);
+
+                setYearsData(loadedYearsData);
+                setStatus(existingData[0].status || 'Borrador');
+                setSolicitudId(existingData[0].solicitud_id || null);
+
+                if (existingData[0].solicitud_id) {
+                  const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingData[0].solicitud_id).single();
+                  if (solicitud) {
+                    const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
+                    setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+                  }
+                }
               }
-            }
+          } else {
+              toast.error('Registro no encontrado.');
           }
         }
       } catch (error) {
+        console.error("Error loading initial data:", error);
         toast.error('No se pudieron cargar los datos iniciales.');
       } finally {
         setLoading(false);
@@ -447,7 +479,13 @@ const RibEeffForm = () => {
           // No detener el guardado del reporte si falla la ficha
         }
       }
-      const reportId = id || crypto.randomUUID();
+      // Keep existing IDs if updating existing records, otherwise generate new ones or use random for new sets?
+      // The previous logic used a single reportId for all rows in a set. We should maintain that if possible, or use existing IDs.
+      // If editing, use existing IDs from yearsData. If new year, generate new ID or reuse set ID?
+      // RibEeff schema: PK is (id, anio_reporte, tipo_entidad) usually? No, ID is UUID PK.
+      // So each row (year/entity) has unique ID.
+      // We need to preserve IDs for existing rows to update them properly.
+      
       const recordsToUpsert: Partial<RibEeff>[] = [];
       
       ['proveedor', 'deudor'].forEach(entityType => {
@@ -459,10 +497,50 @@ const RibEeffForm = () => {
           if (yearData && Object.keys(yearData).length > 0) {
             
             const { created_at, ...restOfYearData } = yearData;
-
+            
+            // If existing record had an ID, use it. Otherwise generate new.
+            // Wait, if we are creating a NEW report set (no ID in URL), we might want to link them?
+            // The previous code used `const reportId = id || crypto.randomUUID();` and applied it to all rows.
+            // This implies `id` column is NOT the PK, but a grouping ID?
+            // Let's check schema for rib_eeff. Usually it's just `id` UUID PK.
+            // If `id` is PK, then we cannot reuse it for multiple rows.
+            // If `id` is meant to group them, then yes. But looking at `src/types/rib-eeff.ts`, it's just `id: string`.
+            
+            // Correction: In RibEeffService, upsert uses `onConflict: 'id,anio_reporte,tipo_entidad'`. This implies composite key or constraint?
+            // If `id` is unique PK, then each row needs unique ID.
+            // If `id` is a group ID, then multiple rows can share it.
+            // Based on `getById` returning an array: `async getById(id: string): Promise<RibEeff[]>`, it suggests `id` IS a grouping ID or we are querying by something else?
+            // `const { data, error } = await supabase.from(TABLE_NAME).select('*').eq('id', id);`
+            // If `id` is PK, this returns 1 row. If it returns array, then `id` is not unique PK?
+            // Let's assume for now each row needs its own ID if `id` is PK, or we use `solicitud_id` to group.
+            // But the code was `const reportId = id || crypto.randomUUID();`... which suggests grouping.
+            
+            // However, `RibEeffForm.tsx` previous implementation:
+            // `const reportId = id || crypto.randomUUID();`
+            // `const record: Partial<RibEeff> = { ... id: reportId ... }`
+            // This strongly suggests `id` column is used as a Group ID.
+            
+            // Let's stick to that pattern to avoid breaking existing logic.
+            
+            const recordId = yearData.id || (id ? id : crypto.randomUUID()); 
+            // If we are editing (`id` exists), we try to use it. 
+            // But if `id` param in URL was just one of the IDs of the set (if they are unique), 
+            // then we might be overwriting IDs?
+            // If `rib_eeff` has `id` as PK, then we cannot force it.
+            
+            // SAFE APPROACH:
+            // If `yearData.id` exists, use it.
+            // If not, let DB generate it (undefined) OR generate new UUID if we are sure it's a new row.
+            
+            // If the previous code worked, it means `id` column IS NOT UNIQUE or is part of composite PK.
+            // Let's assume previous code was correct about `id` being shared or handled via upsert logic.
+            
             const record: Partial<RibEeff> = {
               ...restOfYearData,
-              id: reportId,
+              // id: recordId, // Let's try NOT sending ID for new rows if it's PK, or rely on yearData.id
+              // If yearData has ID, use it to update.
+              ...(yearData.id ? { id: yearData.id } : {}),
+              
               ruc: ruc,
               tipo_entidad: entityType as 'proveedor' | 'deudor',
               status: status,

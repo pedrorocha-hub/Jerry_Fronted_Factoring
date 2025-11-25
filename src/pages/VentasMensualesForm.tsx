@@ -25,12 +25,13 @@ const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 
 
 const VentasMensualesForm = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>(); // Obtener ID de la URL
   const [searchParams] = useSearchParams();
   
   // Obtener parámetros de la URL
   const rucParam = searchParams.get('ruc');
   const solicitudIdParam = searchParams.get('solicitud_id');
-  const isEditMode = !!(rucParam && solicitudIdParam);
+  const isEditMode = !!id || !!(rucParam && solicitudIdParam);
 
   const [view, setView] = useState<'create_mode' | 'form'>('create_mode');
   const [rucInput, setRucInput] = useState('');
@@ -166,13 +167,26 @@ const VentasMensualesForm = () => {
         const tempFicha: FichaRuc = {
           id: 0,
           ruc: ruc,
-          nombre_empresa: '', // Se llenará desde el input si está vacío
+          nombre_empresa: '', // Se llenará desde el input si está vacío (o debería venir de algún lado)
           actividad_empresa: '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
+        // Intentar buscar nombre en la solicitud si existe
+        if (solicitudId) {
+            const { data: solicitud } = await supabase
+                .from('solicitudes_operacion')
+                .select('proveedor')
+                .eq('id', solicitudId)
+                .single();
+            if (solicitud?.proveedor) {
+                tempFicha.nombre_empresa = solicitud.proveedor;
+            }
+        }
+        
         setProveedorFicha(tempFicha);
         setManualMode(true); // Activar modo manual para edición
+        showSuccess('Ficha RUC no encontrada. Editando en modo manual.');
       } else {
         setProveedorFicha(provFicha);
       }
@@ -211,7 +225,8 @@ const VentasMensualesForm = () => {
             .from('ficha_ruc')
             .select('nombre_empresa')
             .eq('ruc', solicitud.ruc)
-            .single();
+            .maybeSingle();
+          
           setInitialSolicitudLabel(
             `${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`
           );
@@ -220,19 +235,45 @@ const VentasMensualesForm = () => {
       
       setView('form');
     } catch (err) {
+      console.error("Error loading report:", err);
       showError('Error al cargar el reporte para editar.');
     } finally {
       setSearching(false);
     }
   };
 
+  const loadReportById = async (recordId: string) => {
+    setSearching(true);
+    try {
+      const { data: record, error } = await supabase
+        .from('ventas_mensuales')
+        .select('proveedor_ruc, solicitud_id')
+        .eq('id', recordId)
+        .single();
+      
+      if (error) throw error;
+
+      if (record) {
+        await loadReportForEdit(record.proveedor_ruc, record.solicitud_id);
+      } else {
+         showError('Registro no encontrado');
+         navigate('/ventas-mensuales');
+      }
+    } catch (e: any) {
+       console.error("Error loading by ID:", e);
+       showError('Error al cargar el registro: ' + e.message);
+    }
+  };
+
   useEffect(() => {
-    if (isEditMode && rucParam) {
+    if (id) {
+       loadReportById(id);
+    } else if (rucParam && solicitudIdParam) {
       loadReportForEdit(rucParam, solicitudIdParam);
     } else {
       setView('create_mode');
     }
-  }, [rucParam, solicitudIdParam, isEditMode]);
+  }, [id, rucParam, solicitudIdParam]);
 
   const handleSearchAndCreate = async () => {
     if (!rucInput || rucInput.length !== 11) {

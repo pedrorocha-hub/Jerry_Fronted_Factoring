@@ -65,7 +65,6 @@ const RibReporteTributarioForm = () => {
   useEffect(() => {
     if (isEditMode && id) {
       handleLoadForEdit(id);
-      setView('form');
     }
   }, [isEditMode, id]);
 
@@ -144,18 +143,19 @@ const RibReporteTributarioForm = () => {
           setSearchedFicha(fichaData);
           setCreateWithoutRuc(false);
         } else {
-          // Manual mode: No FichaRuc, use stored nombre_empresa
+          // Manual mode: No FichaRuc, use stored nombre_empresa or default
           const mockFicha: FichaRuc = {
             id: 0,
             ruc: existingDocument.deudor.ruc || '',
-            nombre_empresa: existingDocument.nombre_empresa || 'Empresa sin RUC',
+            nombre_empresa: existingDocument.nombre_empresa || 'Empresa Manual',
             estado_contribuyente: '',
             condicion_contribuyente: '',
             domicilio_fiscal: '',
             fecha_inscripcion: '',
             fecha_inicio_actividades: '',
             actividad_economica: '',
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           };
           setSearchedFicha(mockFicha);
           setCreateWithoutRuc(true);
@@ -185,13 +185,15 @@ const RibReporteTributarioForm = () => {
               .from('ficha_ruc')
               .select('nombre_empresa')
               .eq('ruc', solicitud.ruc)
-              .single();
+              .maybeSingle();
             
             setInitialSolicitudLabel(
               `${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`
             );
           }
         }
+        
+        setView('form');
       } else {
         showError('No se encontró el reporte para editar.');
         navigate('/rib-reporte-tributario');
@@ -224,7 +226,7 @@ const RibReporteTributarioForm = () => {
         .select('*')
         .or(`ruc.ilike.%${rucInput}%,nombre_empresa.ilike.%${rucInput}%`)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (searchError || !fichasData) {
         setError('No se encontró ninguna empresa con ese RUC o nombre. Puede crear un reporte manualmente.');
@@ -287,7 +289,8 @@ const RibReporteTributarioForm = () => {
       fecha_inscripcion: '',
       fecha_inicio_actividades: '',
       actividad_economica: '',
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
     setSearchedFicha(mockFicha);
