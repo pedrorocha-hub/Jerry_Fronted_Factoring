@@ -10,16 +10,7 @@ export interface Rib {
   grupo_economico: string | null;
   visita: string | null;
   status: RibStatus | null;
-  
-  // Campo legacy que se mantendrá como resumen
   descripcion_empresa: string | null;
-  
-  // Nuevos campos desglosados
-  principales_productos_servicios: string | null;
-  principales_clientes_proveedores: string | null;
-  proyectos_relevantes: string | null;
-  noticias_mercado: string | null;
-
   inicio_actividades: string | null;
   relacion_comercial_deudor: string | null;
   validado_por: string | null;

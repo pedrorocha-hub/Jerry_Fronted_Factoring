@@ -5,70 +5,61 @@ export type DocumentTypeKey =
   | 'SENTINEL' 
   | 'REPORTE_TRIBUTARIO' 
   | 'FACTURA' 
-  | 'SUSTENTOS' 
+  | 'SUSTENTOS' // Nuevo: Guías, OC, Conformidad
   | 'EEFF' 
-  | 'VIGENCIA_PODER' 
-  | 'EVIDENCIA_VISITA'
-  | 'DNI_REPRESENTANTE' // Nuevo
-  | 'COPIA_LITERAL';    // Nuevo
+  | 'VIGENCIA_PODER' // Nuevo: Vigencia de poder
+  | 'EVIDENCIA_VISITA'; // Nuevo: Fotos de visita
 
 export const DOCUMENT_LABELS: Record<DocumentTypeKey, string> = {
-  FICHA_RUC: 'Ficha RUC',
+  FICHA_RUC: 'Ficha RUC (Opcional)',
   SENTINEL: 'Reporte Sentinel',
   REPORTE_TRIBUTARIO: 'Reporte Tributario SUNAT',
   FACTURA: 'Factura a Negociar',
-  SUSTENTOS: 'Sustentos (Guías/OC/Conformidad)',
-  EEFF: 'Estados Financieros (DJ Anual)',
-  VIGENCIA_PODER: 'Vigencia de Poder',
-  EVIDENCIA_VISITA: 'Fotos/Evidencia Visita',
-  DNI_REPRESENTANTE: 'DNI Representante Legal',
-  COPIA_LITERAL: 'Copia Literal'
+  SUSTENTOS: 'Sustentos (Guías/OC)',
+  EEFF: 'Estados Financieros',
+  VIGENCIA_PODER: 'Vigencia de Poder / DNI',
+  EVIDENCIA_VISITA: 'Fotos/Evidencia Visita'
 };
 
 export const PRODUCT_REQUIREMENTS: Record<TipoProducto, { required: DocumentTypeKey[], optional: DocumentTypeKey[] }> = {
   FACTORING: {
-    // FACTORING: La Factura y los Sustentos son el núcleo de la operación.
+    // A. FACTORING: Factura y Reporte Tributario IMPRESCINDIBLES
     required: [
       'REPORTE_TRIBUTARIO', 
       'FACTURA', 
       'SUSTENTOS', 
-      'VIGENCIA_PODER',
-      'DNI_REPRESENTANTE'
+      'VIGENCIA_PODER'
     ],
+    // Ficha RUC y EEFF son Opcionales/Adicionales
     optional: [
-      'EEFF', // Opcional en Factoring puntual a veces, pero recomendable
+      'EEFF', 
       'FICHA_RUC', 
       'SENTINEL',
-      'EVIDENCIA_VISITA',
-      'COPIA_LITERAL'
+      'EVIDENCIA_VISITA'
     ]
   },
   CONFIRMING: {
-    // CONFIRMING: Se basa más en la línea del pagador y análisis financiero del proveedor
+    // B. CONFIRMING: EEFF y Reporte Tributario IMPRESCINDIBLES
     required: [
       'REPORTE_TRIBUTARIO', 
       'EEFF', 
-      'VIGENCIA_PODER',
-      'DNI_REPRESENTANTE'
+      'VIGENCIA_PODER'
     ],
-    // La factura puede no existir aún en el momento del análisis de línea
+    // Factura es Opcional (puede ser línea sin factura aún)
     optional: [
       'FACTURA', 
       'SUSTENTOS', 
       'FICHA_RUC', 
       'SENTINEL',
-      'EVIDENCIA_VISITA',
-      'COPIA_LITERAL'
+      'EVIDENCIA_VISITA'
     ]
   },
   LINEA: {
-    // LINEA (Capital de Trabajo / General)
+    // Criterio general para Línea
     required: [
       'REPORTE_TRIBUTARIO', 
       'EEFF', 
-      'VIGENCIA_PODER',
-      'DNI_REPRESENTANTE',
-      'COPIA_LITERAL'
+      'VIGENCIA_PODER'
     ],
     optional: [
       'FACTURA', 

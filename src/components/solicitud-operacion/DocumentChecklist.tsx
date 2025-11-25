@@ -13,7 +13,7 @@ interface DocumentChecklistProps {
   onValidationChange: (isValid: boolean) => void;
 }
 
-// Keys for which the "Subir" button should be hidden (handled in Operation tab or manually via manager)
+// Keys for which the "Subir" button should be hidden (handled in Operation tab)
 const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = ['FACTURA', 'SUSTENTOS', 'EVIDENCIA_VISITA'];
 
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
@@ -30,9 +30,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     EEFF: false,
     VIGENCIA_PODER: false,
     SUSTENTOS: false,
-    EVIDENCIA_VISITA: false,
-    DNI_REPRESENTANTE: false,
-    COPIA_LITERAL: false
+    EVIDENCIA_VISITA: false
   });
 
   // Función para verificar existencia de documentos en BD
@@ -51,12 +49,10 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
       ]);
 
       // Para documentos que no tienen tabla propia procesada, buscamos en la tabla documentos
-      const [sustentosDoc, vigenciaDoc, evidenciaDoc, dniDoc, copiaDoc] = await Promise.all([
+      const [sustentosDoc, vigenciaDoc, evidenciaDoc] = await Promise.all([
         supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1),
         supabase.from('documentos').select('id').eq('tipo', 'vigencia_poder').ilike('nombre_archivo', `%${ruc}%`).limit(1),
-        supabase.from('documentos').select('id').eq('tipo', 'evidencia_visita').ilike('nombre_archivo', `%${ruc}%`).limit(1),
-        supabase.from('documentos').select('id').eq('tipo', 'dni_representante').ilike('nombre_archivo', `%${ruc}%`).limit(1),
-        supabase.from('documentos').select('id').eq('tipo', 'copia_literal').ilike('nombre_archivo', `%${ruc}%`).limit(1)
+        supabase.from('documentos').select('id').eq('tipo', 'evidencia_visita').ilike('nombre_archivo', `%${ruc}%`).limit(1)
       ]);
 
       const newStatus = {
@@ -67,9 +63,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         EEFF: (eeff.data?.length || 0) > 0,
         VIGENCIA_PODER: (vigenciaDoc.data?.length || 0) > 0,
         SUSTENTOS: (sustentosDoc.data?.length || 0) > 0,
-        EVIDENCIA_VISITA: (evidenciaDoc.data?.length || 0) > 0,
-        DNI_REPRESENTANTE: (dniDoc.data?.length || 0) > 0,
-        COPIA_LITERAL: (copiaDoc.data?.length || 0) > 0
+        EVIDENCIA_VISITA: (evidenciaDoc.data?.length || 0) > 0
       };
 
       setDocStatus(newStatus);

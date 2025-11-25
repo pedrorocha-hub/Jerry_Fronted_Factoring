@@ -1,9 +1,6 @@
 export type SolicitudStatus = 'Borrador' | 'En Revisión' | 'Completado';
 export type TipoProducto = 'FACTORING' | 'CONFIRMING' | 'LINEA' | null;
 export type TipoOperacion = 'PUNTUAL' | 'LINEA' | null;
-export type TipoRelacion = 'PROVEEDOR' | 'CLIENTE' | 'CONTRATISTA' | null;
-export type NivelEndeudamiento = 'NORMAL' | 'CPP' | 'DEFICIENTE' | 'PERDIDA' | null;
-export type TipoAval = 'AVAL_PERSONAL' | 'FIANZA_SOLIDARIA' | 'EMPRESA_VINCULADA' | 'CARTA_FIANZA' | null;
 
 export interface SolicitudOperacion {
   id: string;
@@ -14,13 +11,12 @@ export interface SolicitudOperacion {
   
   // Datos de contacto y visita
   direccion?: string | null;
-  visita?: string | null; // Resumen general (legacy)
+  visita?: string | null;
   contacto?: string | null;
   visita_tipo?: 'Presencial' | 'Virtual' | 'No Realizada' | null;
   visita_fecha?: string | null;
   visita_contacto_nombre?: string | null;
   visita_contacto_cargo?: string | null;
-  visita_contacto_telefono?: string | null; // Nuevo
   
   // Datos Operativos
   comentarios?: string | null;
@@ -29,7 +25,7 @@ export interface SolicitudOperacion {
   producto?: string | null;
   proveedor?: string | null;
   lp_vigente_gve?: string | null;
-  riesgo_aprobado?: string | null; 
+  riesgo_aprobado?: string | null; // Guardado como texto o numérico en DB, frontend lo maneja
   propuesta_comercial?: string | null;
   exposicion_total?: string | null;
   
@@ -48,7 +44,7 @@ export interface SolicitudOperacion {
   user_id?: string | null;
   validado_por?: string | null;
 
-  // Campos comerciales
+  // Nuevos campos comerciales
   tipo_operacion?: TipoOperacion;
   tipo_producto?: TipoProducto;
   tasa_tea?: number | null;
@@ -59,7 +55,7 @@ export interface SolicitudOperacion {
   tasa_minima?: number | null;
   monto_original?: number | null;
   
-  // Campos RIB y Operativos
+  // Nuevos campos RIB agregados
   antiguedad_vinculo?: string | null;
   valor_neto?: number | null;
   vigencia_aprobacion?: string | null;
@@ -69,19 +65,6 @@ export interface SolicitudOperacion {
   check_pagos_observados?: boolean | null;
   detalle_pagos_observados?: string | null;
   observacion_pagos?: string | null;
-
-  // Nuevos Campos Fase 2
-  tipo_relacion?: TipoRelacion;
-  detalle_proyecto?: string | null;
-  nivel_endeudamiento?: NivelEndeudamiento;
-  tiene_disputas?: boolean | null;
-  detalle_disputas?: string | null;
-  tipo_aval_especifico?: TipoAval;
-  
-  // Informe Final Riesgos
-  analisis_fortalezas?: string | null;
-  analisis_riesgos?: string | null;
-  analisis_mitigantes?: string | null;
 }
 
 export interface SolicitudOperacionRiesgo {
@@ -99,5 +82,4 @@ export interface SolicitudOperacionRiesgo {
 
 export interface SolicitudOperacionWithRiesgos extends SolicitudOperacion {
   riesgos?: SolicitudOperacionRiesgo[];
-  empresa_nombre?: string;
 }
