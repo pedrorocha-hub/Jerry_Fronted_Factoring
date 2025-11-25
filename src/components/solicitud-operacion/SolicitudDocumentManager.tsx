@@ -237,7 +237,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
   };
 
   return (
-    <>
+    <div id="evidencias-section">
       <Card className="bg-[#121212] border border-gray-800">
         <CardHeader className="pb-3">
           <CardTitle className="text-white flex items-center justify-between text-base">
@@ -262,7 +262,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
               {!readonly && (
                 <div className="grid grid-cols-2 gap-2">
                   <UploadButton tipo="sustentos" label="Docs Operativos" icon={FileText} />
-                  <UploadButton tipo="evidencia_visita" label="Fotos/Evidencias Visita" icon={ImageIcon} />
+                  <UploadButton tipo="evidencia_visita" label="Fotos/Evidencias Visita (Opcional)" icon={ImageIcon} />
                 </div>
               )}
               {renderDocList(['factura_negociar', 'sustentos', 'evidencia_visita'])}
@@ -344,7 +344,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
            </div>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 };
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, ExternalLink, RefreshCw, ArrowDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,13 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     onValidationChange(allRequiredMet);
   }, [docStatus, tipoProducto, onValidationChange]);
 
+  const handleScrollToUpload = () => {
+    const element = document.getElementById('evidencias-section');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   if (!tipoProducto) {
     return (
       <Card className="bg-[#121212] border border-gray-800 opacity-50 h-full">
@@ -126,10 +133,10 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
               variant="ghost" 
               size="sm" 
               className="h-7 text-xs text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10"
-              onClick={() => window.open('/upload', '_blank')}
+              onClick={handleScrollToUpload}
             >
               Subir
-              <ExternalLink className="ml-1 h-3 w-3" />
+              <ArrowDown className="ml-1 h-3 w-3" />
             </Button>
           )}
           {exists && (
