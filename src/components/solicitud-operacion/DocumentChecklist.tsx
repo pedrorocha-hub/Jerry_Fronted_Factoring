@@ -63,6 +63,10 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
       ]);
 
       // Para documentos que no tienen tabla propia procesada o pueden estar solo como archivo
+      // Buscamos cualquier documento vinculado a esta solicitud O que coincida por nombre/tipo si es histórico
+      // Pero para el checklist actual, lo más importante es si existe la evidencia.
+      
+      // Consultas específicas para evidencias
       const [sustentosDoc, vigenciaDoc, evidenciaDoc, facturaDoc] = await Promise.all([
         supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1),
         supabase.from('documentos').select('id').eq('tipo', 'vigencia_poder').ilike('nombre_archivo', `%${ruc}%`).limit(1),
@@ -124,6 +128,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     
     setUploadingType(key);
     
+    // Mapeo de tipos
     const tipoMap: Record<string, DocumentoTipo> = {
       'FICHA_RUC': 'ficha_ruc',
       'SENTINEL': 'sentinel',
@@ -135,16 +140,18 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
       'EVIDENCIA_VISITA': 'evidencia_visita'
     };
     
-    const tipo = tipoMap[key];
+    // Si bien usamos tipos específicos, el usuario pidió que funcione "igual que el Label"
+    // El Label sube todo como 'sustentos'.
+    // Sin embargo, para mantener el checklist verde, es mejor usar el tipo específico si existe,
+    // pero asegurando que se pase el solicitudId para que sea una "evidencia" y no dispare IA.
+    // Todos estos tipos (factura, sustentos, vigencia, evidencia_visita) son considerados "sustentos"
+    // en la lógica de negocio si tienen solicitudId.
     
-    if (!tipo) {
-      showError('Tipo de documento no mapeado');
-      setUploadingType(null);
-      return;
-    }
+    const tipo = tipoMap[key] || 'sustentos';
 
     try {
       // Subida directa vinculada a la solicitudId (evita webhook de IA)
+      // Esta es la misma lógica que usa SolicitudDocumentManager
       await DocumentoService.uploadAndInsert(
         file, 
         tipo, 
@@ -225,7 +232,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
                 </Button>
               )}
 
-              {/* Botón para Evidencias (Subida directa) */}
+              {/* Botón para Evidencias (Subida directa - Ganchito) */}
               {!isAIProcess && (
                 <Button 
                   variant="ghost" 
