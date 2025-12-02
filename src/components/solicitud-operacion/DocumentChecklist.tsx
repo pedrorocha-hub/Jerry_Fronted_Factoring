@@ -31,7 +31,11 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [uploadingType, setUploadingType] = useState<DocumentTypeKey | null>(null);
+  
+  // Usamos una referencia para saber qué documento se intentó subir sin renderizar/bloquear UI antes de tiempo
+  const activeUploadKeyRef = useRef<DocumentTypeKey | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [docStatus, setDocStatus] = useState<Record<DocumentTypeKey, boolean>>({
     FICHA_RUC: false,
     SENTINEL: false,
@@ -105,7 +109,8 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   }, [docStatus, tipoProducto, onValidationChange]);
 
   const handleDirectUploadClick = (key: DocumentTypeKey) => {
-    setUploadingType(key);
+    activeUploadKeyRef.current = key;
+    // No establecemos uploadingType aquí para evitar el loop infinito si cancelan
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
@@ -114,7 +119,13 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !uploadingType) return;
+    const key = activeUploadKeyRef.current;
+    
+    // Si no hay archivo o no hay clave activa, salimos sin activar el loading
+    if (!file || !key) return;
+    
+    // Ahora sí activamos el spinner
+    setUploadingType(key);
     
     // Convertir DocumentTypeKey a DocumentoTipo
     const tipoMap: Record<string, DocumentoTipo> = {
@@ -128,7 +139,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
       'EVIDENCIA_VISITA': 'evidencia_visita'
     };
     
-    const tipo = tipoMap[uploadingType];
+    const tipo = tipoMap[key];
     
     if (!tipo) {
       showError('Tipo de documento no mapeado');
@@ -142,15 +153,16 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         tipo, 
         undefined, 
         false, 
-        solicitudId // Si existe, se vincula y no se envía al webhook (gracias al trigger modificado)
+        solicitudId 
       );
       showSuccess('Evidencia adjuntada correctamente');
-      setTimeout(checkDocuments, 1000); // Dar un momento para que se refleje
+      setTimeout(checkDocuments, 1000); 
     } catch (err: any) {
       console.error('Error subiendo evidencia:', err);
       showError(`Error al subir: ${err.message}`);
     } finally {
       setUploadingType(null);
+      activeUploadKeyRef.current = null;
     }
   };
 
