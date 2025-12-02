@@ -32,6 +32,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   const [loading, setLoading] = useState(false);
   const [uploadingType, setUploadingType] = useState<DocumentTypeKey | null>(null);
   
+  // Usamos una referencia para saber qué documento se intentó subir sin renderizar/bloquear UI antes de tiempo
   const activeUploadKeyRef = useRef<DocumentTypeKey | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -61,36 +62,26 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
       ]);
 
-      // Verificamos si existen documentos de sustento vinculados a la solicitud (si tenemos ID)
-      // O documentos de sustento con el RUC en el nombre (fallback)
-      let hasSustentos = false;
+      // Para documentos de evidencia, ahora todos se suben como 'sustentos', pero buscamos por nombre o si existe algún sustento
+      // para mantener el checklist visualmente útil.
+      // Nota: Al unificar todo en 'sustentos', la distinción exacta se pierde a nivel de tipo de documento,
+      // pero verificamos si existe *algún* documento de tipo sustentos para la solicitud o por nombre.
       
-      if (solicitudId) {
-        const { count } = await supabase
-          .from('documentos')
-          .select('*', { count: 'exact', head: true })
-          .eq('solicitud_id', solicitudId);
-        
-        if (count && count > 0) hasSustentos = true;
-      }
+      const [sustentosDoc] = await Promise.all([
+        supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1)
+      ]);
 
-      if (!hasSustentos) {
-         const { count } = await supabase
-          .from('documentos')
-          .select('*', { count: 'exact', head: true })
-          .eq('tipo', 'sustentos')
-          .ilike('nombre_archivo', `%${ruc}%`);
-          
-         if (count && count > 0) hasSustentos = true;
-      }
+      // Si existe un documento de sustentos, asumimos que puede cubrir los requisitos de evidencia
+      // O mantenemos la lógica anterior si el usuario subió con otros tipos previamente.
+      const hasSustentos = (sustentosDoc.data?.length || 0) > 0;
 
       const newStatus = {
         FICHA_RUC: !!ficha.data,
         SENTINEL: !!sentinel.data,
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
-        FACTURA: (facturas.data?.length || 0) > 0 || hasSustentos, 
+        FACTURA: (facturas.data?.length || 0) > 0 || hasSustentos, // Asumimos OK si hay sustentos
         EEFF: (eeff.data?.length || 0) > 0,
-        VIGENCIA_PODER: hasSustentos,
+        VIGENCIA_PODER: hasSustentos, // Asumimos OK si hay sustentos
         SUSTENTOS: hasSustentos,
         EVIDENCIA_VISITA: hasSustentos
       };
@@ -105,7 +96,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
   useEffect(() => {
     checkDocuments();
-  }, [ruc, solicitudId]);
+  }, [ruc]);
 
   // Validar cumplimiento de requisitos y notificar al padre
   useEffect(() => {
@@ -122,10 +113,6 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   }, [docStatus, tipoProducto, onValidationChange]);
 
   const handleDirectUploadClick = (key: DocumentTypeKey) => {
-    if (!solicitudId) {
-      showError("Debe guardar la solicitud antes de adjuntar documentos.");
-      return;
-    }
     activeUploadKeyRef.current = key;
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -141,33 +128,23 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     
     setUploadingType(key);
     
-    // Forzamos tipo 'sustentos' y vinculamos al solicitudId
+    // IMPORTANTE: El usuario solicitó que todos los botones de "gancho" suban como 'sustentos'
+    // y se vinculen a la solicitudId.
     const tipo: DocumentoTipo = 'sustentos';
 
     try {
+      // Subida directa vinculada a la solicitudId (evita webhook de IA)
       await DocumentoService.uploadAndInsert(
         file, 
         tipo, 
         undefined, 
         false, 
-        solicitudId 
+        solicitudId // Esto es crucial para que se vincule a la solicitud y no se procese por IA
       );
-      showSuccess('Documento adjuntado correctamente');
-      
-      // Actualizar estado local para reflejar el cambio inmediatamente
-      // aunque checkDocuments lo hará de nuevo desde la BD
-      setDocStatus(prev => ({
-        ...prev,
-        [key]: true,
-        // También marcamos otros que dependen de sustentos si queremos ser optimistas
-        VIGENCIA_PODER: true,
-        SUSTENTOS: true,
-        EVIDENCIA_VISITA: true
-      }));
-
+      showSuccess('Evidencia adjuntada correctamente');
       setTimeout(checkDocuments, 1000); 
     } catch (err: any) {
-      console.error('Error subiendo documento:', err);
+      console.error('Error subiendo evidencia:', err);
       showError(`Error al subir: ${err.message}`);
     } finally {
       setUploadingType(null);
@@ -233,26 +210,28 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
                   title="Ir a procesar con IA"
                 >
                   <Brain className="h-3 w-3" />
-                  Subir IA
+                  Subir
                 </Button>
               )}
 
               {/* Botón para Evidencias (Subida directa - Ganchito) */}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
-                onClick={() => handleDirectUploadClick(key)}
-                disabled={!!uploadingType || !solicitudId}
-                title={!solicitudId ? "Guarde la solicitud para adjuntar" : "Adjuntar documento"}
-              >
-                {isUploadingThis ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Paperclip className="h-3 w-3" />
-                )}
-                Adjuntar
-              </Button>
+              {!isAIProcess && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
+                  onClick={() => handleDirectUploadClick(key)}
+                  disabled={!!uploadingType}
+                  title="Adjuntar evidencia (sin procesar)"
+                >
+                  {isUploadingThis ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-3 w-3" />
+                  )}
+                  Subir
+                </Button>
+              )}
             </>
           )}
           {exists && (
@@ -304,6 +283,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         </CardContent>
       </Card>
       
+      {/* Input oculto para la subida directa */}
       <input
         type="file"
         ref={fileInputRef}

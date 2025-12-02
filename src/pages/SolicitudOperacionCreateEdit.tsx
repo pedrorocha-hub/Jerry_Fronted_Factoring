@@ -789,7 +789,6 @@ const SolicitudOperacionCreateEditPage = () => {
                  ruc={searchedFicha?.ruc || rucInput}
                  tipoProducto={solicitudFormData.tipo_producto}
                  onValidationChange={setIsDocumentationComplete}
-                 solicitudId={id || createdSolicitudId || undefined} // Pass ID for linking documents
                />
 
                {editingSolicitud && (
