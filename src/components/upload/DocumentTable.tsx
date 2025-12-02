@@ -12,7 +12,8 @@ import {
   Tag,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Download
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,8 @@ import {
 import { Documento } from '@/types/documento';
 import DocumentDetailView from './DocumentDetailView';
 import { useSession } from '@/contexts/SessionContext';
+import { DocumentoService } from '@/services/documentoService';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface DocumentTableProps {
   documentos: Documento[];
@@ -67,18 +70,23 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
   const [selectedDocument, setSelectedDocument] = useState<Documento | null>(null);
   const itemsPerPage = 10;
 
-  // Obtener estados únicos para el filtro
+  // Filtrar documentos:
+  // 1. Ocultar documentos asociados a solicitudes (evidencias/sustentos)
+  // 2. Aplicar filtros de búsqueda, estado y tipo
+  const visibleDocumentos = documentos.filter(doc => !doc.solicitud_id);
+
+  // Obtener estados únicos para el filtro (solo de los visibles)
   const uniqueStatuses = Array.from(new Set(
-    documentos.map(doc => doc.estado).filter(estado => estado)
+    visibleDocumentos.map(doc => doc.estado).filter(estado => estado)
   )).sort();
 
-  // Obtener tipos únicos para el filtro
+  // Obtener tipos únicos para el filtro (solo de los visibles)
   const uniqueTypes = Array.from(new Set(
-    documentos.map(doc => doc.tipo).filter(tipo => tipo)
+    visibleDocumentos.map(doc => doc.tipo).filter(tipo => tipo)
   )).sort();
 
-  // Filtrar documentos
-  const filteredDocumentos = documentos.filter(documento => {
+  // Filtrar documentos visibles según criterios del usuario
+  const filteredDocumentos = visibleDocumentos.filter(documento => {
     const matchesSearch = 
       (documento.nombre_archivo && documento.nombre_archivo.toLowerCase().includes(searchTerm.toLowerCase())) ||
       documento.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -97,6 +105,21 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  const handleDownload = async (documento: Documento) => {
+    try {
+      const url = await DocumentoService.getSignedUrl(documento.storage_path);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = documento.nombre_archivo || 'documento.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error descargando archivo:', error);
+      showError('Error al descargar el archivo');
+    }
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -217,10 +240,10 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-[#00FF80] flex-shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate text-white">
+                          <p className="text-sm font-medium truncate text-white" title={documento.nombre_archivo || 'Sin nombre'}>
                             {documento.nombre_archivo || 'Sin nombre'}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">
+                          <p className="text-xs text-gray-500 truncate" title={documento.storage_path}>
                             {documento.storage_path}
                           </p>
                         </div>
@@ -268,6 +291,15 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
                           className="text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10"
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDownload(documento)}
+                          title="Descargar"
+                          className="text-gray-400 hover:text-blue-400 hover:bg-blue-500/10"
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                         {isAdmin && documento.estado === 'error' && (
                           <Button
