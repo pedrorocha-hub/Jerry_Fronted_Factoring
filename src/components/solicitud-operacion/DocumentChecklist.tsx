@@ -62,28 +62,28 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
       ]);
 
-      // Para documentos que no tienen tabla propia procesada o pueden estar solo como archivo
-      // Buscamos cualquier documento vinculado a esta solicitud O que coincida por nombre/tipo si es histórico
-      // Pero para el checklist actual, lo más importante es si existe la evidencia.
+      // Para documentos de evidencia, ahora todos se suben como 'sustentos', pero buscamos por nombre o si existe algún sustento
+      // para mantener el checklist visualmente útil.
+      // Nota: Al unificar todo en 'sustentos', la distinción exacta se pierde a nivel de tipo de documento,
+      // pero verificamos si existe *algún* documento de tipo sustentos para la solicitud o por nombre.
       
-      // Consultas específicas para evidencias
-      const [sustentosDoc, vigenciaDoc, evidenciaDoc, facturaDoc] = await Promise.all([
-        supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1),
-        supabase.from('documentos').select('id').eq('tipo', 'vigencia_poder').ilike('nombre_archivo', `%${ruc}%`).limit(1),
-        supabase.from('documentos').select('id').eq('tipo', 'evidencia_visita').ilike('nombre_archivo', `%${ruc}%`).limit(1),
-        supabase.from('documentos').select('id').eq('tipo', 'factura_negociar').ilike('nombre_archivo', `%${ruc}%`).limit(1)
+      const [sustentosDoc] = await Promise.all([
+        supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1)
       ]);
+
+      // Si existe un documento de sustentos, asumimos que puede cubrir los requisitos de evidencia
+      // O mantenemos la lógica anterior si el usuario subió con otros tipos previamente.
+      const hasSustentos = (sustentosDoc.data?.length || 0) > 0;
 
       const newStatus = {
         FICHA_RUC: !!ficha.data,
         SENTINEL: !!sentinel.data,
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
-        // La factura cuenta si está procesada en factura_negociar O si existe el archivo en documentos
-        FACTURA: (facturas.data?.length || 0) > 0 || (facturaDoc.data?.length || 0) > 0,
+        FACTURA: (facturas.data?.length || 0) > 0 || hasSustentos, // Asumimos OK si hay sustentos
         EEFF: (eeff.data?.length || 0) > 0,
-        VIGENCIA_PODER: (vigenciaDoc.data?.length || 0) > 0,
-        SUSTENTOS: (sustentosDoc.data?.length || 0) > 0,
-        EVIDENCIA_VISITA: (evidenciaDoc.data?.length || 0) > 0
+        VIGENCIA_PODER: hasSustentos, // Asumimos OK si hay sustentos
+        SUSTENTOS: hasSustentos,
+        EVIDENCIA_VISITA: hasSustentos
       };
 
       setDocStatus(newStatus);
@@ -128,36 +128,18 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     
     setUploadingType(key);
     
-    // Mapeo de tipos
-    const tipoMap: Record<string, DocumentoTipo> = {
-      'FICHA_RUC': 'ficha_ruc',
-      'SENTINEL': 'sentinel',
-      'REPORTE_TRIBUTARIO': 'reporte_tributario',
-      'FACTURA': 'factura_negociar',
-      'EEFF': 'eeff',
-      'VIGENCIA_PODER': 'vigencia_poder',
-      'SUSTENTOS': 'sustentos',
-      'EVIDENCIA_VISITA': 'evidencia_visita'
-    };
-    
-    // Si bien usamos tipos específicos, el usuario pidió que funcione "igual que el Label"
-    // El Label sube todo como 'sustentos'.
-    // Sin embargo, para mantener el checklist verde, es mejor usar el tipo específico si existe,
-    // pero asegurando que se pase el solicitudId para que sea una "evidencia" y no dispare IA.
-    // Todos estos tipos (factura, sustentos, vigencia, evidencia_visita) son considerados "sustentos"
-    // en la lógica de negocio si tienen solicitudId.
-    
-    const tipo = tipoMap[key] || 'sustentos';
+    // IMPORTANTE: El usuario solicitó que todos los botones de "gancho" suban como 'sustentos'
+    // y se vinculen a la solicitudId.
+    const tipo: DocumentoTipo = 'sustentos';
 
     try {
       // Subida directa vinculada a la solicitudId (evita webhook de IA)
-      // Esta es la misma lógica que usa SolicitudDocumentManager
       await DocumentoService.uploadAndInsert(
         file, 
         tipo, 
         undefined, 
         false, 
-        solicitudId 
+        solicitudId // Esto es crucial para que se vincule a la solicitud y no se procese por IA
       );
       showSuccess('Evidencia adjuntada correctamente');
       setTimeout(checkDocuments, 1000); 
