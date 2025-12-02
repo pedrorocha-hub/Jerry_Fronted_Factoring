@@ -57,6 +57,24 @@ const DOCUMENT_TYPES: { value: DocumentoTipo; label: string; icon: string; descr
     icon: '🛡️',
     description: 'Reporte de crédito de Sentinel'
   },
+  { 
+    value: 'factura_negociar', 
+    label: 'Factura a Negociar', 
+    icon: '💰',
+    description: 'Factura comercial a ser financiada'
+  },
+  { 
+    value: 'sustentos', 
+    label: 'Sustentos (Guías/OC)', 
+    icon: '📁',
+    description: 'Documentos de sustento como Guías de Remisión u Órdenes de Compra'
+  },
+  { 
+    value: 'evidencia_visita', 
+    label: 'Evidencia de Visita', 
+    icon: '📷',
+    description: 'Fotos o reportes de la visita comercial'
+  },
 ];
 
 const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplete }) => {
@@ -83,22 +101,22 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
       
       if (fileName.includes('ruc') || fileName.includes('ficha')) {
         setDocumentType('ficha_ruc');
-        console.log('Auto-selected: ficha_ruc');
       } else if (fileName.includes('cta') || fileName.includes('cuenta') || fileName.includes('bancaria') || fileName.includes('banco')) {
         setDocumentType('cuenta_bancaria');
-        console.log('Auto-selected: cuenta_bancaria');
       } else if (fileName.includes('representante') || fileName.includes('legal')) {
         setDocumentType('representante_legal');
-        console.log('Auto-selected: representante_legal');
       } else if (fileName.includes('eeff') || fileName.includes('financiero') || fileName.includes('declaracion')) {
         setDocumentType('eeff');
-        console.log('Auto-selected: eeff');
       } else if (fileName.includes('tributario') || fileName.includes('reporte') || fileName.includes('balance')) {
         setDocumentType('reporte_tributario');
-        console.log('Auto-selected: reporte_tributario');
       } else if (fileName.includes('sentinel')) {
         setDocumentType('sentinel');
-        console.log('Auto-selected: sentinel');
+      } else if (fileName.includes('factura') || fileName.includes('invoice')) {
+        setDocumentType('factura_negociar');
+      } else if (fileName.includes('guia') || fileName.includes('orden') || fileName.includes('oc')) {
+        setDocumentType('sustentos');
+      } else if (fileName.includes('visita') || fileName.includes('foto')) {
+        setDocumentType('evidencia_visita');
       }
     }
   };
@@ -117,9 +135,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
       showError('Selecciona el tipo de documento');
       return;
     }
-
-    console.log('Starting upload process...');
-    console.log('Document type selected:', documentType);
 
     setIsUploading(true);
     
@@ -140,8 +155,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
         const file = selectedFiles[i];
         
         try {
-          console.log(`Uploading file ${i + 1}/${selectedFiles.length}:`, file.name, 'as type:', documentType);
-          
           await DocumentoService.uploadAndInsert(
             file,
             documentType,
@@ -186,8 +199,15 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
         }
       }
 
+      // Check for evidence types to show appropriate message
+      const isEvidenceType = ['factura_negociar', 'sustentos', 'evidencia_visita'].includes(documentType);
+
       if (successCount > 0) {
-        showSuccess(`${successCount} archivo(s) subido(s) y enviado(s) al webhook para procesamiento`);
+        if (isEvidenceType) {
+          showSuccess(`${successCount} evidencia(s) subida(s) correctamente`);
+        } else {
+          showSuccess(`${successCount} archivo(s) subido(s) y enviado(s) para procesamiento`);
+        }
       }
       
       if (errorCount > 0) {
@@ -224,25 +244,16 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
     }
   };
 
-  const getStatusColor = (status: UploadProgress['status']) => {
+  const getStatusText = (status: UploadProgress['status'], type: string) => {
+    const isEvidence = ['factura_negociar', 'sustentos', 'evidencia_visita'].includes(type);
+    
     switch (status) {
       case 'uploading':
-        return 'text-[#00FF80]';
+        return isEvidence ? 'Subiendo evidencia...' : 'Enviando al webhook...';
       case 'completed':
-        return 'text-[#00FF80]';
+        return 'Completado';
       case 'error':
-        return 'text-red-400';
-    }
-  };
-
-  const getStatusText = (status: UploadProgress['status']) => {
-    switch (status) {
-      case 'uploading':
-        return 'Enviando al webhook...';
-      case 'completed':
-        return 'Enviado exitosamente';
-      case 'error':
-        return 'Error en envío';
+        return 'Error';
     }
   };
 
@@ -252,14 +263,11 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
         {/* Selector de tipo de documento */}
         <div>
           <Label htmlFor="documentType" className="text-gray-300 font-medium">Tipo de Documento *</Label>
-          <Select value={documentType} onValueChange={(value) => {
-            console.log('Manual type selection:', value);
-            setDocumentType(value as DocumentoTipo);
-          }}>
+          <Select value={documentType} onValueChange={(value) => setDocumentType(value as DocumentoTipo)}>
             <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white focus:border-[#00FF80]/50">
               <SelectValue placeholder="Selecciona el tipo de documento" />
             </SelectTrigger>
-            <SelectContent className="bg-[#121212] border-gray-800">
+            <SelectContent className="bg-[#121212] border-gray-800 max-h-[300px]">
               {DOCUMENT_TYPES.map((type) => (
                 <SelectItem key={type.value} value={type.value} className="text-white hover:bg-gray-800">
                   <div className="flex items-start space-x-3 py-2">
@@ -273,21 +281,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
               ))}
             </SelectContent>
           </Select>
-          {documentType && (
-            <div className="mt-2 p-3 bg-[#00FF80]/10 border border-[#00FF80]/20 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <span className="text-lg">{DOCUMENT_TYPES.find(t => t.value === documentType)?.icon}</span>
-                <div>
-                  <div className="text-sm font-medium text-[#00FF80]">
-                    {DOCUMENT_TYPES.find(t => t.value === documentType)?.label}
-                  </div>
-                  <div className="text-xs text-gray-300">
-                    Tipo seleccionado: <code className="bg-gray-800 px-1 rounded">{documentType}</code>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Selector de archivos */}
@@ -341,7 +334,7 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
         {/* Progreso de subida */}
         {uploadProgress.length > 0 && (
           <div className="space-y-4">
-            <Label className="text-gray-300 font-medium">Progreso de Envío</Label>
+            <Label className="text-gray-300 font-medium">Progreso</Label>
             {uploadProgress.map((progress) => (
               <div key={progress.fileId} className="space-y-3 p-4 bg-gray-900/50 rounded-lg border border-gray-800">
                 <div className="flex items-center justify-between">
@@ -349,8 +342,8 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
                     {getStatusIcon(progress.status)}
                     <span className="text-sm font-medium truncate text-white">{progress.fileName}</span>
                   </div>
-                  <span className={`text-xs font-medium ${getStatusColor(progress.status)}`}>
-                    {getStatusText(progress.status)}
+                  <span className="text-xs font-medium text-[#00FF80]">
+                    {getStatusText(progress.status, documentType)}
                   </span>
                 </div>
                 {progress.status === 'uploading' && (
@@ -359,16 +352,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
                       value={progress.progress} 
                       className="h-2"
                     />
-                    <div className="flex items-center justify-center space-x-2 text-xs text-[#00FF80]">
-                      <Zap className="h-3 w-3 animate-pulse" />
-                      <span>Enviando al webhook para procesamiento...</span>
-                    </div>
-                  </div>
-                )}
-                {progress.status === 'completed' && (
-                  <div className="flex items-center justify-center space-x-2 text-xs text-[#00FF80] bg-[#00FF80]/10 py-2 rounded border border-[#00FF80]/20">
-                    <CheckCircle className="h-3 w-3" />
-                    <span>Documento enviado exitosamente al webhook</span>
                   </div>
                 )}
                 {progress.status === 'error' && progress.error && (
@@ -391,25 +374,15 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
           {isUploading ? (
             <>
               <Brain className="h-4 w-4 mr-2 animate-pulse" />
-              Enviando al webhook...
+              Procesando...
             </>
           ) : (
             <>
               <Zap className="h-4 w-4 mr-2" />
-              Subir y Procesar {selectedFiles.length > 0 ? `${selectedFiles.length} archivo(s)` : 'Archivos'}
+              Subir {selectedFiles.length > 0 ? `${selectedFiles.length} archivo(s)` : ''}
             </>
           )}
         </Button>
-
-        {/* Info sobre procesamiento */}
-        <div className="bg-[#00FF80]/10 border border-[#00FF80]/20 rounded-lg p-3">
-          <div className="flex items-center space-x-2 text-[#00FF80]">
-            <Brain className="h-4 w-4" />
-            <span className="text-xs font-medium">
-              Los documentos se enviarán al webhook para procesamiento automático
-            </span>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );

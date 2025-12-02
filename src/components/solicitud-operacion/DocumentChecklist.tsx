@@ -14,7 +14,7 @@ interface DocumentChecklistProps {
 }
 
 // Keys for which the "Subir" button should be hidden (handled in Operation tab)
-const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = ['FACTURA', 'SUSTENTOS', 'EVIDENCIA_VISITA'];
+const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = [];
 
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
   ruc, 
@@ -48,18 +48,20 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
       ]);
 
-      // Para documentos que no tienen tabla propia procesada, buscamos en la tabla documentos
-      const [sustentosDoc, vigenciaDoc, evidenciaDoc] = await Promise.all([
+      // Para documentos que no tienen tabla propia procesada o pueden estar solo como archivo
+      const [sustentosDoc, vigenciaDoc, evidenciaDoc, facturaDoc] = await Promise.all([
         supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1),
         supabase.from('documentos').select('id').eq('tipo', 'vigencia_poder').ilike('nombre_archivo', `%${ruc}%`).limit(1),
-        supabase.from('documentos').select('id').eq('tipo', 'evidencia_visita').ilike('nombre_archivo', `%${ruc}%`).limit(1)
+        supabase.from('documentos').select('id').eq('tipo', 'evidencia_visita').ilike('nombre_archivo', `%${ruc}%`).limit(1),
+        supabase.from('documentos').select('id').eq('tipo', 'factura_negociar').ilike('nombre_archivo', `%${ruc}%`).limit(1)
       ]);
 
       const newStatus = {
         FICHA_RUC: !!ficha.data,
         SENTINEL: !!sentinel.data,
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
-        FACTURA: (facturas.data?.length || 0) > 0,
+        // La factura cuenta si está procesada en factura_negociar O si existe el archivo en documentos
+        FACTURA: (facturas.data?.length || 0) > 0 || (facturaDoc.data?.length || 0) > 0,
         EEFF: (eeff.data?.length || 0) > 0,
         VIGENCIA_PODER: (vigenciaDoc.data?.length || 0) > 0,
         SUSTENTOS: (sustentosDoc.data?.length || 0) > 0,
