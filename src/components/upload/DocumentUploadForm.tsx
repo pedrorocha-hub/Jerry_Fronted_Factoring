@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, X, CheckCircle, AlertCircle, Zap, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -248,12 +248,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
 
   return (
     <Card className="bg-[#121212] border border-gray-800 hover:border-[#00FF80]/30 transition-all duration-300">
-      <CardHeader className="border-b border-gray-800">
-        <CardTitle className="flex items-center text-white">
-          <Upload className="h-5 w-5 mr-2 text-[#00FF80]" />
-          Subir Documentos para Procesamiento
-        </CardTitle>
-      </CardHeader>
       <CardContent className="space-y-6 p-6">
         {/* Selector de tipo de documento */}
         <div>
