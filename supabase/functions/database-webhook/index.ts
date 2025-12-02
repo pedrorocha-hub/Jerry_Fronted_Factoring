@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,15 +15,18 @@ serve(async (req) => {
   try {
     // 1. Verificar configuración
     const n8nWebhookUrl = Deno.env.get('N8N_WEBHOOK')
-    if (!n8nWebhookUrl) {
-      console.error('Error crítico: La variable de entorno N8N_WEBHOOK no está configurada.')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!n8nWebhookUrl || !supabaseUrl || !supabaseServiceKey) {
+      console.error('Error crítico: Variables de entorno faltantes (N8N_WEBHOOK, SUPABASE_URL o SERVICE_KEY).')
       return new Response(
-        JSON.stringify({ error: 'Server configuration error: Missing N8N_WEBHOOK' }),
+        JSON.stringify({ error: 'Server configuration error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // 2. Parsear el payload
+    // 2. Parsear el payload del trigger
     let payload
     try {
       payload = await req.json()
@@ -35,8 +39,35 @@ serve(async (req) => {
       )
     }
 
-    // 3. Reenviar a n8n
-    console.log('Enviando datos a n8n...')
+    // 3. Generar Signed URL si hay un storage_path en el registro
+    const record = payload.record
+    if (record && record.storage_path) {
+      console.log('Generando Signed URL para:', record.storage_path)
+      
+      const supabase = createClient(supabaseUrl, supabaseServiceKey)
+      
+      // Asumimos que el bucket se llama 'documentos' basado en tu código anterior
+      const { data, error } = await supabase
+        .storage
+        .from('documentos')
+        .createSignedUrl(record.storage_path, 3600) // URL válida por 1 hora
+
+      if (error) {
+        console.error('Error generando signed URL:', error)
+        // No detenemos el proceso, enviamos lo que tenemos, pero logueamos el error
+        payload.signed_url_error = error.message
+      } else if (data) {
+        console.log('Signed URL generada exitosamente.')
+        // Adjuntamos la URL firmada al payload que se envía a n8n
+        payload.signed_url = data.signedUrl
+        // También adjuntamos info útil extra
+        payload.signed_url_expires_at = new Date(Date.now() + 3600 * 1000).toISOString()
+      }
+    }
+
+    // 4. Reenviar a n8n con la URL firmada incluida
+    console.log('Enviando payload enriquecido a n8n...')
+    
     const response = await fetch(n8nWebhookUrl, {
       method: 'POST',
       headers: {
@@ -45,13 +76,10 @@ serve(async (req) => {
       body: JSON.stringify(payload),
     })
 
-    // 4. Manejar respuesta de n8n
+    // 5. Manejar respuesta de n8n
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`Error respuesta n8n (Status ${response.status}):`, errorText)
-      // No fallamos con 500 para el cliente si n8n falla, devolvemos 502 Bad Gateway o similar, 
-      // pero para la función en sí es "éxito" haberlo intentado, aunque n8n falló.
-      // Sin embargo, para alertar al que llama, retornamos error.
       return new Response(
         JSON.stringify({ 
           error: 'Error upstream from n8n', 
