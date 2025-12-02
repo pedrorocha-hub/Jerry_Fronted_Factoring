@@ -20,7 +20,7 @@ interface DocumentChecklistProps {
 // Keys for which the "Subir" button should be hidden (handled in Operation tab)
 const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = [];
 
-// Keys that MUST be processed by AI
+// Keys that MUST be processed by AI (Brain button)
 const AI_PROCESS_KEYS: DocumentTypeKey[] = ['FICHA_RUC', 'SENTINEL', 'REPORTE_TRIBUTARIO', 'EEFF'];
 
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
@@ -110,7 +110,6 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
   const handleDirectUploadClick = (key: DocumentTypeKey) => {
     activeUploadKeyRef.current = key;
-    // No establecemos uploadingType aquí para evitar el loop infinito si cancelan
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
@@ -121,13 +120,10 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     const file = e.target.files?.[0];
     const key = activeUploadKeyRef.current;
     
-    // Si no hay archivo o no hay clave activa, salimos sin activar el loading
     if (!file || !key) return;
     
-    // Ahora sí activamos el spinner
     setUploadingType(key);
     
-    // Convertir DocumentTypeKey a DocumentoTipo
     const tipoMap: Record<string, DocumentoTipo> = {
       'FICHA_RUC': 'ficha_ruc',
       'SENTINEL': 'sentinel',
@@ -148,6 +144,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     }
 
     try {
+      // Subida directa vinculada a la solicitudId (evita webhook de IA)
       await DocumentoService.uploadAndInsert(
         file, 
         tipo, 
@@ -213,8 +210,23 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         <div className="flex items-center gap-2">
           {!exists && !HIDDEN_UPLOAD_KEYS.includes(key) && (
             <>
-              {!isAIProcess ? (
-                /* Botón de Adjuntar Evidencia (Directo) - Ganchito */
+              {/* Botón para Documentos de IA (Redirige a /upload) */}
+              {isAIProcess && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 gap-2"
+                  onClick={() => window.open('/upload', '_blank')}
+                  disabled={!!uploadingType}
+                  title="Ir a procesar con IA"
+                >
+                  <Brain className="h-3 w-3" />
+                  Subir
+                </Button>
+              )}
+
+              {/* Botón para Evidencias (Subida directa) */}
+              {!isAIProcess && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -228,19 +240,6 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
                   ) : (
                     <Paperclip className="h-3 w-3" />
                   )}
-                  Subir
-                </Button>
-              ) : (
-                /* Botón de Procesar IA (Link) - Cerebrito */
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 gap-2"
-                  onClick={() => window.open('/upload', '_blank')}
-                  disabled={!!uploadingType}
-                  title="Ir a procesar con IA"
-                >
-                  <Brain className="h-3 w-3" />
                   Subir
                 </Button>
               )}
