@@ -20,6 +20,9 @@ interface DocumentChecklistProps {
 // Keys for which the "Subir" button should be hidden (handled in Operation tab)
 const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = [];
 
+// Keys that MUST be processed by AI
+const AI_PROCESS_KEYS: DocumentTypeKey[] = ['FICHA_RUC', 'SENTINEL', 'REPORTE_TRIBUTARIO', 'EEFF'];
+
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
   ruc, 
   tipoProducto,
@@ -168,6 +171,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   const renderItem = (key: DocumentTypeKey, isRequired: boolean) => {
     const exists = docStatus[key];
     const isUploadingThis = uploadingType === key;
+    const isAIProcess = AI_PROCESS_KEYS.includes(key);
     
     return (
       <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2 hover:bg-gray-900/50 transition-colors">
@@ -197,33 +201,37 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         <div className="flex items-center gap-2">
           {!exists && !HIDDEN_UPLOAD_KEYS.includes(key) && (
             <>
-              {/* Botón de Adjuntar Evidencia (Directo) */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10"
-                onClick={() => handleDirectUploadClick(key)}
-                disabled={!!uploadingType}
-                title="Adjuntar evidencia (sin procesar)"
-              >
-                {isUploadingThis ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Paperclip className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* Botón de Procesar IA (Link) */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10"
-                onClick={() => window.open('/upload', '_blank')}
-                disabled={!!uploadingType}
-                title="Ir a procesar con IA"
-              >
-                <Brain className="h-4 w-4" />
-              </Button>
+              {!isAIProcess ? (
+                /* Botón de Adjuntar Evidencia (Directo) - Ganchito */
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
+                  onClick={() => handleDirectUploadClick(key)}
+                  disabled={!!uploadingType}
+                  title="Adjuntar evidencia (sin procesar)"
+                >
+                  {isUploadingThis ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-3 w-3" />
+                  )}
+                  Subir
+                </Button>
+              ) : (
+                /* Botón de Procesar IA (Link) - Cerebrito */
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 gap-2"
+                  onClick={() => window.open('/upload', '_blank')}
+                  disabled={!!uploadingType}
+                  title="Ir a procesar con IA"
+                >
+                  <Brain className="h-3 w-3" />
+                  Subir
+                </Button>
+              )}
             </>
           )}
           {exists && (
