@@ -1,16 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, RefreshCw, Brain, Paperclip } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TipoProducto } from '@/types/solicitud-operacion';
 import { DOCUMENT_LABELS, PRODUCT_REQUIREMENTS, DocumentTypeKey } from '@/config/documentRequirements';
 import { supabase } from '@/integrations/supabase/client';
+import { DocumentoService } from '@/services/documentoService';
+import { showSuccess, showError } from '@/utils/toast';
+import { DocumentoTipo } from '@/types/documento';
 
 interface DocumentChecklistProps {
   ruc: string;
   tipoProducto: TipoProducto | null;
   onValidationChange: (isValid: boolean) => void;
+  solicitudId?: string;
 }
 
 // Keys for which the "Subir" button should be hidden (handled in Operation tab)
@@ -19,9 +23,12 @@ const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = [];
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
   ruc, 
   tipoProducto,
-  onValidationChange 
+  onValidationChange,
+  solicitudId
 }) => {
   const [loading, setLoading] = useState(false);
+  const [uploadingType, setUploadingType] = useState<DocumentTypeKey | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [docStatus, setDocStatus] = useState<Record<DocumentTypeKey, boolean>>({
     FICHA_RUC: false,
     SENTINEL: false,
@@ -94,6 +101,56 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     onValidationChange(allRequiredMet);
   }, [docStatus, tipoProducto, onValidationChange]);
 
+  const handleDirectUploadClick = (key: DocumentTypeKey) => {
+    setUploadingType(key);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !uploadingType) return;
+    
+    // Convertir DocumentTypeKey a DocumentoTipo
+    const tipoMap: Record<string, DocumentoTipo> = {
+      'FICHA_RUC': 'ficha_ruc',
+      'SENTINEL': 'sentinel',
+      'REPORTE_TRIBUTARIO': 'reporte_tributario',
+      'FACTURA': 'factura_negociar',
+      'EEFF': 'eeff',
+      'VIGENCIA_PODER': 'vigencia_poder',
+      'SUSTENTOS': 'sustentos',
+      'EVIDENCIA_VISITA': 'evidencia_visita'
+    };
+    
+    const tipo = tipoMap[uploadingType];
+    
+    if (!tipo) {
+      showError('Tipo de documento no mapeado');
+      setUploadingType(null);
+      return;
+    }
+
+    try {
+      await DocumentoService.uploadAndInsert(
+        file, 
+        tipo, 
+        undefined, 
+        false, 
+        solicitudId // Si existe, se vincula y no se envía al webhook (gracias al trigger modificado)
+      );
+      showSuccess('Evidencia adjuntada correctamente');
+      setTimeout(checkDocuments, 1000); // Dar un momento para que se refleje
+    } catch (err: any) {
+      console.error('Error subiendo evidencia:', err);
+      showError(`Error al subir: ${err.message}`);
+    } finally {
+      setUploadingType(null);
+    }
+  };
+
   if (!tipoProducto) {
     return (
       <Card className="bg-[#121212] border border-gray-800 opacity-50 h-full">
@@ -110,6 +167,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
   const renderItem = (key: DocumentTypeKey, isRequired: boolean) => {
     const exists = docStatus[key];
+    const isUploadingThis = uploadingType === key;
     
     return (
       <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2 hover:bg-gray-900/50 transition-colors">
@@ -138,14 +196,35 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
         <div className="flex items-center gap-2">
           {!exists && !HIDDEN_UPLOAD_KEYS.includes(key) && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-7 text-xs text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10"
-              onClick={() => window.open('/upload', '_blank')}
-            >
-              Subir
-            </Button>
+            <>
+              {/* Botón de Adjuntar Evidencia (Directo) */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10"
+                onClick={() => handleDirectUploadClick(key)}
+                disabled={!!uploadingType}
+                title="Adjuntar evidencia (sin procesar)"
+              >
+                {isUploadingThis ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Paperclip className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* Botón de Procesar IA (Link) */}
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10"
+                onClick={() => window.open('/upload', '_blank')}
+                disabled={!!uploadingType}
+                title="Ir a procesar con IA"
+              >
+                <Brain className="h-4 w-4" />
+              </Button>
+            </>
           )}
           {exists && (
              <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5">
@@ -158,42 +237,53 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   };
 
   return (
-    <Card className={`bg-[#121212] border transition-all ${missingCount > 0 ? 'border-red-500/20' : 'border-green-500/20'}`}>
-      <CardHeader className="pb-3 border-b border-gray-800 bg-gray-900/20">
-        <CardTitle className="text-base text-white flex justify-between items-center">
-          <div className="flex flex-col">
-            <span>Checklist Documentario</span>
-            <span className={`text-xs font-normal ${missingCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
-              {missingCount > 0 ? `${missingCount} documentos pendientes` : 'Documentación completa'}
-            </span>
-          </div>
-          <Button variant="ghost" size="icon" onClick={checkDocuments} disabled={loading} className="h-8 w-8">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="space-y-1">
-          <div className="mb-4">
-            <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></span>
-              Imprescindibles ({tipoProducto})
-            </p>
-            {requirements.required.map(doc => renderItem(doc, true))}
-          </div>
-          
-          {requirements.optional.length > 0 && (
-            <div>
-               <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
-                 <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-2"></span>
-                 Adicionales
-               </p>
-               {requirements.optional.map(doc => renderItem(doc, false))}
+    <>
+      <Card className={`bg-[#121212] border transition-all ${missingCount > 0 ? 'border-red-500/20' : 'border-green-500/20'}`}>
+        <CardHeader className="pb-3 border-b border-gray-800 bg-gray-900/20">
+          <CardTitle className="text-base text-white flex justify-between items-center">
+            <div className="flex flex-col">
+              <span>Checklist Documentario</span>
+              <span className={`text-xs font-normal ${missingCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {missingCount > 0 ? `${missingCount} documentos pendientes` : 'Documentación completa'}
+              </span>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <Button variant="ghost" size="icon" onClick={checkDocuments} disabled={loading} className="h-8 w-8">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="space-y-1">
+            <div className="mb-4">
+              <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></span>
+                Imprescindibles ({tipoProducto})
+              </p>
+              {requirements.required.map(doc => renderItem(doc, true))}
+            </div>
+            
+            {requirements.optional.length > 0 && (
+              <div>
+                 <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-2"></span>
+                   Adicionales
+                 </p>
+                 {requirements.optional.map(doc => renderItem(doc, false))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Input oculto para la subida directa */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls,.doc,.docx"
+        onChange={handleFileChange}
+      />
+    </>
   );
 };
 

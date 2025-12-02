@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File, ExternalLink } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File, ExternalLink, Brain, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -129,32 +129,59 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
   };
 
   const UploadButton = ({ tipo, label, icon: Icon }: { tipo: DocumentoTipo, label: string, icon: any }) => (
-    <div className="w-full">
-      <input
-        type="file"
-        id={`upload-${tipo}`}
-        className="hidden"
-        accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls,.doc,.docx"
-        onChange={(e) => handleFileUpload(e, tipo)}
-        disabled={uploading || readonly}
-      />
-      <Label
-        htmlFor={`upload-${tipo}`}
-        className={`flex flex-col items-center justify-center w-full h-24 p-2 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
-          readonly 
-            ? 'opacity-50 cursor-not-allowed border-gray-800 bg-gray-900/20' 
-            : 'border-gray-700 hover:border-[#00FF80]/50 hover:bg-[#00FF80]/5 bg-gray-900/30'
-        }`}
-      >
-        {uploading ? (
-          <Loader2 className="h-6 w-6 animate-spin text-[#00FF80]" />
-        ) : (
-          <Icon className="h-6 w-6 text-gray-400 mb-2" />
-        )}
-        <span className="text-xs text-gray-400 font-medium text-center leading-tight">
-          {uploading ? 'Subiendo...' : label}
-        </span>
-      </Label>
+    <div className="w-full flex flex-col gap-2 p-3 bg-gray-900/20 border border-gray-800 rounded-lg">
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className="h-4 w-4 text-gray-400" />
+        <span className="text-xs text-gray-300 font-medium truncate" title={label}>{label}</span>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-2">
+        {/* Botón Evidencia Directa */}
+        <div className="relative">
+          <input
+            type="file"
+            id={`upload-${tipo}`}
+            className="hidden"
+            accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls,.doc,.docx"
+            onChange={(e) => handleFileUpload(e, tipo)}
+            disabled={uploading || readonly}
+          />
+          <Label
+            htmlFor={`upload-${tipo}`}
+            className={`flex flex-col items-center justify-center w-full h-16 p-1 border border-dashed rounded cursor-pointer transition-all ${
+              readonly 
+                ? 'opacity-50 cursor-not-allowed border-gray-700 bg-gray-900/40' 
+                : 'border-gray-600 bg-gray-800/40 hover:bg-[#00FF80]/10 hover:border-[#00FF80]/50 hover:text-[#00FF80] text-gray-400'
+            }`}
+          >
+            {uploading ? (
+              <Loader2 className="h-4 w-4 animate-spin mb-1" />
+            ) : (
+              <Paperclip className="h-4 w-4 mb-1" />
+            )}
+            <span className="text-[10px] text-center leading-none">
+              {uploading ? '...' : 'Evidencia'}
+            </span>
+          </Label>
+        </div>
+
+        {/* Botón Procesar IA */}
+        <Button
+          variant="outline"
+          className={`h-16 flex flex-col items-center justify-center p-1 border-dashed transition-all ${
+            readonly 
+              ? 'opacity-50 cursor-not-allowed border-gray-700 bg-gray-900/40'
+              : 'border-gray-600 bg-gray-800/40 hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-blue-400 text-gray-400'
+          }`}
+          onClick={() => window.open('/upload', '_blank')}
+          disabled={readonly}
+        >
+          <Brain className="h-4 w-4 mb-1" />
+          <span className="text-[10px] text-center leading-none">
+            Procesar
+          </span>
+        </Button>
+      </div>
     </div>
   );
 
