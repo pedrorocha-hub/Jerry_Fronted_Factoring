@@ -1,171 +1,317 @@
-import React, { useState } from 'react';
-import { Check, Upload, AlertCircle, FileText, Loader2, Paperclip, ChevronRight, Brain } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useEffect, useState, useRef } from 'react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, RefreshCw, Brain, Paperclip } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { TipoProducto } from '@/types/solicitud-operacion';
+import { DOCUMENT_LABELS, PRODUCT_REQUIREMENTS, DocumentTypeKey } from '@/config/documentRequirements';
+import { supabase } from '@/integrations/supabase/client';
 import { DocumentoService } from '@/services/documentoService';
 import { showSuccess, showError } from '@/utils/toast';
+import { DocumentoTipo } from '@/types/documento';
 
 interface DocumentChecklistProps {
-  solicitudId: string;
-  checklist: Record<string, boolean>;
-  onUpload: (type: string, file: File) => Promise<void>;
-  readonly?: boolean;
+  ruc: string;
+  tipoProducto: TipoProducto | null;
+  onValidationChange: (isValid: boolean) => void;
+  solicitudId?: string;
 }
 
-const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
-  solicitudId,
-  checklist,
-  onUpload,
-  readonly = false
+// Keys for which the "Subir" button should be hidden (handled in Operation tab)
+const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = [];
+
+// Keys that MUST be processed by AI (Brain button)
+const AI_PROCESS_KEYS: DocumentTypeKey[] = ['FICHA_RUC', 'SENTINEL', 'REPORTE_TRIBUTARIO', 'EEFF'];
+
+const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
+  ruc, 
+  tipoProducto,
+  onValidationChange,
+  solicitudId
 }) => {
-  const [uploadingType, setUploadingType] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [uploadingType, setUploadingType] = useState<DocumentTypeKey | null>(null);
+  
+  const activeUploadKeyRef = useRef<DocumentTypeKey | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [docStatus, setDocStatus] = useState<Record<DocumentTypeKey, boolean>>({
+    FICHA_RUC: false,
+    SENTINEL: false,
+    REPORTE_TRIBUTARIO: false,
+    FACTURA: false,
+    EEFF: false,
+    VIGENCIA_PODER: false,
+    SUSTENTOS: false,
+    EVIDENCIA_VISITA: false
+  });
 
-  const items = [
-    { key: 'factura_negociar', label: 'Factura a Negociar', required: true, ai: true },
-    { key: 'orden_servicio', label: 'Orden de Servicio / Compra', required: false, ai: true }, // Opcional
-    { key: 'conformidad_servicio', label: 'Conformidad de Servicio', required: false, ai: false }, // Opcional
-    { key: 'detraccion', label: 'Constancia de Detracción', required: false, ai: false }, // Opcional
-    { key: 'evidencia_correo', label: 'Evidencia de Correo', required: false, ai: false }, // Opcional
-    { key: 'ficha_ruc', label: 'Ficha RUC', required: true, ai: true },
-    { key: 'vigencia_poder', label: 'Vigencia de Poder', required: true, ai: false },
-    { key: 'reporte_tributario', label: 'Reporte Tributario', required: true, ai: true },
-    { key: 'declaracion_jurada', label: 'Declaración Jurada (EEFF)', required: true, ai: true },
-    { key: 'sentinel', label: 'Reporte Sentinel', required: false, ai: true }, // Opcional
-    { key: 'dni_representante', label: 'DNI Representantes', required: true, ai: false },
-  ];
-
-  const handleDirectUploadClick = (key: string) => {
-    if (readonly) return;
-    const inputId = `file-upload-${key}`;
-    document.getElementById(inputId)?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Resetear el input para permitir subir el mismo archivo nuevamente si es necesario
-    e.target.value = '';
-
-    setUploadingType(key);
+  // Función para verificar existencia de documentos en BD
+  const checkDocuments = async () => {
+    if (!ruc || ruc.length !== 11) return;
+    
+    setLoading(true);
     try {
-      // Lógica de subida directa (sin IA)
-      // REPLICANDO EXACTAMENTE LA LÓGICA DE SOLICITUDDOCUMENTMANAGER:
-      // Usamos 'sustentos' como tipo unificado y pasamos el solicitudId.
-      await DocumentoService.uploadAndInsert(
-        file,
-        'sustentos', // Forzamos 'sustentos' igual que en el Manager
-        undefined,
-        false,
-        solicitudId // Vinculación crítica
-      );
+      // Consultamos las tablas procesadas para ver si existe información para este RUC
+      const [ficha, sentinel, tributario, facturas, eeff] = await Promise.all([
+        supabase.from('ficha_ruc').select('id').eq('ruc', ruc).maybeSingle(),
+        supabase.from('sentinel').select('id').eq('ruc', ruc).maybeSingle(),
+        supabase.from('reporte_tributario').select('id').eq('ruc', ruc).limit(1),
+        supabase.from('factura_negociar').select('id').eq('ruc', ruc).limit(1),
+        supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
+      ]);
+
+      // Verificamos si existen documentos de sustento vinculados a la solicitud (si tenemos ID)
+      // O documentos de sustento con el RUC en el nombre (fallback)
+      let hasSustentos = false;
       
-      // Notificamos al padre para actualizar el estado visual, aunque el documento ya se subió
-      await onUpload(key, file);
-      
-      showSuccess(`Documento para ${items.find(i => i.key === key)?.label} subido correctamente.`);
-    } catch (error: any) {
-      console.error('Error uploading:', error);
-      showError(`Error al subir documento: ${error.message}`);
+      if (solicitudId) {
+        const { count } = await supabase
+          .from('documentos')
+          .select('*', { count: 'exact', head: true })
+          .eq('solicitud_id', solicitudId);
+        
+        if (count && count > 0) hasSustentos = true;
+      }
+
+      if (!hasSustentos) {
+         const { count } = await supabase
+          .from('documentos')
+          .select('*', { count: 'exact', head: true })
+          .eq('tipo', 'sustentos')
+          .ilike('nombre_archivo', `%${ruc}%`);
+          
+         if (count && count > 0) hasSustentos = true;
+      }
+
+      const newStatus = {
+        FICHA_RUC: !!ficha.data,
+        SENTINEL: !!sentinel.data,
+        REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
+        FACTURA: (facturas.data?.length || 0) > 0 || hasSustentos, 
+        EEFF: (eeff.data?.length || 0) > 0,
+        VIGENCIA_PODER: hasSustentos,
+        SUSTENTOS: hasSustentos,
+        EVIDENCIA_VISITA: hasSustentos
+      };
+
+      setDocStatus(newStatus);
+    } catch (error) {
+      console.error("Error verificando documentos:", error);
     } finally {
-      setUploadingType(null);
+      setLoading(false);
     }
   };
 
-  return (
-    <Card className="bg-[#121212] border border-gray-800">
-      <CardContent className="p-4 space-y-2">
-        <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-          <FileText className="h-4 w-4 text-[#00FF80]" />
-          Requisitos Documentarios
-        </h3>
-        
-        <div className="space-y-1">
-          {items.map(({ key, label, required, ai }) => {
-            const isUploaded = checklist[key];
-            const isUploadingThis = uploadingType === key;
-            const isAIProcess = ai && !isUploaded; // Solo mostrar badge AI si no está subido
+  useEffect(() => {
+    checkDocuments();
+  }, [ruc, solicitudId]);
 
-            return (
-              <div 
-                key={key}
-                className={cn(
-                  "flex items-center justify-between p-2 rounded-md border transition-all text-xs",
-                  isUploaded 
-                    ? "bg-[#00FF80]/5 border-[#00FF80]/20" 
-                    : "bg-gray-900/30 border-gray-800 hover:border-gray-700"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "h-5 w-5 rounded-full flex items-center justify-center border transition-colors",
-                    isUploaded
-                      ? "bg-[#00FF80] border-[#00FF80] text-black"
-                      : "border-gray-600 text-transparent"
-                  )}>
-                    <Check className="h-3 w-3" strokeWidth={3} />
-                  </div>
-                  
-                  <div className="flex flex-col">
-                    <span className={cn(
-                      "font-medium",
-                      isUploaded ? "text-gray-200" : "text-gray-400"
-                    )}>
-                      {label}
-                    </span>
-                    <div className="flex gap-2 text-[10px]">
-                      {required && !isUploaded && (
-                        <span className="text-orange-500 font-medium">Requerido</span>
-                      )}
-                      {!required && !isUploaded && (
-                        <span className="text-gray-600">Opcional</span>
-                      )}
-                      {ai && !isUploaded && (
-                        <span className="text-blue-500/70 flex items-center gap-1">
-                          <Brain className="h-2 w-2" />
-                          IA
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+  // Validar cumplimiento de requisitos y notificar al padre
+  useEffect(() => {
+    if (!tipoProducto) {
+      onValidationChange(true); 
+      return;
+    }
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    id={`file-upload-${key}`}
-                    className="hidden"
-                    onChange={(e) => handleFileChange(e, key)}
-                    disabled={!!uploadingType || readonly}
-                    accept=".pdf,.jpg,.jpeg,.png,.xml,.xlsx,.xls"
-                  />
+    const reqs = PRODUCT_REQUIREMENTS[tipoProducto];
+    const allRequiredMet = reqs.required.every(docType => docStatus[docType]);
+    
+    // Notificamos al componente padre si cumple los requisitos
+    onValidationChange(allRequiredMet);
+  }, [docStatus, tipoProducto, onValidationChange]);
 
-                  {/* Botón para Evidencias (Subida directa - Ganchito) */}
-                  {/* Este botón ahora usa la lógica unificada de 'sustentos' */}
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
-                    onClick={() => handleDirectUploadClick(key)}
-                    disabled={!!uploadingType || readonly}
-                    title="Adjuntar evidencia (sin procesar)"
-                  >
-                    {isUploadingThis ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Paperclip className="h-3 w-3" />
-                    )}
-                    Adjuntar
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+  const handleDirectUploadClick = (key: DocumentTypeKey) => {
+    if (!solicitudId) {
+      showError("Debe guardar la solicitud antes de adjuntar documentos.");
+      return;
+    }
+    activeUploadKeyRef.current = key;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const key = activeUploadKeyRef.current;
+    
+    if (!file || !key) return;
+    
+    setUploadingType(key);
+    
+    // Forzamos tipo 'sustentos' y vinculamos al solicitudId
+    const tipo: DocumentoTipo = 'sustentos';
+
+    try {
+      await DocumentoService.uploadAndInsert(
+        file, 
+        tipo, 
+        undefined, 
+        false, 
+        solicitudId 
+      );
+      showSuccess('Documento adjuntado correctamente');
+      
+      // Actualizar estado local para reflejar el cambio inmediatamente
+      // aunque checkDocuments lo hará de nuevo desde la BD
+      setDocStatus(prev => ({
+        ...prev,
+        [key]: true,
+        // También marcamos otros que dependen de sustentos si queremos ser optimistas
+        VIGENCIA_PODER: true,
+        SUSTENTOS: true,
+        EVIDENCIA_VISITA: true
+      }));
+
+      setTimeout(checkDocuments, 1000); 
+    } catch (err: any) {
+      console.error('Error subiendo documento:', err);
+      showError(`Error al subir: ${err.message}`);
+    } finally {
+      setUploadingType(null);
+      activeUploadKeyRef.current = null;
+    }
+  };
+
+  if (!tipoProducto) {
+    return (
+      <Card className="bg-[#121212] border border-gray-800 opacity-50 h-full">
+        <CardContent className="p-6 text-center text-gray-500 flex flex-col items-center justify-center h-full">
+          <AlertTriangle className="h-10 w-10 mb-2 opacity-50" />
+          <p>Seleccione un Tipo de Producto para ver los requisitos documentarios.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const requirements = PRODUCT_REQUIREMENTS[tipoProducto];
+  const missingCount = requirements.required.filter(k => !docStatus[k]).length;
+
+  const renderItem = (key: DocumentTypeKey, isRequired: boolean) => {
+    const exists = docStatus[key];
+    const isUploadingThis = uploadingType === key;
+    const isAIProcess = AI_PROCESS_KEYS.includes(key);
+    
+    return (
+      <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2 hover:bg-gray-900/50 transition-colors">
+        <div className="flex items-center gap-3">
+          {loading ? (
+            <Loader2 className="h-5 w-5 text-gray-500 animate-spin" />
+          ) : exists ? (
+            <CheckCircle2 className="h-5 w-5 text-[#00FF80]" />
+          ) : isRequired ? (
+            <XCircle className="h-5 w-5 text-red-400" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-yellow-500/50" />
+          )}
+          
+          <div>
+            <p className={`text-sm font-medium ${exists ? 'text-white' : 'text-gray-400'}`}>
+              {DOCUMENT_LABELS[key]}
+            </p>
+            {!exists && (
+              <p className={`text-[10px] ${isRequired ? 'text-red-400/80' : 'text-gray-600'}`}>
+                {isRequired ? 'IMPRESCINDIBLE' : 'Adicional / Opcional'}
+              </p>
+            )}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        <div className="flex items-center gap-2">
+          {!exists && !HIDDEN_UPLOAD_KEYS.includes(key) && (
+            <>
+              {/* Botón para Documentos de IA (Redirige a /upload) */}
+              {isAIProcess && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 gap-2"
+                  onClick={() => window.open('/upload', '_blank')}
+                  disabled={!!uploadingType}
+                  title="Ir a procesar con IA"
+                >
+                  <Brain className="h-3 w-3" />
+                  Subir IA
+                </Button>
+              )}
+
+              {/* Botón para Evidencias (Subida directa - Ganchito) */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
+                onClick={() => handleDirectUploadClick(key)}
+                disabled={!!uploadingType || !solicitudId}
+                title={!solicitudId ? "Guarde la solicitud para adjuntar" : "Adjuntar documento"}
+              >
+                {isUploadingThis ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Paperclip className="h-3 w-3" />
+                )}
+                Adjuntar
+              </Button>
+            </>
+          )}
+          {exists && (
+             <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5">
+               OK
+             </Badge>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <Card className={`bg-[#121212] border transition-all ${missingCount > 0 ? 'border-red-500/20' : 'border-green-500/20'}`}>
+        <CardHeader className="pb-3 border-b border-gray-800 bg-gray-900/20">
+          <CardTitle className="text-base text-white flex justify-between items-center">
+            <div className="flex flex-col">
+              <span>Checklist Documentario</span>
+              <span className={`text-xs font-normal ${missingCount > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {missingCount > 0 ? `${missingCount} documentos pendientes` : 'Documentación completa'}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" onClick={checkDocuments} disabled={loading} className="h-8 w-8">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="space-y-1">
+            <div className="mb-4">
+              <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2"></span>
+                Imprescindibles ({tipoProducto})
+              </p>
+              {requirements.required.map(doc => renderItem(doc, true))}
+            </div>
+            
+            {requirements.optional.length > 0 && (
+              <div>
+                 <p className="text-[10px] font-bold text-gray-500 mb-2 uppercase tracking-wider flex items-center">
+                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 mr-2"></span>
+                   Adicionales
+                 </p>
+                 {requirements.optional.map(doc => renderItem(doc, false))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls,.doc,.docx"
+        onChange={handleFileChange}
+      />
+    </>
   );
 };
 
