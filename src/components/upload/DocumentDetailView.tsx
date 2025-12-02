@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Documento } from '@/types/documento';
 import { DocumentoService } from '@/services/documentoService';
-import CuentasBancariasManager from '@/components/cuentas/CuentasBancariasManager';
 import { showSuccess, showError } from '@/utils/toast';
 
 interface DocumentDetailViewProps {
@@ -180,17 +179,9 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
         {/* Content */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           <Tabs defaultValue="info" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-gray-900/50">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-900/50">
               <TabsTrigger value="info" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
                 Información
-              </TabsTrigger>
-              <TabsTrigger 
-                value="cuentas" 
-                className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black"
-                disabled={documento.tipo !== 'cuenta_bancaria'}
-              >
-                <Building2 className="h-4 w-4 mr-2" />
-                Cuentas Bancarias
               </TabsTrigger>
               <TabsTrigger value="procesamiento" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
                 Procesamiento
@@ -277,24 +268,6 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
               </Card>
             </TabsContent>
 
-            <TabsContent value="cuentas" className="space-y-4">
-              {documento.tipo === 'cuenta_bancaria' ? (
-                <CuentasBancariasManager 
-                  documentoId={documento.id}
-                  readonly={false}
-                />
-              ) : (
-                <Card className="bg-gray-900/30 border border-gray-800">
-                  <CardContent className="p-6">
-                    <div className="text-center py-8 text-gray-400">
-                      <Building2 className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <p>Las cuentas bancarias solo están disponibles para documentos de tipo "Cuenta Bancaria"</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
             <TabsContent value="procesamiento" className="space-y-4">
               <Card className="bg-gray-900/30 border border-gray-800">
                 <CardHeader>
@@ -329,7 +302,7 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                       <div className="flex items-center space-x-2 text-[#00FF80]">
                         <CheckCircle className="h-4 w-4" />
                         <span className="text-sm font-medium">
-                          Procesamiento completado - Revisa la pestaña "Cuentas Bancarias" para ver los datos extraídos
+                          Procesamiento completado - Los datos han sido extraídos
                         </span>
                       </div>
                     </div>
