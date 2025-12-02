@@ -46,12 +46,6 @@ const DOCUMENT_TYPES: { value: DocumentoTipo; label: string; icon: string; descr
     description: 'Estados Financieros / Declaración Jurada de la empresa'
   },
   { 
-    value: 'factura_negociar', 
-    label: 'Factura a Negociar', 
-    icon: '💰',
-    description: 'Facturas pendientes de cobro para negociación'
-  },
-  { 
     value: 'reporte_tributario', 
     label: 'Reporte Tributario', 
     icon: '📊',
@@ -99,9 +93,6 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
       } else if (fileName.includes('eeff') || fileName.includes('financiero') || fileName.includes('declaracion')) {
         setDocumentType('eeff');
         console.log('Auto-selected: eeff');
-      } else if (fileName.includes('factura') || fileName.includes('negociar')) {
-        setDocumentType('factura_negociar');
-        console.log('Auto-selected: factura_negociar');
       } else if (fileName.includes('tributario') || fileName.includes('reporte') || fileName.includes('balance')) {
         setDocumentType('reporte_tributario');
         console.log('Auto-selected: reporte_tributario');
