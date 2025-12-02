@@ -2,89 +2,147 @@ import { supabase } from '@/integrations/supabase/client';
 import { Documento, DocumentoTipo } from '@/types/documento';
 
 export const DocumentoService = {
+  async getAll(): Promise<Documento[]> {
+    const { data, error } = await supabase
+      .from('documentos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getById(id: string): Promise<Documento | null> {
+    const { data, error } = await supabase
+      .from('documentos')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async uploadAndInsert(
     file: File,
     tipo: DocumentoTipo,
-    customName?: string,
-    isManualUpload: boolean = false,
+    oldPath?: string,
+    isUpdate: boolean = false,
     solicitudId?: string
-  ): Promise<Documento> {
+  ): Promise<Documento | null> {
     try {
-      // 1. Definir el path
-      const fileName = customName || file.name;
-      const cleanFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      // 1. Obtener usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // 2. Definir ruta de almacenamiento
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const timestamp = new Date().getTime();
-      const finalName = `${timestamp}_${cleanFileName}`;
       
-      let storagePath = '';
-      
+      let folderPath = 'general';
       if (solicitudId) {
-        // Si hay solicitud ID, va a la carpeta de solicitudes
-        storagePath = `solicitudes/${solicitudId}/${finalName}`;
-      } else {
-        // Si no, va a la carpeta del tipo de documento
-        storagePath = `${tipo}/${finalName}`;
+        folderPath = `solicitudes/${solicitudId}`;
       }
+      
+      const storagePath = `${folderPath}/${timestamp}_${cleanFileName}`;
 
-      // 2. Subir al Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // 3. Subir al Storage (IMPORTANTE: especificar contentType)
+      const { data: storageData, error: storageError } = await supabase.storage
         .from('documentos')
         .upload(storagePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type || 'application/octet-stream' // Corrección crítica para PDFs
         });
 
-      if (uploadError) throw uploadError;
+      if (storageError) throw storageError;
 
-      // 3. Insertar en la tabla documentos
-      const { data: docData, error: docError } = await supabase
+      // 4. Insertar registro en BD
+      const { data: dbData, error: dbError } = await supabase
         .from('documentos')
         .insert({
-          tipo,
-          nombre_archivo: fileName,
+          solicitud_id: solicitudId,
+          tipo: tipo,
           storage_path: storagePath,
+          nombre_archivo: file.name,
           tamaño_archivo: file.size,
-          estado: isManualUpload ? 'pending' : 'pending', // Dejar en pending para triggers
-          solicitud_id: solicitudId || null
+          estado: 'pending', 
+          created_by: user?.id
         })
         .select()
         .single();
 
-      if (docError) throw docError;
+      if (dbError) {
+        await supabase.storage.from('documentos').remove([storagePath]);
+        throw dbError;
+      }
 
-      return docData;
+      return dbData;
     } catch (error) {
-      console.error('Error in uploadAndInsert:', error);
+      console.error('Error en uploadAndInsert:', error);
       throw error;
     }
   },
-
+  
   async getSignedUrl(path: string): Promise<string> {
     const { data, error } = await supabase.storage
       .from('documentos')
-      .createSignedUrl(path, 60 * 60); // 1 hour
-
+      .createSignedUrl(path, 3600); 
+      
     if (error) throw error;
     return data.signedUrl;
   },
 
-  async deleteDocumento(id: string, path: string): Promise<void> {
-    // 1. Delete from storage
-    const { error: storageError } = await supabase.storage
-      .from('documentos')
-      .remove([path]);
-
-    if (storageError) {
-      console.error('Error deleting file from storage:', storageError);
-      // Continue to delete metadata even if storage fails
+  async delete(id: string): Promise<void> {
+    const { data: doc } = await supabase.from('documentos').select('storage_path').eq('id', id).single();
+    
+    if (doc?.storage_path) {
+      await supabase.storage.from('documentos').remove([doc.storage_path]);
     }
 
-    // 2. Delete from database
-    const { error: dbError } = await supabase
+    const { error } = await supabase
       .from('documentos')
       .delete()
       .eq('id', id);
 
-    if (dbError) throw dbError;
+    if (error) throw error;
+  },
+
+  async reprocess(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('documentos')
+      .update({ 
+        estado: 'pending', 
+        error_msg: null,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  async getStats() {
+    const date = new Date();
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
+
+    const { count: thisMonth } = await supabase
+      .from('documentos')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', firstDay);
+
+    const { count: pendientes } = await supabase
+      .from('documentos')
+      .select('*', { count: 'exact', head: true })
+      .in('estado', ['pending', 'processing']);
+
+    const { count: errores } = await supabase
+      .from('documentos')
+      .select('*', { count: 'exact', head: true })
+      .eq('estado', 'error');
+
+    return {
+      thisMonth: thisMonth || 0,
+      pendientes: pendientes || 0,
+      errores: errores || 0
+    };
   }
 };

@@ -73,18 +73,10 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
   const [selectedDocument, setSelectedDocument] = useState<Documento | null>(null);
   const itemsPerPage = 10;
 
-  // Filtrar documentos para la vista general
-  const visibleDocumentos = documentos.filter(doc => {
-    // 1. Ocultar documentos vinculados a una solicitud específica
-    if (doc.solicitud_id) return false;
-
-    // 2. Ocultar tipos de documentos que son puramente operativos/evidencias
-    // Estos solo deberían verse en el detalle de la solicitud
-    const hiddenTypes = ['sustentos', 'evidencia_visita', 'vigencia_poder', 'factura_negociar'];
-    if (hiddenTypes.includes(doc.tipo)) return false;
-
-    return true;
-  });
+  // Filtrar documentos:
+  // IMPORTANTE: Ocultar documentos asociados a solicitudes (evidencias/sustentos)
+  // Cualquier documento que tenga solicitud_id NO debe aparecer aquí.
+  const visibleDocumentos = documentos.filter(doc => !doc.solicitud_id);
 
   // Obtener estados únicos para el filtro (solo de los visibles)
   const uniqueStatuses = Array.from(new Set(
