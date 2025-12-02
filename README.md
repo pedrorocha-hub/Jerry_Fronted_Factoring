@@ -1,3 +1,3 @@
 # Welcome to Jerry Factoring Project
 
-26/10 New Update
+2/12 New Update
