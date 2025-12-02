@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File, ExternalLink, Brain, Zap } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File, ExternalLink, Brain } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { showSuccess, showError } from '@/utils/toast';
@@ -48,21 +47,23 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, tipo: DocumentoTipo) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = ''; // Reset input
 
     setUploading(true);
     try {
+      // Subimos todo como tipo 'sustentos' para simplificar, ya que el usuario pidió unificar.
+      // Sin embargo, si queremos mantener cierta semántica, podríamos inferir algo, pero 'sustentos' es seguro.
       await DocumentoService.uploadAndInsert(
         file, 
-        tipo, 
+        'sustentos', 
         undefined, 
         false, 
         solicitudId 
       );
-      showSuccess('Archivo subido correctamente.');
+      showSuccess('Documento subido correctamente.');
       loadDocuments();
     } catch (err: any) {
       console.error('Error subiendo archivo:', err);
@@ -128,141 +129,6 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
     }
   };
 
-  const UploadButton = ({ tipo, label, icon: Icon }: { tipo: DocumentoTipo, label: string, icon: any }) => (
-    <div className="w-full flex flex-col gap-2 p-3 bg-gray-900/20 border border-gray-800 rounded-lg">
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className="h-4 w-4 text-gray-400" />
-        <span className="text-xs text-gray-300 font-medium truncate" title={label}>{label}</span>
-      </div>
-      
-      <div className="grid grid-cols-2 gap-2">
-        {/* Botón Evidencia Directa */}
-        <div className="relative">
-          <input
-            type="file"
-            id={`upload-${tipo}`}
-            className="hidden"
-            accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls,.doc,.docx"
-            onChange={(e) => handleFileUpload(e, tipo)}
-            disabled={uploading || readonly}
-          />
-          <Label
-            htmlFor={`upload-${tipo}`}
-            className={`flex flex-col items-center justify-center w-full h-16 p-1 border border-dashed rounded cursor-pointer transition-all ${
-              readonly 
-                ? 'opacity-50 cursor-not-allowed border-gray-700 bg-gray-900/40' 
-                : 'border-gray-600 bg-gray-800/40 hover:bg-[#00FF80]/10 hover:border-[#00FF80]/50 hover:text-[#00FF80] text-gray-400'
-            }`}
-          >
-            {uploading ? (
-              <Loader2 className="h-4 w-4 animate-spin mb-1" />
-            ) : (
-              <Paperclip className="h-4 w-4 mb-1" />
-            )}
-            <span className="text-[10px] text-center leading-none">
-              {uploading ? '...' : 'Evidencia'}
-            </span>
-          </Label>
-        </div>
-
-        {/* Botón Procesar IA */}
-        <Button
-          variant="outline"
-          className={`h-16 flex flex-col items-center justify-center p-1 border-dashed transition-all ${
-            readonly 
-              ? 'opacity-50 cursor-not-allowed border-gray-700 bg-gray-900/40'
-              : 'border-gray-600 bg-gray-800/40 hover:bg-blue-500/10 hover:border-blue-500/50 hover:text-blue-400 text-gray-400'
-          }`}
-          onClick={() => window.open('/upload', '_blank')}
-          disabled={readonly}
-        >
-          <Brain className="h-4 w-4 mb-1" />
-          <span className="text-[10px] text-center leading-none">
-            Procesar
-          </span>
-        </Button>
-      </div>
-    </div>
-  );
-
-  const renderDocList = (tipoFilter: string | string[]) => {
-    const tipos = Array.isArray(tipoFilter) ? tipoFilter : [tipoFilter];
-    const filteredDocs = documents.filter(d => tipos.includes(d.tipo));
-
-    if (filteredDocs.length === 0) return null;
-
-    return (
-      <div className="grid grid-cols-1 gap-2 mt-3">
-        {filteredDocs.map(doc => {
-          const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-          const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
-          const isExcel = doc.nombre_archivo?.match(/\.(xlsx|xls)$/i);
-          const isPreviewable = isImage || isPdf;
-
-          return (
-            <div key={doc.id} className="group flex items-center justify-between p-2 bg-gray-900/50 border border-gray-800 rounded-lg hover:border-gray-600 transition-colors">
-              <div className="flex items-center space-x-3 overflow-hidden">
-                <div className="h-10 w-10 flex-shrink-0 bg-gray-800 rounded-md flex items-center justify-center overflow-hidden">
-                  {isImage ? (
-                    <ImageIcon className="h-5 w-5 text-[#00FF80]" />
-                  ) : isExcel ? (
-                    <FileSpreadsheet className="h-5 w-5 text-green-500" />
-                  ) : isPdf ? (
-                    <FileText className="h-5 w-5 text-orange-400" />
-                  ) : (
-                    <File className="h-5 w-5 text-blue-400" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-gray-200 font-medium truncate max-w-[200px]" title={doc.nombre_archivo || ''}>
-                    {doc.nombre_archivo}
-                  </p>
-                  <p className="text-[10px] text-gray-500 uppercase">
-                    {(doc.tamaño_archivo ? doc.tamaño_archivo / 1024 / 1024 : 0).toFixed(2)} MB • {doc.tipo.replace('_', ' ')}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={`h-8 w-8 ${isPreviewable ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-400/10' : 'text-gray-600 hover:text-gray-300'}`}
-                  onClick={() => handlePreview(doc)}
-                  title={isPreviewable ? "Vista previa" : "Abrir archivo"}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10" 
-                  onClick={() => handleDownload(doc)}
-                  title="Descargar"
-                >
-                  <Download className="h-4 w-4" />
-                </Button>
-
-                {!readonly && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-8 w-8 text-gray-500 hover:text-red-500 hover:bg-red-500/10" 
-                    onClick={() => handleDelete(doc.id, doc.storage_path)}
-                    title="Eliminar"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <>
       <Card className="bg-[#121212] border border-gray-800">
@@ -270,55 +136,124 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
           <CardTitle className="text-white flex items-center justify-between text-base">
             <div className="flex items-center gap-2">
               <Paperclip className="h-4 w-4 text-[#00FF80]" />
-              Evidencias
+              Documentos / Sustentos
             </div>
             <Badge variant="secondary" className="bg-gray-800 text-gray-300 hover:bg-gray-700">
               {documents.length}
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 pt-0">
-          <Tabs defaultValue="operacion" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-9 bg-gray-900 mb-4">
-              <TabsTrigger value="operacion" className="text-xs">Operación</TabsTrigger>
-              <TabsTrigger value="legal" className="text-xs">Legal</TabsTrigger>
-              <TabsTrigger value="visita" className="text-xs">Otros</TabsTrigger>
-            </TabsList>
+        <CardContent className="p-4 pt-0 space-y-4">
+          
+          {/* Único botón de carga */}
+          {!readonly && (
+            <div className="w-full">
+              <input
+                type="file"
+                id="upload-sustentos-unified"
+                className="hidden"
+                accept=".pdf,.jpg,.png,.jpeg,.xlsx,.xls,.doc,.docx"
+                onChange={handleFileUpload}
+                disabled={uploading}
+              />
+              <Label
+                htmlFor="upload-sustentos-unified"
+                className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+                  uploading
+                    ? 'border-gray-700 bg-gray-900/50 cursor-wait'
+                    : 'border-gray-700 bg-gray-900/30 hover:bg-[#00FF80]/5 hover:border-[#00FF80]/50 hover:text-[#00FF80] text-gray-400'
+                }`}
+              >
+                {uploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                ) : (
+                  <Upload className="h-6 w-6 mb-2" />
+                )}
+                <span className="text-sm font-medium">
+                  {uploading ? 'Subiendo...' : 'Subir Documentos'}
+                </span>
+                <span className="text-xs text-gray-500 mt-1">
+                  (Facturas, Guías, Fotos, DNI, etc.)
+                </span>
+              </Label>
+            </div>
+          )}
 
-            <TabsContent value="operacion" className="space-y-2 m-0">
-              {!readonly && (
-                <div className="grid grid-cols-2 gap-2">
-                  <UploadButton tipo="sustentos" label="Docs Operativos" icon={FileText} />
-                  <UploadButton tipo="evidencia_visita" label="Fotos/Evidencias Visita" icon={ImageIcon} />
-                </div>
-              )}
-              {renderDocList(['factura_negociar', 'sustentos', 'evidencia_visita'])}
-              {documents.filter(d => ['factura_negociar', 'sustentos', 'evidencia_visita'].includes(d.tipo)).length === 0 && (
-                <div className="text-center py-6 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg mt-2">
-                  Sin documentos operativos
-                </div>
-              )}
-            </TabsContent>
+          {/* Lista unificada de documentos */}
+          <div className="space-y-2">
+            {documents.length === 0 ? (
+              <div className="text-center py-6 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg">
+                No hay documentos adjuntos
+              </div>
+            ) : (
+              documents.map(doc => {
+                const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
+                const isExcel = doc.nombre_archivo?.match(/\.(xlsx|xls)$/i);
+                const isPreviewable = isImage || isPdf;
 
-            <TabsContent value="legal" className="space-y-2 m-0">
-              {!readonly && (
-                <div className="grid grid-cols-2 gap-2">
-                   <UploadButton tipo="vigencia_poder" label="Vigencia/DNI" icon={FileText} />
-                   <UploadButton tipo="reporte_tributario" label="Reporte Trib." icon={FileText} />
-                </div>
-              )}
-              {renderDocList(['vigencia_poder', 'representante_legal', 'vigencia_poderes', 'reporte_tributario'])}
-            </TabsContent>
+                return (
+                  <div key={doc.id} className="group flex items-center justify-between p-3 bg-gray-900/50 border border-gray-800 rounded-lg hover:border-gray-600 transition-colors">
+                    <div className="flex items-center space-x-3 overflow-hidden">
+                      <div className="h-8 w-8 flex-shrink-0 bg-gray-800 rounded-md flex items-center justify-center">
+                        {isImage ? (
+                          <ImageIcon className="h-4 w-4 text-[#00FF80]" />
+                        ) : isExcel ? (
+                          <FileSpreadsheet className="h-4 w-4 text-green-500" />
+                        ) : isPdf ? (
+                          <FileText className="h-4 w-4 text-orange-400" />
+                        ) : (
+                          <File className="h-4 w-4 text-blue-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-gray-200 font-medium truncate" title={doc.nombre_archivo || ''}>
+                          {doc.nombre_archivo}
+                        </p>
+                        <p className="text-[10px] text-gray-500 uppercase">
+                          {(doc.tamaño_archivo ? doc.tamaño_archivo / 1024 / 1024 : 0).toFixed(2)} MB • {new Date(doc.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`h-8 w-8 ${isPreviewable ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-400/10' : 'text-gray-600 hover:text-gray-300'}`}
+                        onClick={() => handlePreview(doc)}
+                        title={isPreviewable ? "Vista previa" : "Abrir archivo"}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10" 
+                        onClick={() => handleDownload(doc)}
+                        title="Descargar"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
 
-            <TabsContent value="visita" className="space-y-2 m-0">
-               {!readonly && (
-                 <div className="grid grid-cols-1 gap-2">
-                   <UploadButton tipo="eeff" label="EEFF / Otros" icon={Upload} />
-                 </div>
-               )}
-               {renderDocList(['ficha_ruc', 'sentinel', 'eeff', 'cuenta_bancaria'])}
-            </TabsContent>
-          </Tabs>
+                      {!readonly && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-gray-500 hover:text-red-500 hover:bg-red-500/10" 
+                          onClick={() => handleDelete(doc.id, doc.storage_path)}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
 

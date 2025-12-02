@@ -54,6 +54,9 @@ const DOCUMENT_TYPE_LABELS: Record<string, { label: string; icon: string }> = {
   'factura_negociar': { label: 'Factura a Negociar', icon: '💰' },
   'reporte_tributario': { label: 'Reporte Tributario', icon: '📊' },
   'sentinel': { label: 'Sentinel', icon: '🛡️' },
+  'sustentos': { label: 'Sustentos / Evidencia', icon: '📎' },
+  'evidencia_visita': { label: 'Evidencia Visita', icon: '📸' },
+  'vigencia_poder': { label: 'Vigencia Poder', icon: '📜' },
 };
 
 const DocumentTable: React.FC<DocumentTableProps> = ({
@@ -71,8 +74,8 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
   const itemsPerPage = 10;
 
   // Filtrar documentos:
-  // 1. Ocultar documentos asociados a solicitudes (evidencias/sustentos)
-  // 2. Aplicar filtros de búsqueda, estado y tipo
+  // IMPORTANTE: Ocultar documentos asociados a solicitudes (evidencias/sustentos)
+  // Cualquier documento que tenga solicitud_id NO debe aparecer aquí.
   const visibleDocumentos = documentos.filter(doc => !doc.solicitud_id);
 
   // Obtener estados únicos para el filtro (solo de los visibles)
