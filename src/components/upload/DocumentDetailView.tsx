@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   FileText, 
   Calendar, 
-  Tag, 
   Download, 
   RefreshCw,
   AlertCircle,
   CheckCircle,
   Clock,
-  Building2
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -117,19 +116,27 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#121212] border border-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-[#121212] border border-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="border-b border-gray-800 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <FileText className="h-6 w-6 text-[#00FF80]" />
-              <div>
-                <h2 className="text-xl font-semibold text-white">
+        <div className="border-b border-gray-800 p-6 shrink-0 bg-[#121212]">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-3 min-w-0 flex-1">
+              <div className="p-2 bg-[#00FF80]/10 rounded-lg shrink-0">
+                <FileText className="h-6 w-6 text-[#00FF80]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-semibold text-white truncate" title={documento.nombre_archivo || 'Documento sin nombre'}>
                   {documento.nombre_archivo || 'Documento sin nombre'}
                 </h2>
-                <div className="flex items-center space-x-4 mt-1">
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-4 mt-1 flex-wrap gap-y-2">
+                  <div className="flex items-center space-x-2 shrink-0">
                     <span className="text-sm">
                       {DOCUMENT_TYPE_LABELS[documento.tipo]?.icon || '📄'}
                     </span>
@@ -137,17 +144,19 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                       {DOCUMENT_TYPE_LABELS[documento.tipo]?.label || documento.tipo}
                     </span>
                   </div>
-                  {getEstadoBadge(documento.estado)}
+                  <div className="shrink-0">
+                    {getEstadoBadge(documento.estado)}
+                  </div>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 shrink-0">
               <Button
                 variant="outline"
                 onClick={handleDownload}
                 disabled={downloading}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
               >
                 <Download className="h-4 w-4 mr-2" />
                 {downloading ? 'Descargando...' : 'Descargar'}
@@ -167,28 +176,29 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
               
               <Button
                 variant="ghost"
+                size="icon"
                 onClick={onClose}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white hover:bg-red-500/10 hover:text-red-400 rounded-full h-10 w-10"
               >
-                ✕
+                <X className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+        <div className="p-6 overflow-y-auto overflow-x-hidden flex-1">
           <Tabs defaultValue="info" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-900/50">
-              <TabsTrigger value="info" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-900/50 p-1 rounded-lg border border-gray-800 mb-6">
+              <TabsTrigger value="info" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black rounded-md transition-all">
                 Información
               </TabsTrigger>
-              <TabsTrigger value="procesamiento" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black">
+              <TabsTrigger value="procesamiento" className="data-[state=active]:bg-[#00FF80] data-[state=active]:text-black rounded-md transition-all">
                 Procesamiento
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="info" className="space-y-4">
+            <TabsContent value="info" className="space-y-4 mt-0">
               <Card className="bg-gray-900/30 border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">Información del Documento</CardTitle>
@@ -196,14 +206,14 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-gray-400 text-sm">ID del Documento:</span>
-                      <p className="font-mono text-xs text-[#00FF80] bg-gray-900/50 p-2 rounded mt-1">
+                      <span className="text-gray-400 text-sm font-medium">ID del Documento:</span>
+                      <p className="font-mono text-xs text-[#00FF80] bg-gray-900/50 p-2 rounded mt-1 border border-gray-800 truncate">
                         {documento.id}
                       </p>
                     </div>
                     <div>
-                      <span className="text-gray-400 text-sm">Ruta de Almacenamiento:</span>
-                      <p className="font-mono text-xs text-gray-300 bg-gray-900/50 p-2 rounded mt-1">
+                      <span className="text-gray-400 text-sm font-medium">Ruta de Almacenamiento:</span>
+                      <p className="font-mono text-xs text-gray-300 bg-gray-900/50 p-2 rounded mt-1 border border-gray-800 truncate" title={documento.storage_path}>
                         {documento.storage_path}
                       </p>
                     </div>
@@ -211,18 +221,20 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-gray-400 text-sm">Tamaño del Archivo:</span>
-                      <p className="text-white mt-1">{formatFileSize(documento.tamaño_archivo)}</p>
+                      <span className="text-gray-400 text-sm font-medium">Tamaño del Archivo:</span>
+                      <p className="text-white mt-1 bg-gray-900/30 p-2 rounded border border-gray-800 inline-block">
+                        {formatFileSize(documento.tamaño_archivo)}
+                      </p>
                     </div>
                     <div>
-                      <span className="text-gray-400 text-sm">Estado:</span>
+                      <span className="text-gray-400 text-sm font-medium">Estado Actual:</span>
                       <div className="mt-1">{getEstadoBadge(documento.estado)}</div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-gray-400 text-sm">Fecha de Creación:</span>
+                      <span className="text-gray-400 text-sm font-medium">Fecha de Creación:</span>
                       <div className="flex items-center space-x-2 mt-1">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className="text-white">
@@ -237,7 +249,7 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-400 text-sm">Última Actualización:</span>
+                      <span className="text-gray-400 text-sm font-medium">Última Actualización:</span>
                       <div className="flex items-center space-x-2 mt-1">
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className="text-white">
@@ -254,12 +266,12 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                   </div>
 
                   {documento.error_msg && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                      <div className="flex items-center space-x-2 text-red-400">
-                        <AlertCircle className="h-4 w-4" />
-                        <span className="text-sm font-medium">Error de Procesamiento</span>
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mt-4">
+                      <div className="flex items-center space-x-2 text-red-400 mb-2">
+                        <AlertCircle className="h-5 w-5" />
+                        <span className="text-sm font-bold">Error de Procesamiento</span>
                       </div>
-                      <p className="text-xs text-gray-300 mt-2 bg-gray-900/50 p-2 rounded">
+                      <p className="text-sm text-gray-300 bg-black/40 p-3 rounded font-mono">
                         {documento.error_msg}
                       </p>
                     </div>
@@ -268,16 +280,16 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
               </Card>
             </TabsContent>
 
-            <TabsContent value="procesamiento" className="space-y-4">
+            <TabsContent value="procesamiento" className="space-y-4 mt-0">
               <Card className="bg-gray-900/30 border border-gray-800">
                 <CardHeader>
                   <CardTitle className="text-white">Estado del Procesamiento</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg">
+                  <div className="flex items-center justify-between p-4 bg-gray-900/50 rounded-lg border border-gray-800">
                     <div className="flex items-center space-x-3">
                       {getEstadoBadge(documento.estado)}
-                      <span className="text-white">
+                      <span className="text-white text-sm">
                         {documento.estado === 'pending' && 'Documento en cola para procesamiento'}
                         {documento.estado === 'processing' && 'Documento siendo procesado por el webhook'}
                         {documento.estado === 'completed' && 'Documento procesado exitosamente'}
@@ -289,7 +301,8 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                       <Button
                         onClick={handleReprocess}
                         disabled={reprocessing}
-                        className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                        className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black ml-4 shrink-0"
+                        size="sm"
                       >
                         <RefreshCw className={`h-4 w-4 mr-2 ${reprocessing ? 'animate-spin' : ''}`} />
                         Reprocesar
@@ -308,14 +321,14 @@ const DocumentDetailView: React.FC<DocumentDetailViewProps> = ({
                     </div>
                   )}
 
-                  <div className="text-xs text-gray-400 bg-gray-900/30 p-3 rounded">
-                    <p><strong>Flujo de procesamiento:</strong></p>
-                    <ol className="list-decimal list-inside mt-2 space-y-1">
-                      <li>Documento subido al storage</li>
-                      <li>Registro creado en base de datos</li>
-                      <li>Enviado al webhook para procesamiento</li>
-                      <li>Webhook extrae información y actualiza estado</li>
-                      <li>Datos estructurados disponibles en la aplicación</li>
+                  <div className="text-sm text-gray-400 bg-gray-900/30 p-4 rounded-lg border border-gray-800">
+                    <p className="font-semibold text-gray-300 mb-2">Flujo de procesamiento:</p>
+                    <ol className="list-decimal list-inside space-y-2 ml-1">
+                      <li>Documento subido al storage seguro.</li>
+                      <li>Registro creado en base de datos.</li>
+                      <li>Enviado al webhook de automatización.</li>
+                      <li>Extracción de información mediante IA.</li>
+                      <li>Actualización de datos en el sistema.</li>
                     </ol>
                   </div>
                 </CardContent>
