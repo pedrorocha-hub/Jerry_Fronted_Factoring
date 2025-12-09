@@ -66,6 +66,7 @@ export const useDossierData = () => {
         gerenciaResult,
         ribEeffResult,
         comentariosEjecutivoResult,
+        documentosResult
       ] = await Promise.allSettled([
         supabase.from('ficha_ruc').select('*').eq('ruc', rucInput).single(),
         supabase.from('rib').select('*').eq('solicitud_id', solicitudId).single(),
@@ -77,6 +78,7 @@ export const useDossierData = () => {
         supabase.from('ficha_ruc_gerencia').select('*').eq('ruc', rucInput),
         supabase.from('rib_eeff').select('*').eq('solicitud_id', solicitudId),
         supabase.from('comentarios_ejecutivo').select('*').eq('solicitud_id', solicitudId).single(),
+        supabase.from('documentos').select('*').eq('solicitud_id', solicitudId).order('created_at', { ascending: false }),
       ]);
 
       const getData = (result: PromiseSettledResult<any>) => {
@@ -99,7 +101,8 @@ export const useDossierData = () => {
         ventasMensuales: getData(ventasMensualesResult),
         ribEeff: getData(ribEeffResult) || [],
         top10kData: getData(top10kResult),
-        comentariosEjecutivo: getData(comentariosEjecutivoResult)
+        comentariosEjecutivo: getData(comentariosEjecutivoResult),
+        documentos: getData(documentosResult) || []
       };
 
       console.log('Dossier final:', dossierData);
@@ -291,7 +294,7 @@ export const useDossierData = () => {
     dossierList,
     searchDossierById,
     saveDossier,
-    deleteDossier, // Exportar la nueva función
+    deleteDossier,
     loadSavedDossiers,
     loadDossierFromSaved,
     setError

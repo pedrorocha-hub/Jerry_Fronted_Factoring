@@ -11,6 +11,7 @@ import RibReporteTributarioSection from './sections/RibReporteTributarioSection'
 import VentasMensualesSection from './sections/VentasMensualesSection';
 import RibEeffSection from './sections/RibEeffSection';
 import ComentariosEjecutivoSection from './sections/ComentariosEjecutivoSection';
+import DocumentsSection from './sections/DocumentsSection';
 
 interface DossierViewerProps {
   dossier: DossierRib;
@@ -126,6 +127,14 @@ const DossierViewer: React.FC<DossierViewerProps> = ({ dossier, onSave, saving =
       component: <ComentariosEjecutivoSection dossier={dossier} />,
       isComplete: !!dossier.comentariosEjecutivo,
       priority: 'high'
+    },
+    {
+      id: 'documentos',
+      title: '8. Documentación Adjunta',
+      icon: <FileText className="h-5 w-5" />,
+      component: <DocumentsSection dossier={dossier} />,
+      isComplete: !!(dossier.documentos && dossier.documentos.length > 0),
+      priority: 'medium'
     }
   ];
 

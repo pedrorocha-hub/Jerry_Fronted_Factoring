@@ -776,7 +776,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
             </div>
             {dossier.comentariosEjecutivo.archivos_adjuntos && dossier.comentariosEjecutivo.archivos_adjuntos.length > 0 && (
               <div style={{marginTop: '10px'}}>
-                <div style={styles.subsectionTitle}>Archivos Adjuntos</div>
+                <div style={styles.subsectionTitle}>Archivos Adjuntos (Comentarios)</div>
                 <div style={{fontSize: '8px', color: '#6b7280', marginTop: '4px'}}>
                   {dossier.comentariosEjecutivo.archivos_adjuntos.map((file: string, index: number) => (
                     <div key={index} style={{marginBottom: '2px'}}>
@@ -786,6 +786,55 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* SECCIÓN 8: DOCUMENTOS DEL EXPEDIENTE */}
+        {dossier.documentos && dossier.documentos.length > 0 && (
+          <div style={styles.sectionCard}>
+            <div style={styles.sectionHeader}>
+              <div style={styles.sectionNumber}>8</div>
+              <h2 style={styles.sectionTitle}>Documentación del Expediente</h2>
+            </div>
+            
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead style={styles.tableHeader}>
+                  <tr style={styles.tr}>
+                    <th style={styles.th}>Tipo</th>
+                    <th style={styles.th}>Archivo</th>
+                    <th style={styles.thLast}>Fecha Carga</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dossier.documentos.map((doc: any, index: number) => {
+                     let tipoLabel = doc.tipo;
+                     if (doc.tipo === 'factura_negociar') tipoLabel = 'Factura';
+                     if (doc.tipo === 'evidencia_visita') tipoLabel = 'Evidencia Visita';
+                     if (doc.tipo === 'sustentos') tipoLabel = 'Sustento';
+                     if (doc.tipo === 'vigencia_poder') tipoLabel = 'Vigencia de Poder';
+                     if (doc.tipo === 'ficha_ruc') tipoLabel = 'Ficha RUC';
+                     
+                     return (
+                        <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+                          <td style={styles.td}>
+                             <span style={{
+                               textTransform: 'uppercase', 
+                               fontSize: '7px', 
+                               fontWeight: 'bold',
+                               color: doc.tipo === 'factura_negociar' ? '#2563eb' : '#374151'
+                             }}>
+                               {tipoLabel}
+                             </span>
+                          </td>
+                          <td style={styles.td}>{doc.nombre_archivo}</td>
+                          <td style={styles.tdLast}>{new Date(doc.created_at).toLocaleDateString('es-PE')}</td>
+                        </tr>
+                     );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

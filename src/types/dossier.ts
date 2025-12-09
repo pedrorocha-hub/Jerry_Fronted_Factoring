@@ -1,10 +1,12 @@
 import { RibEeff } from './rib-eeff';
 import { ComentarioEjecutivo } from '@/services/comentariosEjecutivoService';
+import { Documento } from './documento';
 
 export interface DossierRib {
   [key: string]: any;
   ribEeff?: RibEeff[];
   comentariosEjecutivo?: ComentarioEjecutivo | null;
+  documentos?: Documento[];
 }
 
 export interface DossierSummary {
