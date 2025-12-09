@@ -64,15 +64,10 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
       // Para documentos de evidencia, ahora todos se suben como 'sustentos', pero buscamos por nombre o si existe algún sustento
       // para mantener el checklist visualmente útil.
-      // Nota: Al unificar todo en 'sustentos', la distinción exacta se pierde a nivel de tipo de documento,
-      // pero verificamos si existe *algún* documento de tipo sustentos para la solicitud o por nombre.
-      
       const [sustentosDoc] = await Promise.all([
         supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1)
       ]);
 
-      // Si existe un documento de sustentos, asumimos que puede cubrir los requisitos de evidencia
-      // O mantenemos la lógica anterior si el usuario subió con otros tipos previamente.
       const hasSustentos = (sustentosDoc.data?.length || 0) > 0;
 
       const newStatus = {
@@ -215,23 +210,21 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
               )}
 
               {/* Botón para Evidencias (Subida directa - Ganchito) */}
-              {!isAIProcess && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
-                  onClick={() => handleDirectUploadClick(key)}
-                  disabled={!!uploadingType}
-                  title="Adjuntar evidencia (sin procesar)"
-                >
-                  {isUploadingThis ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-3 w-3" />
-                  )}
-                  Subir
-                </Button>
-              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
+                onClick={() => handleDirectUploadClick(key)}
+                disabled={!!uploadingType}
+                title="Adjuntar evidencia (sin procesar)"
+              >
+                {isUploadingThis ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Paperclip className="h-3 w-3" />
+                )}
+                Adjuntar
+              </Button>
             </>
           )}
           {exists && (
