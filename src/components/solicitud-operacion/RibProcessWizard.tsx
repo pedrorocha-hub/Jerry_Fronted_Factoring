@@ -130,8 +130,8 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                if (step.id === 'reporte') {
                    linkPath = `/rib-reporte-tributario/new?${queryString}`;
                } else if (step.id === 'ventas') {
-                   // Ventas mensuales usa un formulario especial que soporta edit/new en la misma ruta base o /edit
-                   linkPath = `/ventas-mensuales/edit?${queryString}`;
+                   // Fix: Use /new for creating new records so the page knows to initialize with query params
+                   linkPath = `/ventas-mensuales/new?${queryString}`;
                } else if (step.id === 'eeff') {
                    linkPath = `/rib-eeff/nuevo?${queryString}`;
                } else {
