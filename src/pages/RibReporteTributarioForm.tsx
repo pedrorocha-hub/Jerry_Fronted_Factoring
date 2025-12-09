@@ -38,6 +38,7 @@ const RibReporteTributarioForm = () => {
   const navigate = useNavigate();
   const isEditMode = !!id;
 
+  const [initializing, setInitializing] = useState(true); // NUEVO
   const [view, setView] = useState<'create_mode' | 'form'>('create_mode');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -53,7 +54,6 @@ const RibReporteTributarioForm = () => {
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Estado para etiquetas dinámicas basadas en el producto
   const [productType, setProductType] = useState<string | null>(null);
   
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
@@ -74,6 +74,8 @@ const RibReporteTributarioForm = () => {
       
       if (rucParam && solicitudIdParam) {
         handleAutoInit(rucParam, solicitudIdParam);
+      } else {
+        setInitializing(false);
       }
     }
   }, [isEditMode, id, searchParams]);
@@ -81,7 +83,6 @@ const RibReporteTributarioForm = () => {
   const handleAutoInit = async (ruc: string, solicitudId: string) => {
     setSearching(true);
     try {
-      // 1. Fetch Solicitud info for label and Product Type
       const { data: solicitud } = await supabase
         .from('solicitudes_operacion')
         .select('id, ruc, created_at, proveedor, tipo_producto')
@@ -96,7 +97,6 @@ const RibReporteTributarioForm = () => {
          setProductType(solicitud.tipo_producto);
       }
 
-      // 2. Try to find Ficha RUC
       const fichaData = await FichaRucService.getByRuc(ruc);
       let newDocument: RibReporteTributarioDocument;
 
@@ -105,7 +105,6 @@ const RibReporteTributarioForm = () => {
         setCreateWithoutRuc(false);
         nombreProveedor = fichaData.nombre_empresa;
         
-        // Load financial data
         const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
         
         newDocument = {
@@ -127,7 +126,6 @@ const RibReporteTributarioForm = () => {
           user_id: null
         };
       } else {
-        // Manual Mode
         setCreateWithoutRuc(true);
         const mockFicha: FichaRuc = {
             id: 0,
@@ -165,6 +163,7 @@ const RibReporteTributarioForm = () => {
       showError('Error al inicializar el reporte.');
     } finally {
       setSearching(false);
+      setInitializing(false);
     }
   };
 
@@ -239,10 +238,10 @@ const RibReporteTributarioForm = () => {
       console.error(err);
     } finally {
       setSearching(false);
+      setInitializing(false);
     }
   };
 
-  // Determine dynamic labels based on product type
   const getMainSectionLabel = () => {
     if (productType === 'FACTORING') return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL PROVEEDOR (CLIENTE)';
     if (productType === 'CONFIRMING') return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL DEUDOR (CLIENTE)';
@@ -255,7 +254,8 @@ const RibReporteTributarioForm = () => {
     return 'DATOS DE LA EMPRESA RELACIONADA';
   };
 
-  // ... rest of the existing handlers (same as previous) ...
+  // ... (useEffects for createWithoutRuc, suggestions, handleSearchForNew, handleCreateManually, handleSelectSuggestion, handleKeyDown, handleDataChanges, handleStatusChange, handleSolicitudIdChange, handleSave, searchSolicitudes - NO CHANGES)
+  
   useEffect(() => {
     if (createWithoutRuc && searchedFicha && initialSearchedFicha) {
       const rucChanged = searchedFicha.ruc !== initialSearchedFicha.ruc;
@@ -561,6 +561,19 @@ const RibReporteTributarioForm = () => {
     }
     return data || [];
   };
+
+  // FULL PAGE LOADER
+  if (initializing) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+          <Loader2 className="h-12 w-12 text-[#00FF80] animate-spin mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Cargando Reporte Tributario...</h2>
+          <p className="text-gray-400">Obteniendo datos de la solicitud y fichas RUC</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

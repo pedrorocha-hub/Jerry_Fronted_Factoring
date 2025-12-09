@@ -10,7 +10,8 @@ import {
   Calendar, 
   FileSpreadsheet, 
   MessageSquare,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 
 interface RibProcessWizardProps {
@@ -101,6 +102,17 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
   const getCurrentStepIndex = () => steps.findIndex(s => s.id === currentStep);
   const currentStepIndex = getCurrentStepIndex();
 
+  if (loading && solicitudId) {
+    return (
+      <div className="w-full bg-[#121212] border border-gray-800 rounded-lg p-4 mb-6 flex justify-center items-center h-[106px]">
+        <div className="flex flex-col items-center animate-pulse">
+          <Loader2 className="w-6 h-6 text-[#00FF80] animate-spin mb-2" />
+          <span className="text-xs text-gray-500">Cargando proceso...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full bg-[#121212] border border-gray-800 rounded-lg p-4 mb-6 overflow-x-auto">
       <div className="flex items-center min-w-max justify-between relative px-2">
@@ -130,7 +142,6 @@ const RibProcessWizard: React.FC<RibProcessWizardProps> = ({ solicitudId, curren
                if (step.id === 'reporte') {
                    linkPath = `/rib-reporte-tributario/new?${queryString}`;
                } else if (step.id === 'ventas') {
-                   // Fix: Use /new for creating new records so the page knows to initialize with query params
                    linkPath = `/ventas-mensuales/new?${queryString}`;
                } else if (step.id === 'eeff') {
                    linkPath = `/rib-eeff/nuevo?${queryString}`;

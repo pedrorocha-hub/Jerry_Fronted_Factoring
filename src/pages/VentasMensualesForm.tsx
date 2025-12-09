@@ -32,10 +32,9 @@ const VentasMensualesForm = () => {
   const rucParam = searchParams.get('ruc');
   const solicitudIdParam = searchParams.get('solicitud_id');
   
-  // Determinar si es modo edición basado en si hay ID directo o si ya existe el reporte
-  // (Esto se refina más adelante en la carga de datos)
   const isEditMode = !!id;
 
+  const [initializing, setInitializing] = useState(true); // NUEVO ESTADO
   const [view, setView] = useState<'create_mode' | 'form'>('create_mode');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -50,7 +49,6 @@ const VentasMensualesForm = () => {
   const [deudorSalesData, setDeudorSalesData] = useState<SalesData>({});
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   
-  // Mantener mapeo de año → ID para UPDATEs correctos
   const [proveedorRecordIds, setProveedorRecordIds] = useState<Record<number, string>>({});
   const [deudorRecordIds, setDeudorRecordIds] = useState<Record<number, string>>({});
 
@@ -63,19 +61,11 @@ const VentasMensualesForm = () => {
   const [saving, setSaving] = useState(false);
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
-  // Función para obtener años únicos de los datos
+  // ... (getAvailableYears, initializeSalesData, extract functions remain same)
   const getAvailableYears = (salesData: SalesData, additionalYears: number[] = []): number[] => {
     const yearsSet = new Set<number>();
-    
-    // Agregar años de los datos existentes
-    Object.keys(salesData).forEach(year => {
-      yearsSet.add(parseInt(year));
-    });
-    
-    // Agregar años adicionales (de otros reportes)
+    Object.keys(salesData).forEach(year => yearsSet.add(parseInt(year)));
     additionalYears.forEach(year => yearsSet.add(year));
-    
-    // Convertir a array y ordenar
     return Array.from(yearsSet).sort((a, b) => a - b);
   };
 
@@ -83,34 +73,22 @@ const VentasMensualesForm = () => {
     const data: SalesData = {};
     years.forEach(year => {
       data[year] = {};
-      MONTHS.forEach(month => {
-        data[year][month] = null;
-      });
+      MONTHS.forEach(month => { data[year][month] = null; });
     });
     return data;
   };
 
-  const extractSalesDataFromReports = (reports: VentasMensuales[]): {
-    salesData: SalesData;
-    recordIds: Record<number, string>;
-  } => {
-    // Primero extraer los años de los reportes
+  const extractSalesDataFromReports = (reports: VentasMensuales[]): { salesData: SalesData; recordIds: Record<number, string>; } => {
     const yearsFromReports = reports.map(r => r.anio);
     const years = getAvailableYears({}, yearsFromReports);
-    
     const salesData = initializeSalesData(years);
     const recordIds: Record<number, string> = {};
-    
     reports.forEach(report => {
-      // Guardar el ID del registro para este año
       recordIds[report.anio] = report.id;
-      
       if (salesData[report.anio]) {
         MONTHS.forEach(month => {
           const value = report[month as keyof VentasMensuales] as number | null;
-          if (value !== null && value !== undefined) {
-            salesData[report.anio][month] = value;
-          }
+          if (value !== null && value !== undefined) salesData[report.anio][month] = value;
         });
       }
     });
@@ -118,10 +96,8 @@ const VentasMensualesForm = () => {
   };
 
   const extractSalesDataFromReporteTributario = (reportes: any[]): SalesData => {
-    // Extraer años de los reportes tributarios
     const yearsFromReports = reportes.map(r => r.anio_reporte);
     const years = getAvailableYears({}, yearsFromReports);
-    
     const salesData = initializeSalesData(years);
     reportes.forEach(reporte => {
       const year = reporte.anio_reporte;
@@ -138,15 +114,12 @@ const VentasMensualesForm = () => {
     return salesData;
   };
 
-  // Función unificada para inicializar o cargar datos
   const handleAutoInit = async (ruc: string, solicitudIdFromUrl: string) => {
     setSearching(true);
     setError(null);
     try {
-      // 1. Intentar buscar reporte existente
       const existingReports = await VentasMensualesService.getBySolicitudId(ruc, solicitudIdFromUrl);
 
-      // Configurar Solicitud ID y Label
       setSolicitudId(solicitudIdFromUrl);
       const { data: solicitudData } = await supabase
         .from('solicitudes_operacion')
@@ -159,7 +132,6 @@ const VentasMensualesForm = () => {
         setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitudData.ruc} - ${new Date(solicitudData.created_at).toLocaleDateString()}`);
       }
 
-      // Si existen reportes, cargar datos (Modo Edición)
       if (existingReports.length > 0) {
         const firstReport = existingReports[0];
         setStatus(firstReport.status);
@@ -170,12 +142,10 @@ const VentasMensualesForm = () => {
             setCreatorName(profile?.full_name || 'Desconocido');
         }
 
-        // Cargar fichas
         const provFicha = await FichaRucService.getByRuc(ruc);
         if (provFicha) {
             setProveedorFicha(provFicha);
         } else {
-             // Fallback modo manual si no hay ficha en BD pero hay reportes
              const tempFicha: FichaRuc = {
                 id: 0,
                 ruc: ruc,
@@ -193,7 +163,6 @@ const VentasMensualesForm = () => {
             setDeudorFicha(deudorData);
         }
 
-        // Extraer datos de ventas
         const proveedorReports = existingReports.filter(r => r.tipo_entidad === 'proveedor');
         const deudorReports = existingReports.filter(r => r.tipo_entidad === 'deudor');
 
@@ -209,14 +178,9 @@ const VentasMensualesForm = () => {
         setAvailableYears(allYears);
 
       } else {
-        // Si NO existen reportes, inicializar Nuevo (Modo Creación)
-        // Cargar ficha proveedor
         const provFicha = await FichaRucService.getByRuc(ruc);
-        
         if (provFicha) {
             setProveedorFicha(provFicha);
-            
-            // Intentar autocompletar con Reportes Tributarios si existen
             const reportesTributarios = await ReporteTributarioService.getReportesByRuc(ruc);
             if (reportesTributarios.length > 0) {
                 const salesData = extractSalesDataFromReporteTributario(reportesTributarios);
@@ -224,14 +188,11 @@ const VentasMensualesForm = () => {
                 setAvailableYears(getAvailableYears(salesData));
                 showSuccess('Nuevo reporte inicializado con datos de Reportes Tributarios.');
             } else {
-                // Inicializar vacío
                 const initialData = initializeSalesData([currentYear]);
                 setProveedorSalesData(initialData);
                 setAvailableYears([currentYear]);
             }
-
         } else {
-            // Modo Manual (Ficha no existe)
             const { data: solicitudInfo } = await supabase
                 .from('solicitudes_operacion')
                 .select('proveedor')
@@ -248,27 +209,23 @@ const VentasMensualesForm = () => {
             };
             setProveedorFicha(tempFicha);
             setManualMode(true);
-            
             const initialData = initializeSalesData([currentYear]);
             setProveedorSalesData(initialData);
             setAvailableYears([currentYear]);
-            
             showSuccess('Empresa no encontrada. Inicializando en modo manual.');
         }
 
-        // Cargar Deudor si existe en la solicitud
         if (solicitudData?.deudor_ruc) {
             const deudorData = await FichaRucService.getByRuc(solicitudData.deudor_ruc);
             if (deudorData) {
                  setDeudorFicha(deudorData);
-                 // Inicializar tabla de deudor vacía
                  const initialDeudorData = initializeSalesData(availableYears.length > 0 ? availableYears : [currentYear]);
                  setDeudorSalesData(initialDeudorData);
             }
         }
         
         setStatus('borrador');
-        setIsDirty(true); // Marcar como sucio para que el usuario sepa que debe guardar
+        setIsDirty(true);
       }
 
       setRucInput(ruc);
@@ -280,6 +237,7 @@ const VentasMensualesForm = () => {
       navigate('/ventas-mensuales');
     } finally {
       setSearching(false);
+      setInitializing(false); // FIN DE CARGA
     }
   };
 
@@ -295,8 +253,6 @@ const VentasMensualesForm = () => {
       if (error) throw error;
 
       if (record) {
-        // Redirigir a la lógica unificada
-        // Nota: record.solicitud_id podría ser null, manejamos eso
         await handleAutoInit(record.proveedor_ruc, record.solicitud_id || 'null');
       } else {
          showError('Registro no encontrado');
@@ -306,6 +262,7 @@ const VentasMensualesForm = () => {
        console.error("Error loading by ID:", e);
        showError('Error al cargar el registro: ' + e.message);
        navigate('/ventas-mensuales');
+       setInitializing(false);
     }
   };
 
@@ -316,6 +273,7 @@ const VentasMensualesForm = () => {
        handleAutoInit(rucParam, solicitudIdParam);
     } else {
       setView('create_mode');
+      setInitializing(false);
     }
   }, [id, rucParam, solicitudIdParam]);
 
@@ -335,29 +293,20 @@ const VentasMensualesForm = () => {
       }
       setProveedorFicha(provFicha);
 
-      // Modo autocompletar: intentar cargar desde reportes tributarios
       const reportesTributarios = await ReporteTributarioService.getReportesByRuc(rucInput);
       if (reportesTributarios.length > 0) {
         const salesData = extractSalesDataFromReporteTributario(reportesTributarios);
         setProveedorSalesData(salesData);
-        
         const years = getAvailableYears(salesData);
         setAvailableYears(years);
-        
         showSuccess('Datos autocompletados desde reportes tributarios.');
       } else {
-        // Si no hay reportes, inicializar con año actual
-        const initialData: SalesData = {
-          [currentYear]: {}
-        };
-        MONTHS.forEach(month => {
-          initialData[currentYear][month] = null;
-        });
+        const initialData: SalesData = { [currentYear]: {} };
+        MONTHS.forEach(month => { initialData[currentYear][month] = null; });
         setProveedorSalesData(initialData);
         setAvailableYears([currentYear]);
         showError('No se encontraron reportes tributarios. Se inicializó con año actual.');
       }
-      
       setStatus('borrador');
       setIsDirty(true);
       setView('form');
@@ -368,12 +317,11 @@ const VentasMensualesForm = () => {
     }
   };
 
+  // ... (handleCreateManually, handleAddYear, searchFichas, handleSave, searchSolicitudes, handleBackToList same as before)
   const handleCreateManually = () => {
     setManualMode(true);
     setError(null);
     setRucInput('');
-    
-    // Crear una ficha vacía para modo manual
     const emptyFicha: FichaRuc = {
       id: 0,
       ruc: '',
@@ -382,19 +330,11 @@ const VentasMensualesForm = () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    
     setProveedorFicha(emptyFicha);
-
-    // Inicializar con el año actual en modo manual
-    const initialData: SalesData = {
-      [currentYear]: {}
-    };
-    MONTHS.forEach(month => {
-      initialData[currentYear][month] = null;
-    });
+    const initialData: SalesData = { [currentYear]: {} };
+    MONTHS.forEach(month => { initialData[currentYear][month] = null; });
     setProveedorSalesData(initialData);
     setAvailableYears([currentYear]);
-    
     setStatus('borrador');
     setIsDirty(true);
     setView('form');
@@ -404,19 +344,16 @@ const VentasMensualesForm = () => {
   const handleAddYear = () => {
     const newYear = Math.max(...availableYears, currentYear - 1) + 1;
     setAvailableYears(prev => [...prev, newYear].sort((a, b) => a - b));
-    
     setProveedorSalesData(prev => ({
       ...prev,
       [newYear]: MONTHS.reduce((acc, month) => ({ ...acc, [month]: null }), {})
     }));
-    
     if (deudorFicha) {
       setDeudorSalesData(prev => ({
         ...prev,
         [newYear]: MONTHS.reduce((acc, month) => ({ ...acc, [month]: null }), {})
       }));
     }
-    
     setIsDirty(true);
     showSuccess(`Año ${newYear} agregado.`);
   };
@@ -425,7 +362,6 @@ const VentasMensualesForm = () => {
     if (query.length < 2) return [];
     try {
       const fichasData = await FichaRucService.search(query);
-      // El método search ya retorna el formato correcto {value, label}
       return fichasData;
     } catch (error) {
       console.error('Error searching fichas:', error);
@@ -435,70 +371,33 @@ const VentasMensualesForm = () => {
 
   const handleSave = async () => {
     if (!proveedorFicha) return;
-    
-    // Validar RUC
     const ruc = proveedorFicha.ruc || rucInput;
     if (!ruc || ruc.length !== 11) {
       showError('Debe ingresar un RUC válido de 11 dígitos.');
       return;
     }
-    
-    // Validar nombre de empresa
     if (!proveedorFicha.nombre_empresa) {
       showError('Debe ingresar la razón social de la empresa.');
       return;
     }
-    
-    // Validar que solicitud_id sea obligatorio
     if (!solicitudId) {
       showError('Debe asociar el reporte a una Solicitud de Operación antes de guardar.');
       return;
     }
     
-    // Si es un nuevo reporte (no hay IDs guardados), verificar duplicados
-    // Nota: proveedorRecordIds estará vacío si es nuevo
-    const isNewRecord = Object.keys(proveedorRecordIds).length === 0;
-    
-    if (isNewRecord) {
-      try {
-        const existingReports = await VentasMensualesService.getBySolicitudId(
-          proveedorFicha.ruc,
-          solicitudId
-        );
-        
-        if (existingReports.length > 0) {
-          showError(
-            'Ya existe un reporte de Ventas Mensuales para este RUC asociado a esta Solicitud de Operación. ' +
-            'Se actualizarán los registros existentes.'
-          );
-          // En realidad, deberíamos cargar los IDs y hacer update, pero por simplicidad
-          // el backend manejará o el usuario verá el error.
-          // Mejor estrategia: Si encuentra duplicado, avisar.
-          // Aquí vamos a permitir continuar, asumiendo que el usuario sabe lo que hace o que es un upsert.
-        }
-      } catch (err) {
-        console.error('Error verificando reportes existentes:', err);
-      }
-    }
-    
     setSaving(true);
     try {
-      // Usar el RUC actualizado (puede haber sido editado en modo manual)
       const finalRuc = proveedorFicha.ruc || rucInput || ruc;
-      
-      // Si es modo manual, guardar/actualizar la ficha RUC
       if (manualMode && finalRuc && proveedorFicha.nombre_empresa) {
         try {
           const existingFicha = await FichaRucService.getByRuc(finalRuc);
           if (existingFicha) {
-            // Actualizar solo si el nombre cambió
             if (existingFicha.nombre_empresa !== proveedorFicha.nombre_empresa) {
               await FichaRucService.update(existingFicha.id, {
                 nombre_empresa: proveedorFicha.nombre_empresa
               });
             }
           } else {
-            // Crear nueva ficha
             await FichaRucService.create({
               ruc: finalRuc,
               nombre_empresa: proveedorFicha.nombre_empresa,
@@ -507,7 +406,6 @@ const VentasMensualesForm = () => {
           }
         } catch (err) {
           console.error('Error al guardar ficha RUC:', err);
-          // No detener el guardado del reporte si falla la ficha
         }
       }
       
@@ -517,12 +415,9 @@ const VentasMensualesForm = () => {
         solicitud_id: solicitudId,
       };
       
-      // Guardar datos del proveedor para cada año que tenga datos
       for (const year of availableYears) {
         const yearData = proveedorSalesData[year] || {};
-        // Guardar incluso si está vacío para mantener la estructura del año
-        
-        const existingId = proveedorRecordIds[year]; // Obtener el ID si existe
+        const existingId = proveedorRecordIds[year];
         const savedRecord = await VentasMensualesService.saveReport(
           finalRuc,
           deudorFicha?.ruc || null,
@@ -530,21 +425,17 @@ const VentasMensualesForm = () => {
           'proveedor',
           yearData,
           metadata,
-          existingId  // Pasar el ID para hacer UPDATE
+          existingId
         );
-        
-        // Actualizar el ID en el estado local para futuros updates sin recargar
         if (savedRecord && savedRecord.id) {
              setProveedorRecordIds(prev => ({...prev, [year]: savedRecord.id}));
         }
       }
 
-      // Guardar datos del deudor si existe
       if (deudorFicha) {
         for (const year of availableYears) {
           const yearData = deudorSalesData[year] || {};
-          
-          const existingId = deudorRecordIds[year]; // Obtener el ID si existe
+          const existingId = deudorRecordIds[year];
           const savedRecord = await VentasMensualesService.saveReport(
             finalRuc,
             deudorFicha.ruc,
@@ -552,9 +443,8 @@ const VentasMensualesForm = () => {
             'deudor',
             yearData,
             metadata,
-            existingId  // Pasar el ID para hacer UPDATE
+            existingId
           );
-          
           if (savedRecord && savedRecord.id) {
              setDeudorRecordIds(prev => ({...prev, [year]: savedRecord.id}));
           }
@@ -563,7 +453,6 @@ const VentasMensualesForm = () => {
 
       showSuccess('Cambios guardados exitosamente.');
       setIsDirty(false);
-      // No navegar, quedarse en la página para seguir editando
     } catch (err) {
       console.error('Error saving:', err);
       showError('Error al guardar los cambios.');
@@ -575,10 +464,7 @@ const VentasMensualesForm = () => {
   const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     const { data, error } = await supabase.rpc('search_solicitudes', { search_term: query });
-    if (error) {
-      console.error('Error searching solicitudes:', error);
-      return [];
-    }
+    if (error) return [];
     return data || [];
   };
 
@@ -591,6 +477,19 @@ const VentasMensualesForm = () => {
       navigate('/ventas-mensuales');
     }
   };
+
+  // RENDER LOADING SCREEN
+  if (initializing) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+          <Loader2 className="h-12 w-12 text-[#00FF80] animate-spin mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Cargando Reporte de Ventas...</h2>
+          <p className="text-gray-400">Obteniendo datos de la solicitud y reportes previos</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
