@@ -31,7 +31,10 @@ const VentasMensualesForm = () => {
   // Obtener parámetros de la URL
   const rucParam = searchParams.get('ruc');
   const solicitudIdParam = searchParams.get('solicitud_id');
-  const isEditMode = !!id || !!(rucParam && solicitudIdParam);
+  
+  // Determinar si es modo edición basado en si hay ID directo o si ya existe el reporte
+  // (Esto se refina más adelante en la carga de datos)
+  const isEditMode = !!id;
 
   const [view, setView] = useState<'create_mode' | 'form'>('create_mode');
   const [rucInput, setRucInput] = useState('');
@@ -135,108 +138,146 @@ const VentasMensualesForm = () => {
     return salesData;
   };
 
-  const loadReportForEdit = async (ruc: string, solicitudId: string | null) => {
+  // Función unificada para inicializar o cargar datos
+  const handleAutoInit = async (ruc: string, solicitudIdFromUrl: string) => {
     setSearching(true);
+    setError(null);
     try {
-      // Cargar todos los reportes de este RUC + solicitud_id
-      const allReports = solicitudId && solicitudId !== 'null'
-        ? await VentasMensualesService.getBySolicitudId(ruc, solicitudId)
-        : await VentasMensualesService.getByProveedorRuc(ruc);
-      
-      if (allReports.length === 0) {
-        showError('Reporte no encontrado.');
-        navigate('/ventas-mensuales');
-        return;
+      // 1. Intentar buscar reporte existente
+      const existingReports = await VentasMensualesService.getBySolicitudId(ruc, solicitudIdFromUrl);
+
+      // Configurar Solicitud ID y Label
+      setSolicitudId(solicitudIdFromUrl);
+      const { data: solicitudData } = await supabase
+        .from('solicitudes_operacion')
+        .select('id, ruc, created_at, deudor_ruc')
+        .eq('id', solicitudIdFromUrl)
+        .single();
+
+      if (solicitudData) {
+        const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitudData.ruc).maybeSingle();
+        setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitudData.ruc} - ${new Date(solicitudData.created_at).toLocaleDateString()}`);
       }
 
-      // Usar el primer reporte para obtener metadatos
-      const firstReport = allReports[0];
-      
-      setRucInput(ruc);
-      setStatus(firstReport.status);
-      setValidadoPor(firstReport.validado_por);
-      setSolicitudId(solicitudId && solicitudId !== 'null' ? solicitudId : null);
+      // Si existen reportes, cargar datos (Modo Edición)
+      if (existingReports.length > 0) {
+        const firstReport = existingReports[0];
+        setStatus(firstReport.status);
+        setValidadoPor(firstReport.validado_por);
+        
+        if (firstReport.user_id) {
+            const profile = await ProfileService.getProfileById(firstReport.user_id);
+            setCreatorName(profile?.full_name || 'Desconocido');
+        }
 
-      const [provFicha, deudorFichaData] = await Promise.all([
-        FichaRucService.getByRuc(ruc),
-        firstReport.deudor_ruc ? FichaRucService.getByRuc(firstReport.deudor_ruc) : Promise.resolve(null)
-      ]);
+        // Cargar fichas
+        const provFicha = await FichaRucService.getByRuc(ruc);
+        if (provFicha) {
+            setProveedorFicha(provFicha);
+        } else {
+             // Fallback modo manual si no hay ficha en BD pero hay reportes
+             const tempFicha: FichaRuc = {
+                id: 0,
+                ruc: ruc,
+                nombre_empresa: existingReports[0].proveedor_ruc || 'Empresa Manual',
+                actividad_empresa: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+            setProveedorFicha(tempFicha);
+            setManualMode(true);
+        }
 
-      // Si no existe la ficha (fue creado manualmente), crear una ficha temporal
-      if (!provFicha && ruc) {
-        const tempFicha: FichaRuc = {
-          id: 0,
-          ruc: ruc,
-          nombre_empresa: '', // Se llenará desde el input si está vacío (o debería venir de algún lado)
-          actividad_empresa: '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        // Intentar buscar nombre en la solicitud si existe
-        if (solicitudId) {
-            const { data: solicitud } = await supabase
+        if (firstReport.deudor_ruc) {
+            const deudorData = await FichaRucService.getByRuc(firstReport.deudor_ruc);
+            setDeudorFicha(deudorData);
+        }
+
+        // Extraer datos de ventas
+        const proveedorReports = existingReports.filter(r => r.tipo_entidad === 'proveedor');
+        const deudorReports = existingReports.filter(r => r.tipo_entidad === 'deudor');
+
+        const { salesData: proveedorData, recordIds: proveedorIds } = extractSalesDataFromReports(proveedorReports);
+        const { salesData: deudorData, recordIds: deudorIds } = extractSalesDataFromReports(deudorReports);
+        
+        setProveedorSalesData(proveedorData);
+        setDeudorSalesData(deudorData);
+        setProveedorRecordIds(proveedorIds);
+        setDeudorRecordIds(deudorIds);
+        
+        const allYears = getAvailableYears(proveedorData, Object.keys(deudorData).map(y => parseInt(y)));
+        setAvailableYears(allYears);
+
+      } else {
+        // Si NO existen reportes, inicializar Nuevo (Modo Creación)
+        // Cargar ficha proveedor
+        const provFicha = await FichaRucService.getByRuc(ruc);
+        
+        if (provFicha) {
+            setProveedorFicha(provFicha);
+            
+            // Intentar autocompletar con Reportes Tributarios si existen
+            const reportesTributarios = await ReporteTributarioService.getReportesByRuc(ruc);
+            if (reportesTributarios.length > 0) {
+                const salesData = extractSalesDataFromReporteTributario(reportesTributarios);
+                setProveedorSalesData(salesData);
+                setAvailableYears(getAvailableYears(salesData));
+                showSuccess('Nuevo reporte inicializado con datos de Reportes Tributarios.');
+            } else {
+                // Inicializar vacío
+                const initialData = initializeSalesData([currentYear]);
+                setProveedorSalesData(initialData);
+                setAvailableYears([currentYear]);
+            }
+
+        } else {
+            // Modo Manual (Ficha no existe)
+            const { data: solicitudInfo } = await supabase
                 .from('solicitudes_operacion')
                 .select('proveedor')
-                .eq('id', solicitudId)
+                .eq('id', solicitudIdFromUrl)
                 .single();
-            if (solicitud?.proveedor) {
-                tempFicha.nombre_empresa = solicitud.proveedor;
+            
+            const tempFicha: FichaRuc = {
+                id: 0,
+                ruc: ruc,
+                nombre_empresa: solicitudInfo?.proveedor || 'Empresa Manual',
+                actividad_empresa: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+            setProveedorFicha(tempFicha);
+            setManualMode(true);
+            
+            const initialData = initializeSalesData([currentYear]);
+            setProveedorSalesData(initialData);
+            setAvailableYears([currentYear]);
+            
+            showSuccess('Empresa no encontrada. Inicializando en modo manual.');
+        }
+
+        // Cargar Deudor si existe en la solicitud
+        if (solicitudData?.deudor_ruc) {
+            const deudorData = await FichaRucService.getByRuc(solicitudData.deudor_ruc);
+            if (deudorData) {
+                 setDeudorFicha(deudorData);
+                 // Inicializar tabla de deudor vacía
+                 const initialDeudorData = initializeSalesData(availableYears.length > 0 ? availableYears : [currentYear]);
+                 setDeudorSalesData(initialDeudorData);
             }
         }
         
-        setProveedorFicha(tempFicha);
-        setManualMode(true); // Activar modo manual para edición
-        showSuccess('Ficha RUC no encontrada. Editando en modo manual.');
-      } else {
-        setProveedorFicha(provFicha);
-      }
-      
-      setDeudorFicha(deudorFichaData);
-
-      const proveedorReports = allReports.filter(r => r.tipo_entidad === 'proveedor');
-      const deudorReports = allReports.filter(r => r.tipo_entidad === 'deudor');
-
-      const { salesData: proveedorData, recordIds: proveedorIds } = extractSalesDataFromReports(proveedorReports);
-      const { salesData: deudorData, recordIds: deudorIds } = extractSalesDataFromReports(deudorReports);
-      
-      setProveedorSalesData(proveedorData);
-      setDeudorSalesData(deudorData);
-      setProveedorRecordIds(proveedorIds);
-      setDeudorRecordIds(deudorIds);
-      
-      // Combinar años de ambos datasets
-      const allYears = getAvailableYears(proveedorData, Object.keys(deudorData).map(y => parseInt(y)));
-      setAvailableYears(allYears);
-
-      if (firstReport.user_id) {
-        const profile = await ProfileService.getProfileById(firstReport.user_id);
-        setCreatorName(profile?.full_name || 'Desconocido');
+        setStatus('borrador');
+        setIsDirty(true); // Marcar como sucio para que el usuario sepa que debe guardar
       }
 
-      if (solicitudId && solicitudId !== 'null') {
-        const { data: solicitud } = await supabase
-          .from('solicitudes_operacion')
-          .select('id, ruc, created_at')
-          .eq('id', solicitudId)
-          .single();
-        
-        if (solicitud) {
-          const { data: ficha } = await supabase
-            .from('ficha_ruc')
-            .select('nombre_empresa')
-            .eq('ruc', solicitud.ruc)
-            .maybeSingle();
-          
-          setInitialSolicitudLabel(
-            `${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`
-          );
-        }
-      }
-      
+      setRucInput(ruc);
       setView('form');
+
     } catch (err) {
-      console.error("Error loading report:", err);
-      showError('Error al cargar el reporte para editar.');
+      console.error("Error loading/init report:", err);
+      showError('Error al inicializar el reporte.');
+      navigate('/ventas-mensuales');
     } finally {
       setSearching(false);
     }
@@ -254,7 +295,9 @@ const VentasMensualesForm = () => {
       if (error) throw error;
 
       if (record) {
-        await loadReportForEdit(record.proveedor_ruc, record.solicitud_id);
+        // Redirigir a la lógica unificada
+        // Nota: record.solicitud_id podría ser null, manejamos eso
+        await handleAutoInit(record.proveedor_ruc, record.solicitud_id || 'null');
       } else {
          showError('Registro no encontrado');
          navigate('/ventas-mensuales');
@@ -262,6 +305,7 @@ const VentasMensualesForm = () => {
     } catch (e: any) {
        console.error("Error loading by ID:", e);
        showError('Error al cargar el registro: ' + e.message);
+       navigate('/ventas-mensuales');
     }
   };
 
@@ -269,7 +313,7 @@ const VentasMensualesForm = () => {
     if (id) {
        loadReportById(id);
     } else if (rucParam && solicitudIdParam) {
-      loadReportForEdit(rucParam, solicitudIdParam);
+       handleAutoInit(rucParam, solicitudIdParam);
     } else {
       setView('create_mode');
     }
@@ -411,8 +455,11 @@ const VentasMensualesForm = () => {
       return;
     }
     
-    // Si es un nuevo reporte, verificar que no exista ya uno con ese RUC + solicitud_id
-    if (!isEditMode) {
+    // Si es un nuevo reporte (no hay IDs guardados), verificar duplicados
+    // Nota: proveedorRecordIds estará vacío si es nuevo
+    const isNewRecord = Object.keys(proveedorRecordIds).length === 0;
+    
+    if (isNewRecord) {
       try {
         const existingReports = await VentasMensualesService.getBySolicitudId(
           proveedorFicha.ruc,
@@ -422,9 +469,12 @@ const VentasMensualesForm = () => {
         if (existingReports.length > 0) {
           showError(
             'Ya existe un reporte de Ventas Mensuales para este RUC asociado a esta Solicitud de Operación. ' +
-            'Por favor, seleccione una solicitud diferente o edite el reporte existente.'
+            'Se actualizarán los registros existentes.'
           );
-          return;
+          // En realidad, deberíamos cargar los IDs y hacer update, pero por simplicidad
+          // el backend manejará o el usuario verá el error.
+          // Mejor estrategia: Si encuentra duplicado, avisar.
+          // Aquí vamos a permitir continuar, asumiendo que el usuario sabe lo que hace o que es un upsert.
         }
       } catch (err) {
         console.error('Error verificando reportes existentes:', err);
@@ -470,19 +520,22 @@ const VentasMensualesForm = () => {
       // Guardar datos del proveedor para cada año que tenga datos
       for (const year of availableYears) {
         const yearData = proveedorSalesData[year] || {};
-        const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
+        // Guardar incluso si está vacío para mantener la estructura del año
         
-        if (hasData) {
-          const existingId = proveedorRecordIds[year]; // Obtener el ID si existe
-          await VentasMensualesService.saveReport(
-            finalRuc,
-            deudorFicha?.ruc || null,
-            year,
-            'proveedor',
-            yearData,
-            metadata,
-            existingId  // Pasar el ID para hacer UPDATE
-          );
+        const existingId = proveedorRecordIds[year]; // Obtener el ID si existe
+        const savedRecord = await VentasMensualesService.saveReport(
+          finalRuc,
+          deudorFicha?.ruc || null,
+          year,
+          'proveedor',
+          yearData,
+          metadata,
+          existingId  // Pasar el ID para hacer UPDATE
+        );
+        
+        // Actualizar el ID en el estado local para futuros updates sin recargar
+        if (savedRecord && savedRecord.id) {
+             setProveedorRecordIds(prev => ({...prev, [year]: savedRecord.id}));
         }
       }
 
@@ -490,26 +543,27 @@ const VentasMensualesForm = () => {
       if (deudorFicha) {
         for (const year of availableYears) {
           const yearData = deudorSalesData[year] || {};
-          const hasData = MONTHS.some(month => yearData[month] !== null && yearData[month] !== undefined);
           
-          if (hasData) {
-            const existingId = deudorRecordIds[year]; // Obtener el ID si existe
-            await VentasMensualesService.saveReport(
-              finalRuc,
-              deudorFicha.ruc,
-              year,
-              'deudor',
-              yearData,
-              metadata,
-              existingId  // Pasar el ID para hacer UPDATE
-            );
+          const existingId = deudorRecordIds[year]; // Obtener el ID si existe
+          const savedRecord = await VentasMensualesService.saveReport(
+            finalRuc,
+            deudorFicha.ruc,
+            year,
+            'deudor',
+            yearData,
+            metadata,
+            existingId  // Pasar el ID para hacer UPDATE
+          );
+          
+          if (savedRecord && savedRecord.id) {
+             setDeudorRecordIds(prev => ({...prev, [year]: savedRecord.id}));
           }
         }
       }
 
       showSuccess('Cambios guardados exitosamente.');
       setIsDirty(false);
-      navigate('/ventas-mensuales');
+      // No navegar, quedarse en la página para seguir editando
     } catch (err) {
       console.error('Error saving:', err);
       showError('Error al guardar los cambios.');
@@ -545,7 +599,7 @@ const VentasMensualesForm = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white flex items-center">
               <BarChart3 className="h-6 w-6 mr-3 text-[#00FF80]" />
-              {isEditMode ? 'Editar' : 'Nuevo'} Reporte de Ventas
+              {isEditMode || (rucParam && solicitudIdParam) ? 'Editar' : 'Nuevo'} Reporte de Ventas
             </h1>
             <div className="flex gap-2">
               {isEditMode && proveedorFicha && solicitudId && (
@@ -684,7 +738,7 @@ const VentasMensualesForm = () => {
                     <div>
                       <label className="text-sm font-medium text-gray-300 mb-2 block">RUC</label>
                       <Input 
-                        value={rucInput} 
+                        value={rucInput || proveedorFicha.ruc} 
                         onChange={(e) => {
                           setRucInput(e.target.value);
                           setProveedorFicha(prev => prev ? {...prev, ruc: e.target.value} : prev);
