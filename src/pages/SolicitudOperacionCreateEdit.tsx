@@ -990,7 +990,35 @@ const SolicitudOperacionCreateEditPage = () => {
                                     variant="ghost" 
                                     size="sm" 
                                     className="h-4 px-1 text-xs text-[#00FF80] hover:text-[#00FF80]"
-                                    onClick={() => setPrimaryRole(prev => prev === 'PROVEEDOR' ? 'DEUDOR' : 'PROVEEDOR')}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setPrimaryRole(current => {
+                                          const next = current === 'PROVEEDOR' ? 'DEUDOR' : 'PROVEEDOR';
+                                          
+                                          setSolicitudFormData(prev => {
+                                              const mainName = searchedFicha?.nombre_empresa || '';
+                                              
+                                              if (next === 'DEUDOR') {
+                                                  // Switching to Deudor Mode
+                                                  return {
+                                                      ...prev,
+                                                      deudor: mainName,
+                                                      proveedor: (prev as any).deudor || '', // Move current counterparty to proveedor field
+                                                      deudor_ruc: rucInput
+                                                  };
+                                              } else {
+                                                  // Switching to Proveedor Mode
+                                                  return {
+                                                      ...prev,
+                                                      proveedor: mainName,
+                                                      deudor: prev.proveedor || '', // Move current counterparty to deudor field
+                                                      deudor_ruc: '' // Clear main RUC from deudor_ruc
+                                                  };
+                                              }
+                                          });
+                                          return next;
+                                      });
+                                    }}
                                     title="Cambiar rol principal"
                                   >
                                     <ArrowRightLeft className="h-3 w-3 mr-1" />
