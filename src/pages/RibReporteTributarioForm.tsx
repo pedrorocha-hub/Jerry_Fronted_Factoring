@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Building2, Loader2, AlertCircle, ClipboardList, ArrowLeft, FileText } from 'lucide-react';
+import { Search, Building2, Loader2, AlertCircle, ClipboardList, ArrowLeft, FileText, User, Users } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
 import { EstadoSituacionService } from '@/services/estadoSituacionService';
 import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
+import { Badge } from '@/components/ui/badge';
 
 type Status = 'Borrador' | 'En revisión' | 'Completado';
 
@@ -52,6 +53,9 @@ const RibReporteTributarioForm = () => {
   const [creatorName, setCreatorName] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Estado para etiquetas dinámicas basadas en el producto
+  const [productType, setProductType] = useState<string | null>(null);
+  
   const [searchSuggestions, setSearchSuggestions] = useState<SearchSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -65,7 +69,6 @@ const RibReporteTributarioForm = () => {
     if (isEditMode && id) {
       handleLoadForEdit(id);
     } else {
-      // Check for query params for new record
       const rucParam = searchParams.get('ruc');
       const solicitudIdParam = searchParams.get('solicitud_id');
       
@@ -78,10 +81,10 @@ const RibReporteTributarioForm = () => {
   const handleAutoInit = async (ruc: string, solicitudId: string) => {
     setSearching(true);
     try {
-      // 1. Fetch Solicitud info for label
+      // 1. Fetch Solicitud info for label and Product Type
       const { data: solicitud } = await supabase
         .from('solicitudes_operacion')
-        .select('id, ruc, created_at, proveedor')
+        .select('id, ruc, created_at, proveedor, tipo_producto')
         .eq('id', solicitudId)
         .single();
         
@@ -90,6 +93,7 @@ const RibReporteTributarioForm = () => {
       if (solicitud) {
          const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
          setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+         setProductType(solicitud.tipo_producto);
       }
 
       // 2. Try to find Ficha RUC
@@ -164,71 +168,6 @@ const RibReporteTributarioForm = () => {
     }
   };
 
-  // ... rest of the file content (copying logic from previous version but ensuring useEffect is correct) ...
-  // Need to include all functions: handleLoadForEdit, handleSave, etc.
-  
-  useEffect(() => {
-    if (createWithoutRuc && searchedFicha && initialSearchedFicha) {
-      const rucChanged = searchedFicha.ruc !== initialSearchedFicha.ruc;
-      const nombreChanged = searchedFicha.nombre_empresa !== initialSearchedFicha.nombre_empresa;
-      if (rucChanged || nombreChanged) {
-        setHasUnsavedChanges(true);
-      }
-    }
-  }, [searchedFicha, initialSearchedFicha, createWithoutRuc]);
-
-  // Close suggestions on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target as Node) &&
-        searchInputRef.current &&
-        !searchInputRef.current.contains(event.target as Node) &&
-        modalSuggestionsRef.current &&
-        !modalSuggestionsRef.current.contains(event.target as Node) &&
-        modalSearchInputRef.current &&
-        !modalSearchInputRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Real-time search suggestions
-  useEffect(() => {
-    if (!rucInput || rucInput.length < 2) {
-      setSearchSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-
-    const searchDebounce = setTimeout(async () => {
-      setLoadingSuggestions(true);
-      try {
-        const { data, error } = await supabase
-          .from('ficha_ruc')
-          .select('ruc, nombre_empresa')
-          .or(`ruc.ilike.%${rucInput}%,nombre_empresa.ilike.%${rucInput}%`)
-          .limit(10);
-
-        if (!error && data) {
-          setSearchSuggestions(data);
-          setShowSuggestions(data.length > 0);
-        }
-      } catch (err) {
-        console.error('Error fetching suggestions:', err);
-      } finally {
-        setLoadingSuggestions(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(searchDebounce);
-  }, [rucInput]);
-
   const handleLoadForEdit = async (reportId: string) => {
     setSearching(true);
     try {
@@ -272,11 +211,12 @@ const RibReporteTributarioForm = () => {
         if (existingDocument.solicitud_id) {
           const { data: solicitud } = await supabase
             .from('solicitudes_operacion')
-            .select('id, ruc, created_at')
+            .select('id, ruc, created_at, tipo_producto')
             .eq('id', existingDocument.solicitud_id)
             .single();
           
           if (solicitud) {
+            setProductType(solicitud.tipo_producto);
             const { data: ficha } = await supabase
               .from('ficha_ruc')
               .select('nombre_empresa')
@@ -302,19 +242,87 @@ const RibReporteTributarioForm = () => {
     }
   };
 
+  // Determine dynamic labels based on product type
+  const getMainSectionLabel = () => {
+    if (productType === 'FACTORING') return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL PROVEEDOR (CLIENTE)';
+    if (productType === 'CONFIRMING') return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL DEUDOR (CLIENTE)';
+    return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DE LA EMPRESA PRINCIPAL';
+  };
+
+  const getSecondarySectionLabel = () => {
+    if (productType === 'FACTORING') return 'DATOS DEL DEUDOR (PAGADOR)';
+    if (productType === 'CONFIRMING') return 'DATOS DEL PROVEEDOR (ADICIONAL)';
+    return 'DATOS DE LA EMPRESA RELACIONADA';
+  };
+
+  // ... rest of the existing handlers (same as previous) ...
+  useEffect(() => {
+    if (createWithoutRuc && searchedFicha && initialSearchedFicha) {
+      const rucChanged = searchedFicha.ruc !== initialSearchedFicha.ruc;
+      const nombreChanged = searchedFicha.nombre_empresa !== initialSearchedFicha.nombre_empresa;
+      if (rucChanged || nombreChanged) {
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [searchedFicha, initialSearchedFicha, createWithoutRuc]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node) &&
+        modalSuggestionsRef.current &&
+        !modalSuggestionsRef.current.contains(event.target as Node) &&
+        modalSearchInputRef.current &&
+        !modalSearchInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!rucInput || rucInput.length < 2) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    const searchDebounce = setTimeout(async () => {
+      setLoadingSuggestions(true);
+      try {
+        const { data, error } = await supabase
+          .from('ficha_ruc')
+          .select('ruc, nombre_empresa')
+          .or(`ruc.ilike.%${rucInput}%,nombre_empresa.ilike.%${rucInput}%`)
+          .limit(10);
+        if (!error && data) {
+          setSearchSuggestions(data);
+          setShowSuggestions(data.length > 0);
+        }
+      } catch (err) {
+        console.error('Error fetching suggestions:', err);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    }, 300);
+    return () => clearTimeout(searchDebounce);
+  }, [rucInput]);
+
   const handleSearchForNew = async () => {
     if (!rucInput || rucInput.trim().length < 2) {
       setError('Por favor, ingrese un RUC o nombre de empresa válido.');
       return;
     }
-    
     setSearching(true);
     setError(null);
     setSearchedFicha(null);
     setDocumentData(null);
     setHasUnsavedChanges(false);
     setShowSuggestions(false);
-
     try {
       const { data: fichasData, error: searchError } = await supabase
         .from('ficha_ruc')
@@ -329,13 +337,10 @@ const RibReporteTributarioForm = () => {
         setSearching(false);
         return;
       }
-
       const fichaData = fichasData as FichaRuc;
       setSearchedFicha(fichaData);
       setCreateWithoutRuc(false);
-      
       const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
-      
       const newDocument: RibReporteTributarioDocument = {
         deudor: {
           ruc: fichaData.ruc,
@@ -354,7 +359,6 @@ const RibReporteTributarioForm = () => {
         status: 'Borrador',
         user_id: null
       };
-      
       setDocumentData(newDocument);
       setView('form');
       setHasUnsavedChanges(true);
@@ -372,7 +376,6 @@ const RibReporteTributarioForm = () => {
     setRucInput('');
     setCreateWithoutRuc(true);
     setShowSuggestions(false);
-    
     const mockFicha: FichaRuc = {
       id: 0,
       ruc: '',
@@ -386,10 +389,8 @@ const RibReporteTributarioForm = () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    
     setSearchedFicha(mockFicha);
     setInitialSearchedFicha({ ruc: '', nombre_empresa: '' });
-    
     const emptyDocument: RibReporteTributarioDocument = {
       deudor: {
         ruc: '',
@@ -402,7 +403,6 @@ const RibReporteTributarioForm = () => {
       user_id: null,
       nombre_empresa: ''
     };
-    
     setDocumentData(emptyDocument);
     setView('form');
     setHasUnsavedChanges(true);
@@ -412,21 +412,17 @@ const RibReporteTributarioForm = () => {
     setRucInput(suggestion.ruc);
     setShowSuggestions(false);
     setSelectedSuggestionIndex(-1);
-    
     setSearching(true);
     setError(null);
     setSearchedFicha(null);
     setDocumentData(null);
     setHasUnsavedChanges(false);
-
     try {
       const fichaData = await FichaRucService.getByRuc(suggestion.ruc);
       if (fichaData) {
         setSearchedFicha(fichaData);
         setCreateWithoutRuc(false);
-        
         const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
-        
         const newDocument: RibReporteTributarioDocument = {
           deudor: {
             ruc: fichaData.ruc,
@@ -445,7 +441,6 @@ const RibReporteTributarioForm = () => {
           status: 'Borrador',
           user_id: null
         };
-        
         setDocumentData(newDocument);
         setView('form');
         setHasUnsavedChanges(true);
@@ -461,17 +456,12 @@ const RibReporteTributarioForm = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions || searchSuggestions.length === 0) return;
-
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedSuggestionIndex((prev) =>
-        prev < searchSuggestions.length - 1 ? prev + 1 : 0
-      );
+      setSelectedSuggestionIndex((prev) => prev < searchSuggestions.length - 1 ? prev + 1 : 0);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedSuggestionIndex((prev) =>
-        prev > 0 ? prev - 1 : searchSuggestions.length - 1
-      );
+      setSelectedSuggestionIndex((prev) => prev > 0 ? prev - 1 : searchSuggestions.length - 1);
     } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
       e.preventDefault();
       handleSelectSuggestion(searchSuggestions[selectedSuggestionIndex]);
@@ -522,7 +512,6 @@ const RibReporteTributarioForm = () => {
       showError('No hay datos para guardar');
       return;
     }
-    
     if (createWithoutRuc) {
       if (!searchedFicha?.ruc && !searchedFicha?.nombre_empresa) {
         showError('Debe ingresar al menos el RUC o la Razón Social');
@@ -532,12 +521,10 @@ const RibReporteTributarioForm = () => {
       showError('No hay RUC para guardar');
       return;
     }
-    
     if (!documentData.solicitud_id) {
       showError('Debe asociar el reporte a una Solicitud de Operación antes de guardar.');
       return;
     }
-    
     setIsSaving(true);
     try {
       const dataToSave = { ...documentData };
@@ -545,30 +532,19 @@ const RibReporteTributarioForm = () => {
         dataToSave.deudor.ruc = searchedFicha.ruc || '';
         dataToSave.nombre_empresa = searchedFicha.nombre_empresa;
       }
-      
       const savedDocument = await RibReporteTributarioService.save(dataToSave);
       setDocumentData(savedDocument);
       setHasUnsavedChanges(false);
-      
       if (createWithoutRuc && searchedFicha) {
         setInitialSearchedFicha({
           ruc: searchedFicha.ruc,
           nombre_empresa: searchedFicha.nombre_empresa
         });
       }
-      
       showSuccess('Reporte RIB guardado exitosamente.');
-      // Clean params but stay on page? Or go to list?
-      // If it was a new record, we might want to replace URL with /edit/ID
-      // navigate('/rib-reporte-tributario'); // Going to list is safe
-      
-      // Better: Navigate to edit URL to allow continued editing
-      if (!isEditMode && savedDocument.id) {
-          navigate(`/rib-reporte-tributario/edit/${savedDocument.id}`, { replace: true });
-      } else {
-          // navigate('/rib-reporte-tributario');
+      if (!isEditMode && savedDocument.deudor.id) {
+          navigate(`/rib-reporte-tributario/edit/${savedDocument.deudor.id}`, { replace: true });
       }
-      
     } catch (err) {
       showError(`Error al guardar el reporte RIB: ${err instanceof Error ? err.message : 'Error desconocido'}`);
     } finally {
@@ -616,7 +592,6 @@ const RibReporteTributarioForm = () => {
                 <CardTitle className="text-white">Crear Nuevo Reporte RIB - Tributario</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Buscar Empresa Existente */}
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0">
@@ -629,7 +604,6 @@ const RibReporteTributarioForm = () => {
                       <p className="text-sm text-gray-400 mb-4">
                         Busque por RUC o nombre de empresa. Los datos serán autocompletados.
                       </p>
-                      
                       <div className="relative">
                         <div className="relative flex-1 w-full">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -643,7 +617,6 @@ const RibReporteTributarioForm = () => {
                             className="pl-10 bg-gray-900/50 border-gray-700" 
                           />
                         </div>
-                        
                         {showSuggestions && searchSuggestions.length > 0 && (
                           <div 
                             ref={modalSuggestionsRef}
@@ -674,7 +647,6 @@ const RibReporteTributarioForm = () => {
                           </div>
                         )}
                       </div>
-                      
                       <Button 
                         onClick={handleSearchForNew} 
                         disabled={searching} 
@@ -690,7 +662,6 @@ const RibReporteTributarioForm = () => {
                     </div>
                   </div>
                 </div>
-
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-gray-700" />
@@ -699,8 +670,6 @@ const RibReporteTributarioForm = () => {
                     <span className="bg-[#121212] px-2 text-gray-400">O</span>
                   </div>
                 </div>
-
-                {/* Crear Manualmente */}
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <div className="flex-shrink-0">
@@ -713,11 +682,6 @@ const RibReporteTributarioForm = () => {
                       <p className="text-sm text-gray-400 mb-4">
                         Cree un reporte desde cero sin buscar en el sistema. Ideal para empresas nuevas.
                       </p>
-                      <ul className="text-xs text-gray-500 mb-4 space-y-1 list-disc list-inside">
-                        <li>No requiere Ficha RUC existente</li>
-                        <li>Campos editables manualmente</li>
-                        <li>RUC y Razón Social opcionales</li>
-                      </ul>
                       <Button 
                         onClick={handleCreateManually} 
                         variant="outline"
@@ -742,14 +706,12 @@ const RibReporteTributarioForm = () => {
 
           {searchedFicha && documentData && view === 'form' && (
             <div className="space-y-8">
-               {/* WIZARD PROCESS INDICATOR */}
                <RibProcessWizard solicitudId={documentData.solicitud_id || undefined} currentStep="reporte" />
                
-              {/* Editable RUC and Razón Social for Manual Mode */}
               {createWithoutRuc && (
                 <Card className="bg-[#121212] border border-gray-800">
                   <CardHeader>
-                    <CardTitle className="text-white">Información de la Empresa del Deudor</CardTitle>
+                    <CardTitle className="text-white">Información de la Empresa</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -787,12 +749,17 @@ const RibReporteTributarioForm = () => {
               
               <div className="space-y-6">
                 <div className="border-l-4 border-[#00FF80] pl-4">
-                  <h2 className="text-xl font-bold text-white mb-2">
-                    ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL DEUDOR
+                  <h2 className="text-xl font-bold text-white mb-2 uppercase">
+                    {getMainSectionLabel()}
                   </h2>
                   <p className="text-gray-400 text-sm">
                     Información financiera consolidada de {searchedFicha.nombre_empresa || 'la empresa'} (2022-2024)
                   </p>
+                  {productType && (
+                    <Badge variant="outline" className="mt-2 text-xs border-[#00FF80]/50 text-[#00FF80] bg-[#00FF80]/10">
+                      Producto: {productType}
+                    </Badge>
+                  )}
                 </div>
                 
                 {!createWithoutRuc && searchedFicha.ruc && (
@@ -803,7 +770,7 @@ const RibReporteTributarioForm = () => {
                   <CardHeader>
                     <CardTitle className="text-white flex items-center">
                       <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      {searchedFicha.nombre_empresa}: Estado de situación
+                      Estado de situación
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -844,8 +811,10 @@ const RibReporteTributarioForm = () => {
               
               <div className="space-y-6">
                 <div className="border-l-4 border-blue-500 pl-4">
-                  <h2 className="text-xl font-bold text-white mb-2">DATOS DEL PROVEEDOR</h2>
-                  <p className="text-gray-400 text-sm">Información financiera del proveedor (opcional)</p>
+                  <h2 className="text-xl font-bold text-white mb-2 uppercase">
+                    {getSecondarySectionLabel()}
+                  </h2>
+                  <p className="text-gray-400 text-sm">Información financiera de la contraparte (opcional)</p>
                 </div>
                 
                 <ProveedorSection 
