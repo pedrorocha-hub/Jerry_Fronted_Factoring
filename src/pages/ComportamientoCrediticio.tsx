@@ -44,6 +44,10 @@ const ComportamientoCrediticioPage = () => {
   const { isAdmin } = useSession();
   const { id } = useParams<{ id: string }>(); // Obtener ID de la URL
   const [searchParams] = useSearchParams();
+  
+  // Estado de inicialización
+  const [initializing, setInitializing] = useState(true);
+
   const [view, setView] = useState<'list' | 'search_results' | 'form' | 'create_mode'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -107,119 +111,127 @@ const ComportamientoCrediticioPage = () => {
   const [initialSearchedFicha, setInitialSearchedFicha] = useState<{ ruc: string; nombre_empresa: string } | null>(null);
 
   useEffect(() => {
-    loadAllReports();
-  }, []);
+    const init = async () => {
+        setInitializing(true);
+        await loadAllReports();
+        
+        const solicitudIdParam = searchParams.get('solicitud_id');
+        const rucParam = searchParams.get('ruc');
 
-  // Efecto para cargar por ID
-  useEffect(() => {
-    if (id && allReports.length > 0) {
-      const report = allReports.find(r => r.id === id);
-      if (report) {
-        handleEditFromList(report);
-      }
-    }
-  }, [id, allReports]);
+        if (id) {
+           // Si hay ID, buscamos el reporte directamente (aunque loadAllReports ya lo trae, aseguramos la lógica de form)
+           // Hacemos fetch directo para no depender del estado asíncrono de allReports
+           const { data: report } = await supabase.from('comportamiento_crediticio').select('*').eq('id', id).single();
+           if (report) {
+               await handleEditFromList(report as any);
+           }
+        } else if (solicitudIdParam && rucParam) {
+           await handleAutoSelect(solicitudIdParam, rucParam);
+        } else {
+           setInitializing(false);
+        }
+    };
+    init();
+  }, [id, searchParams]);
 
-  // Efecto para manejar redirección automática
-  useEffect(() => {
-    const solicitudIdParam = searchParams.get('solicitud_id');
-    const rucParam = searchParams.get('ruc');
-
-    if (solicitudIdParam && rucParam && !id && allReports.length > 0) {
-      handleAutoSelect(solicitudIdParam, rucParam);
-    }
-  }, [searchParams, allReports, id]);
 
   const handleAutoSelect = async (solicitudId: string, ruc: string) => {
-    const { data: existingReport } = await supabase
-      .from('comportamiento_crediticio')
-      .select('*')
-      .eq('solicitud_id', solicitudId)
-      .maybeSingle();
+    try {
+        const { data: existingReport } = await supabase
+          .from('comportamiento_crediticio')
+          .select('*')
+          .eq('solicitud_id', solicitudId)
+          .maybeSingle();
 
-    if (existingReport) {
-       // Existing report found - Edit mode
-       const fichaData = await FichaRucService.getByRuc(existingReport.ruc);
-       
-       if (fichaData) {
-         setSearchedFicha(fichaData);
-         setCreateWithoutRuc(false);
-       } else {
-         // Manual mode
-         setSearchedFicha({
-           id: 0,
-           ruc: existingReport.ruc,
-           nombre_empresa: existingReport.nombre_empresa || 'Empresa Manual',
-           actividad_empresa: '',
-           created_at: existingReport.created_at,
-           updated_at: existingReport.updated_at,
-         } as FichaRuc);
-         setCreateWithoutRuc(true);
-         setInitialSearchedFicha({
-           ruc: existingReport.ruc,
-           nombre_empresa: existingReport.nombre_empresa || 'Empresa Manual'
-         });
-       }
-       
-       await handleSelectReport(existingReport);
-       showSuccess('Se encontró un reporte existente para esta solicitud.');
-       setView('form');
-       
-    } else {
-       // No existing report - Create mode
-       setRucInput(ruc);
-       
-       const fichaData = await FichaRucService.getByRuc(ruc);
-       let empresaNombreForLabel = '';
-       
-       if (fichaData) {
-         setSearchedFicha(fichaData);
-         empresaNombreForLabel = fichaData.nombre_empresa;
-         setCreateWithoutRuc(false);
-         
-         // Try to autocomplete Sentinel data
-         await autocompleteSentinelData(ruc, false);
-       } else {
-         // Manual mode setup
-         const { data: solicitudData } = await supabase
-            .from('solicitudes_operacion')
-            .select('proveedor')
-            .eq('id', solicitudId)
-            .single();
-            
-         const nombreProveedor = solicitudData?.proveedor || 'Empresa sin nombre';
-         empresaNombreForLabel = nombreProveedor;
-         
-         const manualFicha = {
-            id: 0,
-            ruc: ruc,
-            nombre_empresa: nombreProveedor,
-            actividad_empresa: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-         } as FichaRuc;
-         
-         setSearchedFicha(manualFicha);
-         setCreateWithoutRuc(true);
-         setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
-         
-         showSuccess('Ficha RUC no encontrada. Iniciando modo manual.');
-       }
-       
-       // Pre-fill solicitud_id
-       setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
-       
-       const { data: solicitud } = await supabase
-         .from('solicitudes_operacion')
-         .select('id, created_at')
-         .eq('id', solicitudId)
-         .single();
-         
-       if (solicitud) {
-          setInitialSolicitudLabel(`${empresaNombreForLabel} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
-       }
-       
-       setView('form');
+        if (existingReport) {
+           // Existing report found - Edit mode
+           const fichaData = await FichaRucService.getByRuc(existingReport.ruc);
+           
+           if (fichaData) {
+             setSearchedFicha(fichaData);
+             setCreateWithoutRuc(false);
+           } else {
+             // Manual mode
+             setSearchedFicha({
+               id: 0,
+               ruc: existingReport.ruc,
+               nombre_empresa: existingReport.nombre_empresa || 'Empresa Manual',
+               actividad_empresa: '',
+               created_at: existingReport.created_at,
+               updated_at: existingReport.updated_at,
+             } as FichaRuc);
+             setCreateWithoutRuc(true);
+             setInitialSearchedFicha({
+               ruc: existingReport.ruc,
+               nombre_empresa: existingReport.nombre_empresa || 'Empresa Manual'
+             });
+           }
+           
+           await handleSelectReport(existingReport);
+           showSuccess('Se encontró un reporte existente para esta solicitud.');
+           setView('form');
+           
+        } else {
+           // No existing report - Create mode
+           setRucInput(ruc);
+           
+           const fichaData = await FichaRucService.getByRuc(ruc);
+           let empresaNombreForLabel = '';
+           
+           if (fichaData) {
+             setSearchedFicha(fichaData);
+             empresaNombreForLabel = fichaData.nombre_empresa;
+             setCreateWithoutRuc(false);
+             
+             // Try to autocomplete Sentinel data
+             await autocompleteSentinelData(ruc, false);
+           } else {
+             // Manual mode setup
+             const { data: solicitudData } = await supabase
+                .from('solicitudes_operacion')
+                .select('proveedor')
+                .eq('id', solicitudId)
+                .single();
+                
+             const nombreProveedor = solicitudData?.proveedor || 'Empresa sin nombre';
+             empresaNombreForLabel = nombreProveedor;
+             
+             const manualFicha = {
+                id: 0,
+                ruc: ruc,
+                nombre_empresa: nombreProveedor,
+                actividad_empresa: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+             } as FichaRuc;
+             
+             setSearchedFicha(manualFicha);
+             setCreateWithoutRuc(true);
+             setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
+             
+             showSuccess('Ficha RUC no encontrada. Iniciando modo manual.');
+           }
+           
+           // Pre-fill solicitud_id
+           setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
+           
+           const { data: solicitud } = await supabase
+             .from('solicitudes_operacion')
+             .select('id, created_at')
+             .eq('id', solicitudId)
+             .single();
+             
+           if (solicitud) {
+              setInitialSolicitudLabel(`${empresaNombreForLabel} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+           }
+           
+           setView('form');
+        }
+    } catch (e) {
+        console.error("Error in auto select:", e);
+        showError("Error al cargar datos automáticos");
+    } finally {
+        setInitializing(false);
     }
   };
 
@@ -731,6 +743,7 @@ const ComportamientoCrediticioPage = () => {
 
   const handleEditFromList = async (report: ReporteWithDetails) => {
     setSearching(true);
+    setInitializing(true);
     setError(null);
     try {
       // Intentar buscar la ficha RUC
@@ -786,6 +799,7 @@ const ComportamientoCrediticioPage = () => {
       setView('form');
     } finally {
       setSearching(false);
+      setInitializing(false);
     }
   };
 
@@ -1005,6 +1019,18 @@ const ComportamientoCrediticioPage = () => {
     { id: 'deuda_sunat', label: 'Deuda SUNAT', type: 'number' },
     { id: 'protestos', label: 'Protestos', type: 'number' },
   ];
+
+  if (initializing) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+          <Loader2 className="h-12 w-12 text-[#00FF80] animate-spin mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Cargando Comportamiento Crediticio...</h2>
+          <p className="text-gray-400">Preparando datos...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

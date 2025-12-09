@@ -24,6 +24,9 @@ const ComentariosEjecutivoPage = () => {
   const { isAdmin } = useSession();
   const { id } = useParams<{ id: string }>(); // Obtener ID de la URL
   const [searchParams] = useSearchParams();
+  
+  const [initializing, setInitializing] = useState(true); // NUEVO
+
   const [view, setView] = useState<'list' | 'form'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,21 +37,18 @@ const ComentariosEjecutivoPage = () => {
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
 
   useEffect(() => {
-    if (view === 'list' && !id && !searchParams.get('solicitud_id')) {
-      loadComentarios();
-    }
-  }, [view, id, searchParams]);
+    // Lógica consolidada de inicialización
+    const init = async () => {
+      setInitializing(true);
+      
+      // 1. Cargar lista base si no hay parámetros específicos
+      if (!id && !searchParams.get('solicitud_id')) {
+        await loadComentarios();
+      }
 
-  // Efecto para cargar por ID si existe en la URL
-  useEffect(() => {
-    const loadById = async () => {
-      if (id && !selectedComentario) {
-        setLoading(true);
+      // 2. Manejar carga por ID (Editar)
+      if (id) {
         try {
-          // Since we don't have a getById in service, we'll fetch all and find it, or implement getById later
-          // For now, let's fetch all as a workaround or fix service if needed.
-          // Actually, ComentariosEjecutivoService does not have getById.
-          // Let's use Supabase directly for this single fetch to be efficient
           const { data, error } = await supabase
              .from('comentarios_ejecutivo')
              .select('*')
@@ -57,33 +57,20 @@ const ComentariosEjecutivoPage = () => {
           
           if (error) throw error;
           if (data) {
-            handleEdit(data);
+            await handleEdit(data);
           }
         } catch (err) {
           console.error('Error loading comentario by ID:', err);
           showError('Error al cargar el comentario');
-        } finally {
-          setLoading(false);
         }
-      }
-    };
-    
-    if (id) {
-        loadById();
-    }
-  }, [id]);
-
-  // Efecto para redirección automática desde Wizard (creación)
-  useEffect(() => {
-    const solicitudIdParam = searchParams.get('solicitud_id');
-    
-    if (solicitudIdParam && !id) {
-       const handleAutoCreate = async () => {
-         // Verificar si ya existe comentario para esta solicitud
-         try {
+      } 
+      // 3. Manejar creación automática desde Wizard
+      else if (searchParams.get('solicitud_id')) {
+        const solicitudIdParam = searchParams.get('solicitud_id')!;
+        try {
            const existing = await ComentariosEjecutivoService.getBySolicitudId(solicitudIdParam);
            if (existing) {
-             handleEdit(existing);
+             await handleEdit(existing);
              showSuccess('Se encontraron comentarios existentes para esta solicitud.');
            } else {
              // Crear nuevo
@@ -104,13 +91,16 @@ const ComentariosEjecutivoPage = () => {
              
              setView('form');
            }
-         } catch (err) {
-           console.error("Error checking existing comments:", err);
-         }
-       };
-       handleAutoCreate();
-    }
-  }, [searchParams, id]);
+        } catch (err) {
+           console.error("Error auto-creating comments:", err);
+        }
+      }
+      
+      setInitializing(false);
+    };
+
+    init();
+  }, [id, searchParams]);
 
   const loadComentarios = async () => {
     setLoading(true);
@@ -172,9 +162,8 @@ const ComentariosEjecutivoPage = () => {
     setSelectedComentario(null);
     setSolicitudId('');
     setInitialSolicitudLabel(null);
-    if (!id && !searchParams.get('solicitud_id')) {
-        loadComentarios(); // Reload list if going back manually
-    }
+    // Reload list only if we are going back to a potentially stale list
+    loadComentarios();
   };
 
   const handleSave = async (comentarioData: ComentarioEjecutivo) => {
@@ -220,6 +209,18 @@ const ComentariosEjecutivoPage = () => {
     comentario.comentario.toLowerCase().includes(searchTerm.toLowerCase()) ||
     comentario.solicitud_id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (initializing) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+          <Loader2 className="h-12 w-12 text-[#00FF80] animate-spin mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Cargando Comentarios...</h2>
+          <p className="text-gray-400">Preparando datos...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
