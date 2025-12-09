@@ -91,9 +91,10 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         // Factura OK si está en tabla procesada O si se subió el archivo
         FACTURA: (facturasTable.data?.length || 0) > 0 || hasUploadedType('factura_negociar'), 
         EEFF: (eeff.data?.length || 0) > 0,
-        VIGENCIA_PODER: hasUploadedType('vigencia_poder') || hasSustentos, 
+        // VALIDACIÓN ESTRICTA: Solo marcar si existe el tipo específico
+        VIGENCIA_PODER: hasUploadedType('vigencia_poder'), 
         SUSTENTOS: hasSustentos,
-        EVIDENCIA_VISITA: hasUploadedType('evidencia_visita') || hasSustentos
+        EVIDENCIA_VISITA: hasUploadedType('evidencia_visita')
       };
 
       setDocStatus(newStatus);

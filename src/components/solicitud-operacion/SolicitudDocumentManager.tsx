@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File, ExternalLink, Brain } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, Download, Loader2, Paperclip, FileSpreadsheet, Image as ImageIcon, X, File, ExternalLink, Brain, Receipt, Camera, FolderOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,8 +56,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
     setUploading(true);
     try {
-      // Subimos todo como tipo 'sustentos' para simplificar, ya que el usuario pidió unificar.
-      // Sin embargo, si queremos mantener cierta semántica, podríamos inferir algo, pero 'sustentos' es seguro.
+      // Los documentos subidos por este botón general se clasifican como 'sustentos'
       await DocumentoService.uploadAndInsert(
         file, 
         'sustentos', 
@@ -145,9 +144,9 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-4">
+        <CardContent className="p-4 pt-0 space-y-6">
           
-          {/* Único botón de carga */}
+          {/* Botón de carga general (Sustentos adicionales) */}
           {!readonly && (
             <div className="w-full">
               <input
@@ -160,102 +159,134 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
               />
               <Label
                 htmlFor="upload-sustentos-unified"
-                className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
+                className={`flex flex-col items-center justify-center w-full h-16 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
                   uploading
                     ? 'border-gray-700 bg-gray-900/50 cursor-wait'
                     : 'border-gray-700 bg-gray-900/30 hover:bg-[#00FF80]/5 hover:border-[#00FF80]/50 hover:text-[#00FF80] text-gray-400'
                 }`}
               >
                 {uploading ? (
-                  <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
                 ) : (
-                  <Upload className="h-6 w-6 mb-2" />
+                  <div className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      {uploading ? 'Subiendo...' : 'Subir Sustento Adicional / Otros'}
+                    </span>
+                  </div>
                 )}
-                <span className="text-sm font-medium">
-                  {uploading ? 'Subiendo...' : 'Subir Documentos'}
-                </span>
-                <span className="text-xs text-gray-500 mt-1">
-                  (Facturas, Guías, Fotos, DNI, etc.)
-                </span>
               </Label>
             </div>
           )}
 
-          {/* Lista unificada de documentos */}
-          <div className="space-y-2">
-            {documents.length === 0 ? (
-              <div className="text-center py-6 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg">
-                No hay documentos adjuntos
-              </div>
-            ) : (
-              documents.map(doc => {
-                const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-                const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
-                const isExcel = doc.nombre_archivo?.match(/\.(xlsx|xls)$/i);
-                const isPreviewable = isImage || isPdf;
-
-                return (
-                  <div key={doc.id} className="group flex items-center justify-between p-3 bg-gray-900/50 border border-gray-800 rounded-lg hover:border-gray-600 transition-colors">
-                    <div className="flex items-center space-x-3 overflow-hidden">
-                      <div className="h-8 w-8 flex-shrink-0 bg-gray-800 rounded-md flex items-center justify-center">
-                        {isImage ? (
-                          <ImageIcon className="h-4 w-4 text-[#00FF80]" />
-                        ) : isExcel ? (
-                          <FileSpreadsheet className="h-4 w-4 text-green-500" />
-                        ) : isPdf ? (
-                          <FileText className="h-4 w-4 text-orange-400" />
-                        ) : (
-                          <File className="h-4 w-4 text-blue-400" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-gray-200 font-medium truncate" title={doc.nombre_archivo || ''}>
-                          {doc.nombre_archivo}
-                        </p>
-                        <p className="text-[10px] text-gray-500 uppercase">
-                          {(doc.tamaño_archivo ? doc.tamaño_archivo / 1024 / 1024 : 0).toFixed(2)} MB • {new Date(doc.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
+          {/* Secciones de Documentos Agrupados */}
+          {documents.length === 0 ? (
+            <div className="text-center py-8 text-gray-600 text-xs border border-dashed border-gray-800 rounded-lg">
+              No hay documentos adjuntos aún.
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {[
+                { 
+                  id: 'facturas', 
+                  title: 'Facturas a Negociar', 
+                  icon: Receipt, 
+                  color: 'text-blue-400',
+                  docs: documents.filter(d => d.tipo === 'factura_negociar')
+                },
+                { 
+                  id: 'evidencias', 
+                  title: 'Evidencias de Visita', 
+                  icon: Camera, 
+                  color: 'text-purple-400',
+                  docs: documents.filter(d => d.tipo === 'evidencia_visita')
+                },
+                { 
+                  id: 'otros', 
+                  title: 'Sustentos y Otros', 
+                  icon: FolderOpen, 
+                  color: 'text-[#00FF80]',
+                  docs: documents.filter(d => !['factura_negociar', 'evidencia_visita'].includes(d.tipo))
+                }
+              ].map((section) => (
+                section.docs.length > 0 && (
+                  <div key={section.id} className="space-y-3">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-2 pb-1 border-b border-gray-800">
+                      <section.icon className={`h-3 w-3 ${section.color}`} />
+                      {section.title} ({section.docs.length})
+                    </h3>
                     
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className={`h-8 w-8 ${isPreviewable ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-400/10' : 'text-gray-600 hover:text-gray-300'}`}
-                        onClick={() => handlePreview(doc)}
-                        title={isPreviewable ? "Vista previa" : "Abrir archivo"}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10" 
-                        onClick={() => handleDownload(doc)}
-                        title="Descargar"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+                    <div className="grid grid-cols-1 gap-2">
+                      {section.docs.map(doc => {
+                        const isImage = doc.nombre_archivo?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                        const isPdf = doc.nombre_archivo?.match(/\.pdf$/i);
+                        const isExcel = doc.nombre_archivo?.match(/\.(xlsx|xls)$/i);
+                        const isPreviewable = isImage || isPdf;
 
-                      {!readonly && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-gray-500 hover:text-red-500 hover:bg-red-500/10" 
-                          onClick={() => handleDelete(doc.id, doc.storage_path)}
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
+                        return (
+                          <div key={doc.id} className="group flex items-center justify-between p-2.5 bg-gray-900/40 border border-gray-800/60 rounded-md hover:bg-gray-900/80 hover:border-gray-700 transition-all">
+                            <div className="flex items-center space-x-3 overflow-hidden">
+                              <div className="h-8 w-8 flex-shrink-0 bg-gray-800 rounded flex items-center justify-center">
+                                {isImage ? (
+                                  <ImageIcon className="h-4 w-4 text-[#00FF80]" />
+                                ) : isExcel ? (
+                                  <FileSpreadsheet className="h-4 w-4 text-green-500" />
+                                ) : isPdf ? (
+                                  <FileText className="h-4 w-4 text-orange-400" />
+                                ) : (
+                                  <File className="h-4 w-4 text-blue-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm text-gray-200 truncate" title={doc.nombre_archivo || ''}>
+                                  {doc.nombre_archivo}
+                                </p>
+                                <p className="text-[10px] text-gray-500">
+                                  {(doc.tamaño_archivo ? doc.tamaño_archivo / 1024 / 1024 : 0).toFixed(2)} MB • {new Date(doc.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center opacity-60 group-hover:opacity-100 transition-opacity">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className={`h-7 w-7 ${isPreviewable ? 'text-blue-400 hover:bg-blue-400/10' : 'text-gray-600'}`}
+                                onClick={() => handlePreview(doc)}
+                                title={isPreviewable ? "Vista previa" : "Abrir archivo"}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </Button>
+                              
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10" 
+                                onClick={() => handleDownload(doc)}
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+
+                              {!readonly && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-gray-500 hover:text-red-500 hover:bg-red-500/10" 
+                                  onClick={() => handleDelete(doc.id, doc.storage_path)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
+                )
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
