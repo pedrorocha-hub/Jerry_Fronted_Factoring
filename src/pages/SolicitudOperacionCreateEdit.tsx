@@ -161,6 +161,40 @@ const SolicitudOperacionCreateEditPage = () => {
     setDocsRefreshTrigger(prev => prev + 1);
   };
 
+  const handleToggleRole = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const nextRole = primaryRole === 'PROVEEDOR' ? 'DEUDOR' : 'PROVEEDOR';
+    const mainName = searchedFicha?.nombre_empresa || '';
+    
+    setPrimaryRole(nextRole);
+    
+    setSolicitudFormData(prev => {
+        if (nextRole === 'DEUDOR') {
+            // Cambio a Modo DEUDOR
+            // La entidad principal (dueña del RUC) pasa a ser el DEUDOR
+            // Lo que estaba en el campo 'deudor' pasa a ser el 'proveedor'
+            return {
+                ...prev,
+                deudor: mainName,
+                proveedor: (prev as any).deudor || '', 
+                deudor_ruc: rucInput // El RUC principal es el del deudor
+            };
+        } else {
+            // Cambio a Modo PROVEEDOR
+            // La entidad principal (dueña del RUC) pasa a ser el PROVEEDOR
+            // Lo que estaba en el campo 'proveedor' pasa a ser el 'deudor'
+            return {
+                ...prev,
+                proveedor: mainName,
+                deudor: prev.proveedor || '',
+                deudor_ruc: '' // Limpiamos porque el RUC principal ya no es del deudor
+            };
+        }
+    });
+  };
+
   const handleEditSolicitud = useCallback(async (solicitud: SolicitudOperacionWithRiesgos) => {
     setEditingSolicitud(solicitud);
     setRucInput(solicitud.ruc);
@@ -990,36 +1024,9 @@ const SolicitudOperacionCreateEditPage = () => {
                                     variant="ghost" 
                                     size="sm" 
                                     className="h-4 px-1 text-xs text-[#00FF80] hover:text-[#00FF80]"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setPrimaryRole(current => {
-                                          const next = current === 'PROVEEDOR' ? 'DEUDOR' : 'PROVEEDOR';
-                                          
-                                          setSolicitudFormData(prev => {
-                                              const mainName = searchedFicha?.nombre_empresa || '';
-                                              
-                                              if (next === 'DEUDOR') {
-                                                  // Switching to Deudor Mode
-                                                  return {
-                                                      ...prev,
-                                                      deudor: mainName,
-                                                      proveedor: (prev as any).deudor || '', // Move current counterparty to proveedor field
-                                                      deudor_ruc: rucInput
-                                                  };
-                                              } else {
-                                                  // Switching to Proveedor Mode
-                                                  return {
-                                                      ...prev,
-                                                      proveedor: mainName,
-                                                      deudor: prev.proveedor || '', // Move current counterparty to deudor field
-                                                      deudor_ruc: '' // Clear main RUC from deudor_ruc
-                                                  };
-                                              }
-                                          });
-                                          return next;
-                                      });
-                                    }}
+                                    onClick={handleToggleRole}
                                     title="Cambiar rol principal"
+                                    type="button"
                                   >
                                     <ArrowRightLeft className="h-3 w-3 mr-1" />
                                     Cambiar Rol
@@ -1048,20 +1055,20 @@ const SolicitudOperacionCreateEditPage = () => {
                           </div>
                         </div>
 
-                        {/* Si el rol principal es Deudor, permitir agregar Proveedor manualmente o viceversa */}
-                        {primaryRole === 'DEUDOR' && (
+                        {/* Campo de Contraparte (Dinámico según el rol) */}
                            <div className="pt-2">
-                             <Label htmlFor="proveedor">Contraparte (Proveedor)</Label>
+                             <Label htmlFor={primaryRole === 'PROVEEDOR' ? 'deudor' : 'proveedor'}>
+                                {primaryRole === 'PROVEEDOR' ? 'Contraparte (Deudor)' : 'Contraparte (Proveedor)'}
+                             </Label>
                              <Input 
-                                id="proveedor"
-                                value={solicitudFormData.proveedor || ''}
+                                id={primaryRole === 'PROVEEDOR' ? 'deudor' : 'proveedor'}
+                                value={primaryRole === 'PROVEEDOR' ? (solicitudFormData as any).deudor || '' : solicitudFormData.proveedor || ''}
                                 onChange={handleFormChange}
-                                placeholder="Ingrese el nombre del proveedor..."
+                                placeholder={primaryRole === 'PROVEEDOR' ? "Ingrese el nombre del deudor..." : "Ingrese el nombre del proveedor..."}
                                 className="bg-gray-900/50 border-gray-700 mt-1"
                                 disabled={!isAdmin}
                              />
                            </div>
-                        )}
 
                         <div>
                           <Label htmlFor="actividad_manual">Actividad Empresarial</Label>
