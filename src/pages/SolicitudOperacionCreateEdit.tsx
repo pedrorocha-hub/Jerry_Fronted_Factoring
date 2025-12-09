@@ -93,13 +93,16 @@ const SolicitudOperacionCreateEditPage = () => {
   const [docsRefreshTrigger, setDocsRefreshTrigger] = useState(0);
 
   // Estados de visibilidad de las secciones (Colapsables)
-  const [isDatosSolicitudOpen, setIsDatosSolicitudOpen] = useState(false);
+  const [isDatosSolicitudOpen, setIsDatosSolicitudOpen] = useState(true); // Default open
   const [isCondicionesOpen, setIsCondicionesOpen] = useState(false);
   const [isRelacionOpen, setIsRelacionOpen] = useState(false);
   const [isExperienciaOpen, setIsExperienciaOpen] = useState(false);
   const [isRiesgoProveedorOpen, setIsRiesgoProveedorOpen] = useState(false);
   const [isRiesgoDeudorOpen, setIsRiesgoDeudorOpen] = useState(false);
   const [isContactoOpen, setIsContactoOpen] = useState(false);
+
+  // Estado para el Rol (Proveedor o Deudor)
+  const [rolSolicitante, setRolSolicitante] = useState<'PROVEEDOR' | 'DEUDOR'>('PROVEEDOR');
 
   const [riesgoRows, setRiesgoRows] = useState<Partial<RiesgoRow>[]>([
     { lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }
@@ -154,6 +157,21 @@ const SolicitudOperacionCreateEditPage = () => {
     detalle_pagos_observados: ''
   });
 
+  // Efecto para cambiar el Rol automáticamente según el producto
+  useEffect(() => {
+    if (solicitudFormData.tipo_producto === 'CONFIRMING') {
+      setRolSolicitante('DEUDOR');
+    } else if (solicitudFormData.tipo_producto === 'FACTORING') {
+      setRolSolicitante('PROVEEDOR');
+    }
+  }, [solicitudFormData.tipo_producto]);
+
+  // Labels dinámicos según el rol
+  const mainEntityLabel = rolSolicitante === 'PROVEEDOR' ? 'Proveedor (Solicitante)' : 'Deudor (Solicitante)';
+  const secondaryEntityLabel = rolSolicitante === 'PROVEEDOR' ? 'Riesgo Vigente del Deudor (Pagador)' : 'Riesgo Vigente del Proveedor';
+  const deudorSearchLabel = rolSolicitante === 'PROVEEDOR' ? 'Buscar Deudor (Pagador)' : 'Buscar Proveedor';
+
+
   // Calculamos si las secciones tienen datos para el estilo visual
   const hasDatosSolicitud = !!(solicitudFormData.resumen_solicitud || solicitudFormData.orden_servicio || solicitudFormData.factura);
   const hasCondiciones = !!(solicitudFormData.monto_original || solicitudFormData.tasa_tea || solicitudFormData.comision_estructuracion || solicitudFormData.tasa_minima || solicitudFormData.porcentaje_anticipo);
@@ -171,6 +189,13 @@ const SolicitudOperacionCreateEditPage = () => {
   const handleEditSolicitud = useCallback(async (solicitud: SolicitudOperacionWithRiesgos) => {
     setEditingSolicitud(solicitud);
     setRucInput(solicitud.ruc);
+
+    // Determinar rol inicial basado en producto
+    if (solicitud.tipo_producto === 'CONFIRMING') {
+        setRolSolicitante('DEUDOR');
+    } else {
+        setRolSolicitante('PROVEEDOR');
+    }
 
     const { data: riesgos, error } = await supabase
       .from('solicitud_operacion_riesgos')
@@ -278,11 +303,6 @@ const SolicitudOperacionCreateEditPage = () => {
       detalle_pagos_observados: solicitud.detalle_pagos_observados || ''
     });
 
-    // Abrir secciones si tienen datos relevantes
-    if (solicitud.resumen_solicitud || solicitud.tipo_cambio || solicitud.moneda_operacion || solicitud.orden_servicio || solicitud.factura) {
-      setIsDatosSolicitudOpen(true);
-    }
-    
     if (solicitud.monto_original || solicitud.tasa_tea || solicitud.comision_estructuracion) {
       setIsCondicionesOpen(true);
     }
@@ -932,10 +952,32 @@ const SolicitudOperacionCreateEditPage = () => {
                     </CardHeader>
                     {isDatosSolicitudOpen && (
                       <CardContent className="space-y-4">
+                        
+                        {/* Selector de ROL */}
+                        <div className="bg-gray-800/40 p-3 rounded-lg border border-gray-700/50 mb-4">
+                            <Label htmlFor="rol_solicitante" className="text-[#00FF80] mb-2 block font-medium">Rol de la Empresa Principal (Solicitante)</Label>
+                            <Select 
+                              value={rolSolicitante} 
+                              onValueChange={(value) => setRolSolicitante(value as 'PROVEEDOR' | 'DEUDOR')}
+                              disabled={!isAdmin}
+                            >
+                              <SelectTrigger className="bg-gray-900 border-gray-600 text-white w-full md:w-1/2">
+                                <SelectValue placeholder="Seleccionar Rol" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                                <SelectItem value="PROVEEDOR">Proveedor (Factoring)</SelectItem>
+                                <SelectItem value="DEUDOR">Deudor (Confirming)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-gray-400 mt-2">
+                              Define si la empresa que se analiza (RUC Principal) actúa como Proveedor o Deudor en la operación.
+                            </p>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                           <div>
-                            <Label htmlFor="proveedor">Razón Social</Label>
+                            <Label htmlFor="proveedor">{mainEntityLabel}</Label>
                             <Input 
                               id="proveedor" 
                               value={createWithoutRuc ? solicitudFormData.proveedor : (searchedFicha?.nombre_empresa || '')} 
@@ -945,7 +987,7 @@ const SolicitudOperacionCreateEditPage = () => {
                             />
                           </div>
                           <div>
-                            <Label htmlFor="ruc_manual">Número de RUC</Label>
+                            <Label htmlFor="ruc_manual">Número de RUC (Principal)</Label>
                             <Input 
                               id="ruc_manual" 
                               value={createWithoutRuc ? rucInput : (searchedFicha?.ruc || '')} 
@@ -1260,7 +1302,7 @@ const SolicitudOperacionCreateEditPage = () => {
                     >
                       <CardTitle className={`flex items-center ${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-white' : 'text-gray-500'}`}>
                         <ShieldCheck className={`h-5 w-5 mr-2 ${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
-                        Riesgo Vigente del Deudor
+                        {secondaryEntityLabel}
                       </CardTitle>
                       <Button variant="ghost" size="sm" className={`${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isRiesgoDeudorOpen ? (
@@ -1276,7 +1318,7 @@ const SolicitudOperacionCreateEditPage = () => {
                     {isRiesgoDeudorOpen && (
                       <CardContent className="space-y-4">
                         <div className="space-y-2">
-                          <Label className="text-gray-400">Buscar Deudor en TOP 10K</Label>
+                          <Label className="text-gray-400">{deudorSearchLabel} en TOP 10K</Label>
                           <div className="flex gap-2">
                             <AsyncCombobox
                               value={deudorRucInput}
