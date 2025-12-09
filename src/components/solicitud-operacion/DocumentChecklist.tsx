@@ -15,6 +15,7 @@ interface DocumentChecklistProps {
   tipoProducto: TipoProducto | null;
   onValidationChange: (isValid: boolean) => void;
   solicitudId?: string;
+  onDocumentUploaded?: () => void;
 }
 
 // Keys for which the "Subir" button should be hidden (handled in Operation tab)
@@ -27,7 +28,8 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   ruc, 
   tipoProducto,
   onValidationChange,
-  solicitudId
+  solicitudId,
+  onDocumentUploaded
 }) => {
   const [loading, setLoading] = useState(false);
   const [uploadingType, setUploadingType] = useState<DocumentTypeKey | null>(null);
@@ -137,7 +139,14 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         solicitudId // Esto es crucial para que se vincule a la solicitud y no se procese por IA
       );
       showSuccess('Evidencia adjuntada correctamente');
+      
+      // Recargar estados de checklist
       setTimeout(checkDocuments, 1000); 
+      
+      // Notificar al padre para que recargue la lista de documentos
+      if (onDocumentUploaded) {
+        onDocumentUploaded();
+      }
     } catch (err: any) {
       console.error('Error subiendo evidencia:', err);
       showError(`Error al subir: ${err.message}`);
@@ -194,8 +203,8 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         <div className="flex items-center gap-2">
           {!exists && !HIDDEN_UPLOAD_KEYS.includes(key) && (
             <>
-              {/* Botón para Documentos de IA (Redirige a /upload) */}
-              {isAIProcess && (
+              {/* Botón para Documentos de IA (Redirige a /upload) - SOLO para keys de IA */}
+              {isAIProcess ? (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -205,26 +214,26 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
                   title="Ir a procesar con IA"
                 >
                   <Brain className="h-3 w-3" />
-                  Subir
+                  Procesar
+                </Button>
+              ) : (
+                /* Botón para Evidencias (Subida directa - Ganchito) - SOLO para keys NO IA */
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
+                  onClick={() => handleDirectUploadClick(key)}
+                  disabled={!!uploadingType}
+                  title="Adjuntar evidencia (sin procesar)"
+                >
+                  {isUploadingThis ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-3 w-3" />
+                  )}
+                  Adjuntar
                 </Button>
               )}
-
-              {/* Botón para Evidencias (Subida directa - Ganchito) */}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
-                onClick={() => handleDirectUploadClick(key)}
-                disabled={!!uploadingType}
-                title="Adjuntar evidencia (sin procesar)"
-              >
-                {isUploadingThis ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <Paperclip className="h-3 w-3" />
-                )}
-                Adjuntar
-              </Button>
             </>
           )}
           {exists && (

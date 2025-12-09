@@ -90,6 +90,7 @@ const SolicitudOperacionCreateEditPage = () => {
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   
   const [isDocumentationComplete, setIsDocumentationComplete] = useState(true);
+  const [docsRefreshTrigger, setDocsRefreshTrigger] = useState(0);
 
   // Estados de visibilidad de las secciones (Colapsables)
   const [isDatosSolicitudOpen, setIsDatosSolicitudOpen] = useState(false);
@@ -152,6 +153,11 @@ const SolicitudOperacionCreateEditPage = () => {
     check_pagos_observados: false,
     detalle_pagos_observados: ''
   });
+
+  const handleDocumentUploaded = () => {
+    // Increment trigger to reload document list
+    setDocsRefreshTrigger(prev => prev + 1);
+  };
 
   const handleEditSolicitud = useCallback(async (solicitud: SolicitudOperacionWithRiesgos) => {
     setEditingSolicitud(solicitud);
@@ -823,13 +829,14 @@ const SolicitudOperacionCreateEditPage = () => {
                  tipoProducto={solicitudFormData.tipo_producto}
                  onValidationChange={setIsDocumentationComplete}
                  solicitudId={id || createdSolicitudId || undefined} 
-                 readonly={!isAdmin && !!id}
+                 onDocumentUploaded={handleDocumentUploaded}
                />
 
                {editingSolicitud && (
                  <SolicitudDocumentManager 
                    solicitudId={editingSolicitud.id}
                    readonly={!isAdmin}
+                   refreshTrigger={docsRefreshTrigger}
                  />
                )}
                {!editingSolicitud && (

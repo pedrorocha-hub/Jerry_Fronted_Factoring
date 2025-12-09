@@ -13,11 +13,13 @@ import { Documento, DocumentoTipo } from '@/types/documento';
 interface SolicitudDocumentManagerProps {
   solicitudId: string;
   readonly?: boolean;
+  refreshTrigger?: number;
 }
 
 const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({ 
   solicitudId,
-  readonly = false
+  readonly = false,
+  refreshTrigger = 0
 }) => {
   const [documents, setDocuments] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +30,7 @@ const SolicitudDocumentManager: React.FC<SolicitudDocumentManagerProps> = ({
 
   useEffect(() => {
     loadDocuments();
-  }, [solicitudId]);
+  }, [solicitudId, refreshTrigger]);
 
   const loadDocuments = async () => {
     try {
