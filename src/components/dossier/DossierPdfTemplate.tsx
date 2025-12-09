@@ -835,7 +835,30 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
                                {tipoLabel}
                              </span>
                           </td>
-                          <td style={styles.td}>{doc.nombre_archivo}</td>
+                          <td style={styles.td}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <span>{doc.nombre_archivo}</span>
+                              <a 
+                                href={`https://kjeprmbqwtzeadtfrxie.supabase.co/storage/v1/object/public/documentos/${doc.storage_path}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ 
+                                  color: '#2563eb', 
+                                  textDecoration: 'none', 
+                                  fontSize: '8px', 
+                                  fontWeight: 'bold',
+                                  marginLeft: '8px',
+                                  border: '1px solid #2563eb',
+                                  borderRadius: '3px',
+                                  padding: '1px 4px',
+                                  whiteSpace: 'nowrap',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                VER PDF
+                              </a>
+                            </div>
+                          </td>
                           <td style={styles.tdLast}>{new Date(doc.created_at).toLocaleDateString('es-PE')}</td>
                         </tr>
                      );
