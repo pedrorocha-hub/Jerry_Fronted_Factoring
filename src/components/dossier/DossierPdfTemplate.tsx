@@ -288,7 +288,15 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
     }
   };
 
-  const nombreEmpresa = dossier.fichaRuc?.nombre_empresa || dossier.top10kData?.razon_social || 'Empresa sin nombre';
+  // Lógica para etiquetas correctas
+  const tipoProducto = dossier.solicitudOperacion.tipo_producto;
+  const isConfirming = tipoProducto === 'CONFIRMING';
+  
+  const solicitanteLabel = isConfirming ? 'Deudor (Solicitante)' : 'Proveedor (Solicitante)';
+  const contraparteLabel = isConfirming ? 'Proveedor (Beneficiario)' : 'Deudor (Pagador)';
+  
+  // Usar nombre de empresa manual si no hay Ficha RUC
+  const nombreEmpresa = dossier.fichaRuc?.nombre_empresa || dossier.solicitudOperacion.proveedor || dossier.top10kData?.razon_social || 'Empresa sin nombre';
 
   const formatCurrency = (amount: number | string | null | undefined) => {
     if (amount === null || amount === undefined) return 'N/A';
@@ -467,7 +475,7 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
 
           {dossier.top10kData && (
             <div style={styles.highlightBox}>
-              <div style={{ ...styles.infoLabel, marginBottom: '6px' }}>⭐ INFORMACIÓN TOP 10K PERÚ</div>
+              <div style={{ ...styles.infoLabel, marginBottom: '6px' }}>⭐ INFORMACIÓN TOP 10K PERÚ ({contraparteLabel})</div>
               <div style={styles.infoGrid}>
                 <InfoItem label="Sector" value={dossier.top10kData.sector} />
                 <InfoItem label="Ranking 2024" value={dossier.top10kData.ranking_2024 ? `#${dossier.top10kData.ranking_2024}` : 'N/A'} />
@@ -477,12 +485,14 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
             </div>
           )}
 
-          <div style={styles.subsectionTitle}>Información Básica de la Solicitud</div>
+          <div style={styles.subsectionTitle}>Información del Solicitante</div>
           <div style={styles.infoGrid}>
-            <InfoItem label="Empresa Proveedor" value={dossier.fichaRuc?.nombre_empresa} />
-            <InfoItem label="RUC Proveedor" value={dossier.solicitudOperacion.ruc} />
-            <InfoItem label="Nombre Deudor" value={dossier.solicitudOperacion.deudor} />
-            <InfoItem label="RUC Deudor" value={dossier.solicitudOperacion.deudor_ruc} />
+            <InfoItem label={solicitanteLabel} value={nombreEmpresa} />
+            <InfoItem label="RUC" value={dossier.solicitudOperacion.ruc} />
+            <InfoItem label={contraparteLabel} value={dossier.solicitudOperacion.deudor} />
+            {dossier.solicitudOperacion.deudor_ruc && (
+              <InfoItem label="RUC Contraparte" value={dossier.solicitudOperacion.deudor_ruc} />
+            )}
             <InfoItem label="Moneda" value={dossier.solicitudOperacion.moneda_operacion} />
             <InfoItem label="Exposición Total" value={dossier.solicitudOperacion.exposicion_total} />
             <InfoItem label="Riesgo Aprobado" value={dossier.solicitudOperacion.riesgo_aprobado} />
@@ -812,8 +822,6 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
                      if (doc.tipo === 'factura_negociar') tipoLabel = 'Factura';
                      if (doc.tipo === 'evidencia_visita') tipoLabel = 'Evidencia Visita';
                      if (doc.tipo === 'sustentos') tipoLabel = 'Sustento';
-                     if (doc.tipo === 'vigencia_poder') tipoLabel = 'Vigencia de Poder';
-                     if (doc.tipo === 'ficha_ruc') tipoLabel = 'Ficha RUC';
                      
                      return (
                         <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
