@@ -916,7 +916,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                           <div>
-                            <Label htmlFor="proveedor">Proveedor</Label>
+                            <Label htmlFor="proveedor">Razón Social</Label>
                             <Input 
                               id="proveedor" 
                               value={createWithoutRuc ? solicitudFormData.proveedor : (searchedFicha?.nombre_empresa || '')} 
