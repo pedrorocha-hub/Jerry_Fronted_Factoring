@@ -911,13 +911,23 @@ const SolicitudOperacionCreateEditPage = () => {
 
                   {/* Datos de la Solicitud */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader 
+                      className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-white/5 transition-colors" 
+                      onClick={() => setIsDatosSolicitudOpen(!isDatosSolicitudOpen)}
+                    >
                       <CardTitle className={`flex items-center ${(isDatosSolicitudOpen || hasDatosSolicitud) ? 'text-white' : 'text-gray-500'}`}>
                         <FileText className={`h-5 w-5 mr-2 ${(isDatosSolicitudOpen || hasDatosSolicitud) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Datos de la Solicitud
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsDatosSolicitudOpen(!isDatosSolicitudOpen)} className={`${(isDatosSolicitudOpen || hasDatosSolicitud) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                        {isDatosSolicitudOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" className={`${(isDatosSolicitudOpen || hasDatosSolicitud) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                        {isDatosSolicitudOpen ? (
+                          <Minus className="h-4 w-4" />
+                        ) : (
+                          <div className="flex items-center">
+                            {!(isDatosSolicitudOpen || hasDatosSolicitud) && <span className="mr-2 text-xs">Añadir</span>}
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
                       </Button>
                     </CardHeader>
                     {isDatosSolicitudOpen && (
@@ -978,13 +988,23 @@ const SolicitudOperacionCreateEditPage = () => {
 
                   {/* Condiciones Comerciales */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader 
+                      className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-white/5 transition-colors" 
+                      onClick={() => setIsCondicionesOpen(!isCondicionesOpen)}
+                    >
                       <CardTitle className={`flex items-center ${(isCondicionesOpen || hasCondiciones) ? 'text-white' : 'text-gray-500'}`}>
                         <Wallet className={`h-5 w-5 mr-2 ${(isCondicionesOpen || hasCondiciones) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Condiciones Comerciales
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsCondicionesOpen(!isCondicionesOpen)} className={`${(isCondicionesOpen || hasCondiciones) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                        {isCondicionesOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" className={`${(isCondicionesOpen || hasCondiciones) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                        {isCondicionesOpen ? (
+                          <Minus className="h-4 w-4" />
+                        ) : (
+                          <div className="flex items-center">
+                            {!(isCondicionesOpen || hasCondiciones) && <span className="mr-2 text-xs">Añadir</span>}
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
                       </Button>
                     </CardHeader>
                     {isCondicionesOpen && (
@@ -1071,13 +1091,23 @@ const SolicitudOperacionCreateEditPage = () => {
                   
                   {/* Relación Comercial */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader 
+                      className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-white/5 transition-colors" 
+                      onClick={() => setIsRelacionOpen(!isRelacionOpen)}
+                    >
                       <CardTitle className={`flex items-center ${(isRelacionOpen || hasRelacion) ? 'text-white' : 'text-gray-500'}`}>
                         <Handshake className={`h-5 w-5 mr-2 ${(isRelacionOpen || hasRelacion) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Relación Comercial
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsRelacionOpen(!isRelacionOpen)} className={`${(isRelacionOpen || hasRelacion) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                        {isRelacionOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" className={`${(isRelacionOpen || hasRelacion) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                        {isRelacionOpen ? (
+                          <Minus className="h-4 w-4" />
+                        ) : (
+                          <div className="flex items-center">
+                            {!(isRelacionOpen || hasRelacion) && <span className="mr-2 text-xs">Añadir</span>}
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
                       </Button>
                     </CardHeader>
                     {isRelacionOpen && (
@@ -1102,13 +1132,23 @@ const SolicitudOperacionCreateEditPage = () => {
 
                   {/* Experiencia de Pago */}
                    <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader 
+                      className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-white/5 transition-colors" 
+                      onClick={() => setIsExperienciaOpen(!isExperienciaOpen)}
+                    >
                       <CardTitle className={`flex items-center ${(isExperienciaOpen || hasExperiencia) ? 'text-white' : 'text-gray-500'}`}>
                         <History className={`h-5 w-5 mr-2 ${(isExperienciaOpen || hasExperiencia) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Experiencia de Pago
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsExperienciaOpen(!isExperienciaOpen)} className={`${(isExperienciaOpen || hasExperiencia) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                        {isExperienciaOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" className={`${(isExperienciaOpen || hasExperiencia) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                        {isExperienciaOpen ? (
+                          <Minus className="h-4 w-4" />
+                        ) : (
+                          <div className="flex items-center">
+                            {!(isExperienciaOpen || hasExperiencia) && <span className="mr-2 text-xs">Añadir</span>}
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
                       </Button>
                     </CardHeader>
                     {isExperienciaOpen && (
@@ -1153,13 +1193,23 @@ const SolicitudOperacionCreateEditPage = () => {
                   </Card>
 
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader 
+                      className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-white/5 transition-colors" 
+                      onClick={() => setIsRiesgoProveedorOpen(!isRiesgoProveedorOpen)}
+                    >
                       <CardTitle className={`flex items-center ${(isRiesgoProveedorOpen || hasRiesgoProv) ? 'text-white' : 'text-gray-500'}`}>
                         <Briefcase className={`h-5 w-5 mr-2 ${(isRiesgoProveedorOpen || hasRiesgoProv) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Riesgo Vigente del Proveedor
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoProveedorOpen(!isRiesgoProveedorOpen)} className={`${(isRiesgoProveedorOpen || hasRiesgoProv) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                        {isRiesgoProveedorOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" className={`${(isRiesgoProveedorOpen || hasRiesgoProv) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                        {isRiesgoProveedorOpen ? (
+                          <Minus className="h-4 w-4" />
+                        ) : (
+                          <div className="flex items-center">
+                            {!(isRiesgoProveedorOpen || hasRiesgoProv) && <span className="mr-2 text-xs">Añadir</span>}
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
                       </Button>
                     </CardHeader>
                     {isRiesgoProveedorOpen && (
@@ -1204,13 +1254,23 @@ const SolicitudOperacionCreateEditPage = () => {
 
                   {/* Datos del Deudor */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader 
+                      className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-white/5 transition-colors" 
+                      onClick={() => setIsRiesgoDeudorOpen(!isRiesgoDeudorOpen)}
+                    >
                       <CardTitle className={`flex items-center ${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-white' : 'text-gray-500'}`}>
                         <ShieldCheck className={`h-5 w-5 mr-2 ${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Riesgo Vigente del Deudor
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoDeudorOpen(!isRiesgoDeudorOpen)} className={`${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                        {isRiesgoDeudorOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" className={`${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                        {isRiesgoDeudorOpen ? (
+                          <Minus className="h-4 w-4" />
+                        ) : (
+                          <div className="flex items-center">
+                            {!(isRiesgoDeudorOpen || hasRiesgoDeudor) && <span className="mr-2 text-xs">Añadir</span>}
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
                       </Button>
                     </CardHeader>
                     {isRiesgoDeudorOpen && (
@@ -1264,13 +1324,23 @@ const SolicitudOperacionCreateEditPage = () => {
                   </Card>
 
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardHeader 
+                      className="flex flex-row items-center justify-between space-y-0 pb-2 cursor-pointer hover:bg-white/5 transition-colors" 
+                      onClick={() => setIsContactoOpen(!isContactoOpen)}
+                    >
                       <CardTitle className={`flex items-center ${(isContactoOpen || hasContacto) ? 'text-white' : 'text-gray-500'}`}>
                         <User className={`h-5 w-5 mr-2 ${(isContactoOpen || hasContacto) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Datos de Contacto y Visita Comercial
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsContactoOpen(!isContactoOpen)} className={`${(isContactoOpen || hasContacto) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                        {isContactoOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      <Button variant="ghost" size="sm" className={`${(isContactoOpen || hasContacto) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                        {isContactoOpen ? (
+                          <Minus className="h-4 w-4" />
+                        ) : (
+                          <div className="flex items-center">
+                            {!(isContactoOpen || hasContacto) && <span className="mr-2 text-xs">Añadir</span>}
+                            <Plus className="h-4 w-4" />
+                          </div>
+                        )}
                       </Button>
                     </CardHeader>
                     {isContactoOpen && (
