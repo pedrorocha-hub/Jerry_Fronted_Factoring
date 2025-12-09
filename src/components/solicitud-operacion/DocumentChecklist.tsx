@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, RefreshCw, Brain, Paperclip } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, RefreshCw, Brain, Paperclip, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,11 +18,11 @@ interface DocumentChecklistProps {
   onDocumentUploaded?: () => void;
 }
 
-// Keys for which the "Subir" button should be hidden (handled in Operation tab)
-const HIDDEN_UPLOAD_KEYS: DocumentTypeKey[] = [];
-
 // Keys that MUST be processed by AI (Brain button)
 const AI_PROCESS_KEYS: DocumentTypeKey[] = ['FICHA_RUC', 'SENTINEL', 'REPORTE_TRIBUTARIO', 'EEFF'];
+
+// Keys that allow multiple file uploads
+const ALLOW_MULTIPLE_UPLOADS: DocumentTypeKey[] = ['FACTURA', 'EVIDENCIA_VISITA', 'SUSTENTOS', 'VIGENCIA_PODER'];
 
 const DocumentChecklist: React.FC<DocumentChecklistProps> = ({ 
   ruc, 
@@ -34,7 +34,6 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
   const [loading, setLoading] = useState(false);
   const [uploadingType, setUploadingType] = useState<DocumentTypeKey | null>(null);
   
-  // Usamos una referencia para saber qué documento se intentó subir sin renderizar/bloquear UI antes de tiempo
   const activeUploadKeyRef = useRef<DocumentTypeKey | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -49,14 +48,14 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     EVIDENCIA_VISITA: false
   });
 
-  // Función para verificar existencia de documentos en BD
+  // Función para verificar existencia de documentos
   const checkDocuments = async () => {
     if (!ruc || ruc.length !== 11) return;
     
     setLoading(true);
     try {
-      // Consultamos las tablas procesadas para ver si existe información para este RUC
-      const [ficha, sentinel, tributario, facturas, eeff] = await Promise.all([
+      // 1. Verificar documentos procesados (tablas específicas)
+      const [ficha, sentinel, tributario, facturasTable, eeff] = await Promise.all([
         supabase.from('ficha_ruc').select('id').eq('ruc', ruc).maybeSingle(),
         supabase.from('sentinel').select('id').eq('ruc', ruc).maybeSingle(),
         supabase.from('reporte_tributario').select('id').eq('ruc', ruc).limit(1),
@@ -64,23 +63,37 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         supabase.from('eeff').select('id').eq('ruc', ruc).limit(1)
       ]);
 
-      // Para documentos de evidencia, ahora todos se suben como 'sustentos', pero buscamos por nombre o si existe algún sustento
-      // para mantener el checklist visualmente útil.
-      const [sustentosDoc] = await Promise.all([
-        supabase.from('documentos').select('id').eq('tipo', 'sustentos').ilike('nombre_archivo', `%${ruc}%`).limit(1)
-      ]);
+      // 2. Verificar archivos subidos en la tabla 'documentos' vinculados a la solicitud (si existe)
+      let uploadedDocs: { tipo: string }[] = [];
+      if (solicitudId) {
+        const { data } = await supabase
+          .from('documentos')
+          .select('tipo')
+          .eq('solicitud_id', solicitudId);
+        uploadedDocs = data || [];
+      } else {
+        // Fallback: buscar por nombre de archivo que contenga el RUC si no hay solicitudId (menos preciso)
+        const { data } = await supabase
+          .from('documentos')
+          .select('tipo')
+          .ilike('nombre_archivo', `%${ruc}%`);
+        uploadedDocs = data || [];
+      }
 
-      const hasSustentos = (sustentosDoc.data?.length || 0) > 0;
+      // Helpers para verificar si existe en 'documentos'
+      const hasUploadedType = (t: DocumentoTipo) => uploadedDocs.some(d => d.tipo === t);
+      const hasSustentos = hasUploadedType('sustentos');
 
       const newStatus = {
         FICHA_RUC: !!ficha.data,
         SENTINEL: !!sentinel.data,
         REPORTE_TRIBUTARIO: (tributario.data?.length || 0) > 0,
-        FACTURA: (facturas.data?.length || 0) > 0 || hasSustentos, // Asumimos OK si hay sustentos
+        // Factura OK si está en tabla procesada O si se subió el archivo
+        FACTURA: (facturasTable.data?.length || 0) > 0 || hasUploadedType('factura_negociar'), 
         EEFF: (eeff.data?.length || 0) > 0,
-        VIGENCIA_PODER: hasSustentos, // Asumimos OK si hay sustentos
+        VIGENCIA_PODER: hasUploadedType('vigencia_poder') || hasSustentos, 
         SUSTENTOS: hasSustentos,
-        EVIDENCIA_VISITA: hasSustentos
+        EVIDENCIA_VISITA: hasUploadedType('evidencia_visita') || hasSustentos
       };
 
       setDocStatus(newStatus);
@@ -93,9 +106,9 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
 
   useEffect(() => {
     checkDocuments();
-  }, [ruc]);
+  }, [ruc, solicitudId]); // Agregamos solicitudId a las dependencias
 
-  // Validar cumplimiento de requisitos y notificar al padre
+  // Validar cumplimiento
   useEffect(() => {
     if (!tipoProducto) {
       onValidationChange(true); 
@@ -105,7 +118,6 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     const reqs = PRODUCT_REQUIREMENTS[tipoProducto];
     const allRequiredMet = reqs.required.every(docType => docStatus[docType]);
     
-    // Notificamos al componente padre si cumple los requisitos
     onValidationChange(allRequiredMet);
   }, [docStatus, tipoProducto, onValidationChange]);
 
@@ -125,30 +137,39 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     
     setUploadingType(key);
     
-    // IMPORTANTE: El usuario solicitó que todos los botones de "gancho" suban como 'sustentos'
-    // y se vinculen a la solicitudId.
-    const tipo: DocumentoTipo = 'sustentos';
+    // Mapear la Key del Checklist al Tipo de Documento de la BD
+    let tipo: DocumentoTipo = 'sustentos';
+    switch (key) {
+      case 'FACTURA':
+        tipo = 'factura_negociar';
+        break;
+      case 'EVIDENCIA_VISITA':
+        tipo = 'evidencia_visita';
+        break;
+      case 'VIGENCIA_PODER':
+        tipo = 'vigencia_poder';
+        break;
+      default:
+        tipo = 'sustentos';
+    }
 
     try {
-      // Subida directa vinculada a la solicitudId (evita webhook de IA)
       await DocumentoService.uploadAndInsert(
         file, 
         tipo, 
         undefined, 
         false, 
-        solicitudId // Esto es crucial para que se vincule a la solicitud y no se procese por IA
+        solicitudId // Vinculación directa
       );
-      showSuccess('Evidencia adjuntada correctamente');
+      showSuccess('Documento adjuntado correctamente');
       
-      // Recargar estados de checklist
-      setTimeout(checkDocuments, 1000); 
-      
-      // Notificar al padre para que recargue la lista de documentos
+      // Actualizar estado local y notificar al padre
+      await checkDocuments();
       if (onDocumentUploaded) {
         onDocumentUploaded();
       }
     } catch (err: any) {
-      console.error('Error subiendo evidencia:', err);
+      console.error('Error subiendo documento:', err);
       showError(`Error al subir: ${err.message}`);
     } finally {
       setUploadingType(null);
@@ -174,6 +195,7 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
     const exists = docStatus[key];
     const isUploadingThis = uploadingType === key;
     const isAIProcess = AI_PROCESS_KEYS.includes(key);
+    const allowMultiple = ALLOW_MULTIPLE_UPLOADS.includes(key);
     
     return (
       <div key={key} className="flex items-center justify-between p-3 bg-gray-900/30 rounded-lg border border-gray-800 mb-2 hover:bg-gray-900/50 transition-colors">
@@ -201,41 +223,42 @@ const DocumentChecklist: React.FC<DocumentChecklistProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {!exists && !HIDDEN_UPLOAD_KEYS.includes(key) && (
-            <>
-              {/* Botón para Documentos de IA (Redirige a /upload) - SOLO para keys de IA */}
-              {isAIProcess ? (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 gap-2"
-                  onClick={() => window.open('/upload', '_blank')}
-                  disabled={!!uploadingType}
-                  title="Ir a procesar con IA"
-                >
-                  <Brain className="h-3 w-3" />
-                  Procesar
-                </Button>
-              ) : (
-                /* Botón para Evidencias (Subida directa - Ganchito) - SOLO para keys NO IA */
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
-                  onClick={() => handleDirectUploadClick(key)}
-                  disabled={!!uploadingType}
-                  title="Adjuntar evidencia (sin procesar)"
-                >
-                  {isUploadingThis ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Paperclip className="h-3 w-3" />
-                  )}
-                  Adjuntar
-                </Button>
-              )}
-            </>
+          {isAIProcess ? (
+            /* Botón "Cerebro" (Procesar con IA) - Solo aparece si es FICHA_RUC, SENTINEL, etc. y NO existe */
+            !exists && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 px-2 text-xs text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 gap-2"
+                onClick={() => window.open('/upload', '_blank')}
+                disabled={!!uploadingType}
+                title="Ir a procesar con IA"
+              >
+                <Brain className="h-3 w-3" />
+                Procesar
+              </Button>
+            )
+          ) : (
+            /* Botón "Gancho" (Adjuntar Manualmente) - Aparece si no existe O si permite múltiples */
+            (!exists || allowMultiple) && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 px-2 text-xs text-gray-400 hover:text-[#00FF80] hover:bg-[#00FF80]/10 gap-2"
+                onClick={() => handleDirectUploadClick(key)}
+                disabled={!!uploadingType}
+                title="Adjuntar evidencia"
+              >
+                {isUploadingThis ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Paperclip className="h-3 w-3" />
+                )}
+                {exists && allowMultiple ? 'Agregar otro' : 'Adjuntar'}
+              </Button>
+            )
           )}
+
           {exists && (
              <Badge variant="outline" className="bg-[#00FF80]/10 text-[#00FF80] border-[#00FF80]/20 text-[10px] px-1.5">
                OK
