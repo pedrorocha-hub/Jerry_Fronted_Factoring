@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, Minus, ClipboardCopy, Layers, Percent, Clock, Wallet, MapPin, Phone, UserCheck, DollarSign, Handshake, History, Camera, ArrowRightLeft } from 'lucide-react';
+import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, Minus, ClipboardCopy, Layers, Percent, Clock, Wallet, MapPin, Phone, UserCheck, DollarSign, Handshake, History, Camera } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -88,7 +88,6 @@ const SolicitudOperacionCreateEditPage = () => {
   const [top10kData, setTop10kData] = useState<Top10kData | null>(null);
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudOperacionWithRiesgos | null>(null);
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
-  const [primaryRole, setPrimaryRole] = useState<'PROVEEDOR' | 'DEUDOR'>('PROVEEDOR');
   
   const [isDocumentationComplete, setIsDocumentationComplete] = useState(true);
   const [docsRefreshTrigger, setDocsRefreshTrigger] = useState(0);
@@ -134,7 +133,6 @@ const SolicitudOperacionCreateEditPage = () => {
     condiciones_desembolso: '',
     validado_por: '',
     deudor_ruc: '',
-    deudor: '', // Added deudor field
     
     // Campos financieros
     porcentaje_anticipo: '',
@@ -161,52 +159,9 @@ const SolicitudOperacionCreateEditPage = () => {
     setDocsRefreshTrigger(prev => prev + 1);
   };
 
-  const handleToggleRole = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const nextRole = primaryRole === 'PROVEEDOR' ? 'DEUDOR' : 'PROVEEDOR';
-    const mainName = searchedFicha?.nombre_empresa || '';
-    
-    setPrimaryRole(nextRole);
-    
-    setSolicitudFormData(prev => {
-        if (nextRole === 'DEUDOR') {
-            // Cambio a Modo DEUDOR
-            // La entidad principal (dueña del RUC) pasa a ser el DEUDOR
-            // Lo que estaba en el campo 'deudor' pasa a ser el 'proveedor'
-            return {
-                ...prev,
-                deudor: mainName,
-                proveedor: (prev as any).deudor || '', 
-                deudor_ruc: rucInput // El RUC principal es el del deudor
-            };
-        } else {
-            // Cambio a Modo PROVEEDOR
-            // La entidad principal (dueña del RUC) pasa a ser el PROVEEDOR
-            // Lo que estaba en el campo 'proveedor' pasa a ser el 'deudor'
-            return {
-                ...prev,
-                proveedor: mainName,
-                deudor: prev.proveedor || '',
-                deudor_ruc: '' // Limpiamos porque el RUC principal ya no es del deudor
-            };
-        }
-    });
-  };
-
   const handleEditSolicitud = useCallback(async (solicitud: SolicitudOperacionWithRiesgos) => {
     setEditingSolicitud(solicitud);
     setRucInput(solicitud.ruc);
-
-    // Detectar rol: Si el campo proveedor está vacío O (deudor_ruc es igual al RUC principal), asumimos que el rol principal es DEUDOR
-    // Ojo: En algunos casos podría tener ambos llenos si se completaron después. 
-    // Una lógica simple: Si deudor_ruc == ruc, entonces el RUC principal actúa como deudor.
-    if ((solicitud as any).deudor_ruc === solicitud.ruc) {
-      setPrimaryRole('DEUDOR');
-    } else {
-      setPrimaryRole('PROVEEDOR');
-    }
 
     const { data: riesgos, error } = await supabase
       .from('solicitud_operacion_riesgos')
@@ -251,11 +206,10 @@ const SolicitudOperacionCreateEditPage = () => {
         setSearchedFicha(fichaData);
         actividadInicial = fichaData.actividad_empresa || '';
       } else {
-        const nombreEmpresa = solicitud.proveedor || solicitud.deudor || 'Empresa Manual';
         setSearchedFicha({
           id: 0,
           ruc: solicitud.ruc,
-          nombre_empresa: nombreEmpresa,
+          nombre_empresa: solicitud.proveedor || 'Empresa Manual',
           actividad_empresa: 'N/A',
           created_at: solicitud.created_at,
           updated_at: solicitud.updated_at,
@@ -295,7 +249,6 @@ const SolicitudOperacionCreateEditPage = () => {
       condiciones_desembolso: solicitud.condiciones_desembolso || '',
       validado_por: solicitud.validado_por || '',
       deudor_ruc: (solicitud as any).deudor_ruc || '',
-      deudor: solicitud.deudor || '',
       
       porcentaje_anticipo: solicitud.porcentaje_anticipo?.toString() || '',
       comision_estructuracion: solicitud.comision_estructuracion?.toString() || '',
@@ -338,16 +291,13 @@ const SolicitudOperacionCreateEditPage = () => {
     }
 
     if ((solicitud as any).deudor_ruc) {
-      // Si el rol es DEUDOR, el RUC principal ya es el deudor, no necesitamos buscarlo de nuevo en la sección de riesgo deudor
-      if (primaryRole !== 'DEUDOR') {
-         setDeudorRucInput((solicitud as any).deudor_ruc);
-         setIsRiesgoDeudorOpen(true);
-         await handleSearchDeudor((solicitud as any).deudor_ruc);
-      }
+      setDeudorRucInput((solicitud as any).deudor_ruc);
+      setIsRiesgoDeudorOpen(true);
+      await handleSearchDeudor((solicitud as any).deudor_ruc);
     }
 
     window.scrollTo(0, 0);
-  }, [primaryRole]);
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -404,19 +354,11 @@ const SolicitudOperacionCreateEditPage = () => {
       const fichaData = await FichaRucService.getByRuc(rucToSearch);
       if (fichaData) {
         setSearchedFicha(fichaData);
-        
-        // Rellenar datos según el rol seleccionado
-        const newFormData = { ...solicitudFormData };
-        if (primaryRole === 'PROVEEDOR') {
-            newFormData.proveedor = fichaData.nombre_empresa;
-        } else {
-            newFormData.deudor = fichaData.nombre_empresa;
-            newFormData.deudor_ruc = rucToSearch;
-            newFormData.proveedor = ''; // Limpiar proveedor si se cambia a Deudor
-        }
-        newFormData.actividad_manual = fichaData.actividad_empresa || '';
-        
-        setSolicitudFormData(newFormData);
+        setSolicitudFormData(prev => ({ 
+          ...prev, 
+          proveedor: fichaData.nombre_empresa,
+          actividad_manual: fichaData.actividad_empresa || ''
+        }));
         if (!editingSolicitud) showSuccess('Ficha RUC encontrada.');
       } else {
         // Permitir flujo aunque no exista la ficha (para evitar bloqueos)
@@ -489,24 +431,12 @@ const SolicitudOperacionCreateEditPage = () => {
 
     setSaving(true);
     try {
-      // Prepare data based on role
-      const initialData: any = { 
+      const newSolicitud = await SolicitudOperacionService.create({ 
         ruc: rucInput, 
         status: 'Borrador',
         tipo_producto: createProductType,
         tipo_operacion: 'PUNTUAL'
-      };
-
-      if (searchedFicha) {
-        if (primaryRole === 'PROVEEDOR') {
-           initialData.proveedor = searchedFicha.nombre_empresa || '';
-        } else {
-           initialData.deudor = searchedFicha.nombre_empresa || '';
-           initialData.deudor_ruc = rucInput;
-        }
-      }
-
-      const newSolicitud = await SolicitudOperacionService.create(initialData);
+      });
       showSuccess('Expediente creado. Redirigiendo a la página de edición...');
       navigate(`/solicitudes-operacion/edit/${newSolicitud.id}`);
     } catch (err) {
@@ -563,7 +493,7 @@ const SolicitudOperacionCreateEditPage = () => {
         try {
             const fichaData = {
                 ruc: ruc,
-                nombre_empresa: primaryRole === 'PROVEEDOR' ? cleanFormData.proveedor : cleanFormData.deudor,
+                nombre_empresa: solicitudFormData.proveedor,
                 actividad_empresa: actividad_manual
             };
             const { error: fichaError } = await supabase
@@ -582,6 +512,7 @@ const SolicitudOperacionCreateEditPage = () => {
         return isNaN(parsed) ? null : parsed;
       };
       
+      // Use base 10 explicitly to avoid any octal confusion, although standard modern JS behaves well
       const parseIntNullable = (value: string | number | null) => {
         if (value === '' || value === null || value === undefined) return null;
         const parsed = typeof value === 'string' ? parseInt(value, 10) : value;
@@ -597,10 +528,7 @@ const SolicitudOperacionCreateEditPage = () => {
         tipo_cambio: parseNumber(solicitudFormData.tipo_cambio),
         lp: firstRiesgoRow.lp || null,
         producto: firstRiesgoRow.producto || null,
-        
-        // Use form data if not empty (manual overrides), otherwise risk row
-        deudor: solicitudFormData.deudor || firstRiesgoRow.deudor || null,
-        
+        deudor: firstRiesgoRow.deudor || null,
         lp_vigente_gve: firstRiesgoRow.lp_vigente_gve || null,
         riesgo_aprobado: String(firstRiesgoRow.riesgo_aprobado || ''),
         propuesta_comercial: String(firstRiesgoRow.propuesta_comercial || ''),
@@ -754,33 +682,6 @@ const SolicitudOperacionCreateEditPage = () => {
                   </div>
                   
                   <div className="ml-8 space-y-4">
-                    {/* NEW ROLE SELECTOR */}
-                    <div className="p-4 bg-gray-900/50 border border-gray-800 rounded-lg mb-4">
-                      <Label className="text-gray-400 mb-2 block">¿Qué rol cumple esta empresa?</Label>
-                      <div className="flex gap-4">
-                        <div 
-                          className={`flex-1 cursor-pointer border rounded-md p-3 flex items-center justify-center gap-2 transition-colors ${primaryRole === 'PROVEEDOR' ? 'bg-[#00FF80]/10 border-[#00FF80] text-[#00FF80]' : 'border-gray-700 text-gray-400 hover:bg-gray-800'}`}
-                          onClick={() => { 
-                            setPrimaryRole('PROVEEDOR'); 
-                            setSolicitudFormData(prev => ({...prev, proveedor: searchedFicha?.nombre_empresa || '', deudor: ''})); 
-                          }}
-                        >
-                          <Briefcase className="h-4 w-4" />
-                          <span>Es Proveedor</span>
-                        </div>
-                        <div 
-                          className={`flex-1 cursor-pointer border rounded-md p-3 flex items-center justify-center gap-2 transition-colors ${primaryRole === 'DEUDOR' ? 'bg-[#00FF80]/10 border-[#00FF80] text-[#00FF80]' : 'border-gray-700 text-gray-400 hover:bg-gray-800'}`}
-                          onClick={() => { 
-                            setPrimaryRole('DEUDOR'); 
-                            setSolicitudFormData(prev => ({...prev, deudor: searchedFicha?.nombre_empresa || '', proveedor: ''})); 
-                          }}
-                        >
-                          <ShieldCheck className="h-4 w-4" />
-                          <span>Es Deudor</span>
-                        </div>
-                      </div>
-                    </div>
-
                     <Tabs 
                       defaultValue="FICHA" 
                       value={searchSource} 
@@ -1015,27 +916,10 @@ const SolicitudOperacionCreateEditPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                           <div>
-                            <div className="flex items-center justify-between mb-1">
-                                <Label htmlFor="proveedor">
-                                  {primaryRole === 'PROVEEDOR' ? 'Proveedor (Principal)' : 'Deudor (Principal)'}
-                                </Label>
-                                {isAdmin && (
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-4 px-1 text-xs text-[#00FF80] hover:text-[#00FF80]"
-                                    onClick={handleToggleRole}
-                                    title="Cambiar rol principal"
-                                    type="button"
-                                  >
-                                    <ArrowRightLeft className="h-3 w-3 mr-1" />
-                                    Cambiar Rol
-                                  </Button>
-                                )}
-                            </div>
+                            <Label htmlFor="proveedor">Proveedor</Label>
                             <Input 
-                              id={primaryRole === 'PROVEEDOR' ? 'proveedor' : 'deudor'} 
-                              value={createWithoutRuc ? (primaryRole === 'PROVEEDOR' ? solicitudFormData.proveedor : (solicitudFormData as any).deudor) : (searchedFicha?.nombre_empresa || '')} 
+                              id="proveedor" 
+                              value={createWithoutRuc ? solicitudFormData.proveedor : (searchedFicha?.nombre_empresa || '')} 
                               onChange={createWithoutRuc ? handleFormChange : undefined}
                               disabled={!createWithoutRuc} 
                               className={createWithoutRuc ? "bg-gray-900/50 border-gray-700" : "bg-gray-800 border-gray-700 text-gray-400"} 
@@ -1054,22 +938,6 @@ const SolicitudOperacionCreateEditPage = () => {
                             />
                           </div>
                         </div>
-
-                        {/* Campo de Contraparte (Dinámico según el rol) */}
-                           <div className="pt-2">
-                             <Label htmlFor={primaryRole === 'PROVEEDOR' ? 'deudor' : 'proveedor'}>
-                                {primaryRole === 'PROVEEDOR' ? 'Contraparte (Deudor)' : 'Contraparte (Proveedor)'}
-                             </Label>
-                             <Input 
-                                id={primaryRole === 'PROVEEDOR' ? 'deudor' : 'proveedor'}
-                                value={primaryRole === 'PROVEEDOR' ? (solicitudFormData as any).deudor || '' : solicitudFormData.proveedor || ''}
-                                onChange={handleFormChange}
-                                placeholder={primaryRole === 'PROVEEDOR' ? "Ingrese el nombre del deudor..." : "Ingrese el nombre del proveedor..."}
-                                className="bg-gray-900/50 border-gray-700 mt-1"
-                                disabled={!isAdmin}
-                             />
-                           </div>
-
                         <div>
                           <Label htmlFor="actividad_manual">Actividad Empresarial</Label>
                           <Input 
