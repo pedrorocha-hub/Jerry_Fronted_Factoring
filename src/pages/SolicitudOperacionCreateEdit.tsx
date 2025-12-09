@@ -916,7 +916,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <FileText className={`h-5 w-5 mr-2 ${(isDatosSolicitudOpen || hasDatosSolicitud) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Datos de la Solicitud
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsDatosSolicitudOpen(!isDatosSolicitudOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="sm" onClick={() => setIsDatosSolicitudOpen(!isDatosSolicitudOpen)} className={`${(isDatosSolicitudOpen || hasDatosSolicitud) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isDatosSolicitudOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -983,7 +983,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <Wallet className={`h-5 w-5 mr-2 ${(isCondicionesOpen || hasCondiciones) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Condiciones Comerciales
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsCondicionesOpen(!isCondicionesOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="sm" onClick={() => setIsCondicionesOpen(!isCondicionesOpen)} className={`${(isCondicionesOpen || hasCondiciones) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isCondicionesOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -1076,7 +1076,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <Handshake className={`h-5 w-5 mr-2 ${(isRelacionOpen || hasRelacion) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Relación Comercial
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsRelacionOpen(!isRelacionOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="sm" onClick={() => setIsRelacionOpen(!isRelacionOpen)} className={`${(isRelacionOpen || hasRelacion) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isRelacionOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -1107,7 +1107,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <History className={`h-5 w-5 mr-2 ${(isExperienciaOpen || hasExperiencia) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Experiencia de Pago
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsExperienciaOpen(!isExperienciaOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="sm" onClick={() => setIsExperienciaOpen(!isExperienciaOpen)} className={`${(isExperienciaOpen || hasExperiencia) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isExperienciaOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -1158,7 +1158,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <Briefcase className={`h-5 w-5 mr-2 ${(isRiesgoProveedorOpen || hasRiesgoProv) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Riesgo Vigente del Proveedor
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoProveedorOpen(!isRiesgoProveedorOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoProveedorOpen(!isRiesgoProveedorOpen)} className={`${(isRiesgoProveedorOpen || hasRiesgoProv) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isRiesgoProveedorOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -1209,7 +1209,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <ShieldCheck className={`h-5 w-5 mr-2 ${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Riesgo Vigente del Deudor
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoDeudorOpen(!isRiesgoDeudorOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoDeudorOpen(!isRiesgoDeudorOpen)} className={`${(isRiesgoDeudorOpen || hasRiesgoDeudor) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isRiesgoDeudorOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -1269,7 +1269,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <User className={`h-5 w-5 mr-2 ${(isContactoOpen || hasContacto) ? 'text-[#00FF80]' : 'text-gray-600'}`} />
                         Datos de Contacto y Visita Comercial
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsContactoOpen(!isContactoOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                      <Button variant="ghost" size="sm" onClick={() => setIsContactoOpen(!isContactoOpen)} className={`${(isContactoOpen || hasContacto) ? 'text-[#00FF80] hover:bg-[#00FF80]/10' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
                         {isContactoOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -1367,3 +1367,165 @@ const SolicitudOperacionCreateEditPage = () => {
                       </CardContent>
                     )}
                   </Card>
+
+                  <Card className="bg-[#121212] border border-gray-800">
+                    <CardHeader><CardTitle className="text-white">Gestión</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                      {editingSolicitud ? (
+                        <>
+                          <div className="flex flex-col space-y-4 text-sm text-gray-300">
+                            <h4 className="font-semibold text-white">Detalles del Análisis Seleccionado</h4>
+                            <div className="flex items-center gap-2">
+                              <ClipboardCopy className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                              <span className="text-gray-400">ID de Expediente:</span>
+                              <code className="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">{editingSolicitud.id}</code>
+                              <Button variant="ghost" size="icon" onClick={handleCopyId} className="h-6 w-6 text-gray-400 hover:text-white">
+                                <ClipboardCopy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {creatorInfo && (
+                              <div className="flex items-center gap-2"><User className="h-4 w-4 flex-shrink-0" /><span>Creado por: <strong className="text-gray-200">{creatorInfo.fullName || 'N/A'}</strong> ({creatorInfo.email || 'N/A'})</span></div>
+                            )}
+                            <div className="flex items-center gap-2"><Calendar className="h-4 w-4 flex-shrink-0" /><span>Fecha de creación: <strong className="text-gray-200">{new Date(editingSolicitud.created_at).toLocaleString('es-PE')}</strong></span></div>
+                            <div className="flex items-center gap-2"><RefreshCw className="h-4 w-4 flex-shrink-0" /><span>Última modificación: <strong className="text-gray-200">{new Date(editingSolicitud.updated_at).toLocaleString('es-PE')}</strong></span></div>
+
+                            <div className="w-full pt-4 border-t border-gray-800">
+                              <AuditLogViewer solicitudId={editingSolicitud.id} />
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-gray-800">
+                            <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
+                            <Input id="validado_por" value={solicitudFormData.validado_por || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
+                            <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}>
+                              <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                                <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
+                                <SelectItem value="En Revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
+                                <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <Label htmlFor="validado_por_new" className="font-semibold text-white">Validado por</Label>
+                            <Input id="validado_por_new" value={solicitudFormData.validado_por || ''} onChange={(e) => setSolicitudFormData(prev => ({ ...prev, validado_por: e.target.value }))} className="bg-gray-900/50 border-gray-700 mt-1" disabled={!isAdmin} placeholder="Nombre de quien valida" />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="status-new" className="font-semibold text-white">Estado de Solicitud</Label>
+                            <Select value={solicitudFormData.status} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, status: value as SolicitudStatus }))} disabled={!isAdmin}>
+                              <SelectTrigger id="status-new" className="bg-gray-900/50 border-gray-700 mt-1">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                                <SelectItem value="Borrador" className="hover:bg-gray-800">Borrador</SelectItem>
+                                <SelectItem value="En Revisión" className="hover:bg-gray-800">En Revisión</SelectItem>
+                                <SelectItem value="Completado" className="hover:bg-gray-800">Completado</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <div className="flex justify-end space-x-4">
+                    <Button variant="outline" onClick={handleCancel} className="border-gray-700 text-gray-300"><XCircle className="h-4 w-4 mr-2" />Cancelar</Button>
+                    {isAdmin && (
+                      <Button onClick={handleSave} disabled={saving} size="lg" className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black font-medium">
+                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FilePlus className="h-4 w-4 mr-2" />}
+                        {id ? 'Actualizar Solicitud' : 'Confirmar y Crear Solicitud'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+               )}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+       {/* Modal de éxito */}
+       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="bg-[#121212] border border-gray-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center text-xl">
+              <FilePlus className="h-6 w-6 mr-3 text-[#00FF80]" />
+              ¡Solicitud Creada Exitosamente!
+            </DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Se ha generado una nueva solicitud de operación. Guarde el ID para futuras referencias.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+              <Label className="text-gray-400 text-sm">ID de Expediente</Label>
+              <div className="flex items-center gap-2 mt-2">
+                <code className="flex-1 text-sm bg-gray-800 text-[#00FF80] px-3 py-2 rounded font-mono break-all">
+                  {createdSolicitudId}
+                </code>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    if (createdSolicitudId) {
+                      navigator.clipboard.writeText(createdSolicitudId);
+                      showSuccess('ID copiado al portapapeles');
+                    }
+                  }}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white shrink-0"
+                >
+                  <ClipboardCopy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-400">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Puede copiar este ID ahora o acceder a él más tarde desde la lista de solicitudes.
+              </AlertDescription>
+            </Alert>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSuccessModal(false);
+                navigate('/solicitudes-operacion');
+              }}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              Volver a la Lista
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSuccessModal(false);
+                if (createdSolicitudId) {
+                  navigate(`/solicitudes-operacion/edit/${createdSolicitudId}`);
+                }
+              }}
+              className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Editar Solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Layout>
+  );
+};
+
+export default SolicitudOperacionCreateEditPage;
