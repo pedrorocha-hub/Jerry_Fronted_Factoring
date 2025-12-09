@@ -28,24 +28,6 @@ const DOCUMENT_TYPES: { value: DocumentoTipo; label: string; icon: string; descr
     description: 'Documento oficial de registro único de contribuyentes'
   },
   { 
-    value: 'representante_legal', 
-    label: 'Representante Legal', 
-    icon: '👤',
-    description: 'Información del representante legal de la empresa'
-  },
-  { 
-    value: 'cuenta_bancaria', 
-    label: 'Cuenta Bancaria', 
-    icon: '🏦',
-    description: 'Información de cuentas bancarias (Cta. Cte., ahorros, etc.)'
-  },
-  { 
-    value: 'eeff', 
-    label: 'EEFF (Declaración Jurada)', 
-    icon: '🧾',
-    description: 'Estados Financieros / Declaración Jurada de la empresa'
-  },
-  { 
     value: 'reporte_tributario', 
     label: 'Reporte Tributario', 
     icon: '📊',
@@ -58,23 +40,17 @@ const DOCUMENT_TYPES: { value: DocumentoTipo; label: string; icon: string; descr
     description: 'Reporte de crédito de Sentinel'
   },
   { 
-    value: 'factura_negociar', 
-    label: 'Factura a Negociar', 
-    icon: '💰',
-    description: 'Factura comercial a ser financiada'
+    value: 'cuenta_bancaria', 
+    label: 'Cuenta Bancaria', 
+    icon: '🏦',
+    description: 'Información de cuentas bancarias (Cta. Cte., ahorros, etc.)'
   },
   { 
-    value: 'sustentos', 
-    label: 'Sustentos (Guías/OC)', 
-    icon: '📁',
-    description: 'Documentos de sustento como Guías de Remisión u Órdenes de Compra'
-  },
-  { 
-    value: 'evidencia_visita', 
-    label: 'Evidencia de Visita', 
-    icon: '📷',
-    description: 'Fotos o reportes de la visita comercial'
-  },
+    value: 'eeff', 
+    label: 'EEFF (Declaración Jurada)', 
+    icon: '🧾',
+    description: 'Estados Financieros / Declaración Jurada de la empresa'
+  }
 ];
 
 const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplete }) => {
@@ -103,20 +79,12 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
         setDocumentType('ficha_ruc');
       } else if (fileName.includes('cta') || fileName.includes('cuenta') || fileName.includes('bancaria') || fileName.includes('banco')) {
         setDocumentType('cuenta_bancaria');
-      } else if (fileName.includes('representante') || fileName.includes('legal')) {
-        setDocumentType('representante_legal');
       } else if (fileName.includes('eeff') || fileName.includes('financiero') || fileName.includes('declaracion')) {
         setDocumentType('eeff');
       } else if (fileName.includes('tributario') || fileName.includes('reporte') || fileName.includes('balance')) {
         setDocumentType('reporte_tributario');
       } else if (fileName.includes('sentinel')) {
         setDocumentType('sentinel');
-      } else if (fileName.includes('factura') || fileName.includes('invoice')) {
-        setDocumentType('factura_negociar');
-      } else if (fileName.includes('guia') || fileName.includes('orden') || fileName.includes('oc')) {
-        setDocumentType('sustentos');
-      } else if (fileName.includes('visita') || fileName.includes('foto')) {
-        setDocumentType('evidencia_visita');
       }
     }
   };
@@ -199,15 +167,8 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
         }
       }
 
-      // Check for evidence types to show appropriate message
-      const isEvidenceType = ['factura_negociar', 'sustentos', 'evidencia_visita'].includes(documentType);
-
       if (successCount > 0) {
-        if (isEvidenceType) {
-          showSuccess(`${successCount} evidencia(s) subida(s) correctamente`);
-        } else {
-          showSuccess(`${successCount} archivo(s) subido(s) y enviado(s) para procesamiento`);
-        }
+        showSuccess(`${successCount} archivo(s) subido(s) y enviado(s) para procesamiento`);
       }
       
       if (errorCount > 0) {
@@ -245,11 +206,9 @@ const DocumentUploadForm: React.FC<DocumentUploadFormProps> = ({ onUploadComplet
   };
 
   const getStatusText = (status: UploadProgress['status'], type: string) => {
-    const isEvidence = ['factura_negociar', 'sustentos', 'evidencia_visita'].includes(type);
-    
     switch (status) {
       case 'uploading':
-        return isEvidence ? 'Subiendo evidencia...' : 'Enviando al webhook...';
+        return 'Enviando al webhook...';
       case 'completed':
         return 'Completado';
       case 'error':
