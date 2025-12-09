@@ -43,6 +43,10 @@ const RibPage = () => {
   const { isAdmin } = useSession();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  
+  // Estado de inicialización para evitar parpadeos
+  const [initializing, setInitializing] = useState(true);
+
   const [view, setView] = useState<'list' | 'search_results' | 'form' | 'create_mode'>('list');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -102,126 +106,139 @@ const RibPage = () => {
   const hasDetailsData = !!(formData.descripcion_empresa || formData.inicio_actividades || formData.relacion_comercial_deudor);
 
   useEffect(() => {
-    loadAllRibs();
-  }, []);
+    // Carga inicial unificada
+    const init = async () => {
+      setInitializing(true);
+      await loadAllRibs(); // Cargar la lista primero
 
-  useEffect(() => {
-    if (id && allRibs.length > 0) {
-      const ribToEdit = allRibs.find(r => r.id === id);
-      if (ribToEdit) {
-        handleEditFromList(ribToEdit);
+      const solicitudIdParam = searchParams.get('solicitud_id');
+      const rucParam = searchParams.get('ruc');
+
+      if (id) {
+        // Caso 1: Navegación directa por ID (Editar)
+        // loadAllRibs ya cargó los datos, buscamos el específico
+        const { data: directRib } = await supabase.from('rib').select('*').eq('id', id).single();
+        if (directRib) {
+            await handleEditFromList(directRib as any); 
+        }
+      } else if (solicitudIdParam && rucParam) {
+        // Caso 2: Navegación desde Wizard (Auto-selección)
+        await handleAutoSelect(solicitudIdParam, rucParam);
+      } else {
+        // Caso 3: Vista de lista normal
+        setInitializing(false);
       }
-    }
-  }, [id, allRibs]);
+    };
 
-  useEffect(() => {
-    const solicitudIdParam = searchParams.get('solicitud_id');
-    const rucParam = searchParams.get('ruc');
-
-    if (solicitudIdParam && rucParam && !id && allRibs.length > 0) {
-      handleAutoSelect(solicitudIdParam, rucParam);
-    }
-  }, [searchParams, allRibs, id]);
+    init();
+  }, [id, searchParams]);
 
   const handleAutoSelect = async (solicitudId: string, ruc: string) => {
-    const { data: existingRib, error } = await supabase
-      .from('rib')
-      .select('*')
-      .eq('solicitud_id', solicitudId)
-      .maybeSingle();
+    try {
+        const { data: existingRib, error } = await supabase
+          .from('rib')
+          .select('*')
+          .eq('solicitud_id', solicitudId)
+          .maybeSingle();
 
-    if (existingRib) {
-      const fichaData = await FichaRucService.getByRuc(existingRib.ruc);
-      
-      if (fichaData) {
-        setSearchedFicha(fichaData);
-        const [accionistasData, gerentesData] = await Promise.all([
-          AccionistaService.getByRuc(existingRib.ruc),
-          GerenciaService.getAllByRuc(existingRib.ruc)
-        ]);
-        setAccionistas(accionistasData);
-        setGerentes(gerentesData);
-        setCreateWithoutRuc(false);
-      } else {
-        setSearchedFicha({
-            id: 0,
-            ruc: existingRib.ruc,
-            nombre_empresa: existingRib.nombre_empresa || 'Empresa Manual',
-            actividad_empresa: '',
-            created_at: existingRib.created_at,
-            updated_at: existingRib.updated_at,
-        } as FichaRuc);
-        setCreateWithoutRuc(true);
-        setInitialSearchedFicha({ 
-            ruc: existingRib.ruc, 
-            nombre_empresa: existingRib.nombre_empresa || 'Empresa Manual' 
-        });
-        setAccionistas([]);
-        setGerentes([]);
-      }
-      
-      await handleSelectRibForEdit(existingRib);
-      showSuccess('Se encontró un RIB existente para esta solicitud.');
-      
-    } else {
-      setRucInput(ruc);
-      const fichaData = await FichaRucService.getByRuc(ruc);
-      let empresaNombreForLabel = '';
-      
-      if (fichaData) {
-         setSearchedFicha(fichaData);
-         empresaNombreForLabel = fichaData.nombre_empresa;
-         
-         const [ribData, accionistasData, gerentesData] = await Promise.all([
-            RibService.getByRuc(ruc),
-            AccionistaService.getByRuc(ruc),
-            GerenciaService.getAllByRuc(ruc)
-         ]);
-         setExistingRibs(ribData);
-         setAccionistas(accionistasData);
-         setGerentes(gerentesData);
-         setCreateWithoutRuc(false);
-      } else {
-         const { data: solicitudData } = await supabase
+        if (existingRib) {
+          const fichaData = await FichaRucService.getByRuc(existingRib.ruc);
+          
+          if (fichaData) {
+            setSearchedFicha(fichaData);
+            const [accionistasData, gerentesData] = await Promise.all([
+              AccionistaService.getByRuc(existingRib.ruc),
+              GerenciaService.getAllByRuc(existingRib.ruc)
+            ]);
+            setAccionistas(accionistasData);
+            setGerentes(gerentesData);
+            setCreateWithoutRuc(false);
+          } else {
+            setSearchedFicha({
+                id: 0,
+                ruc: existingRib.ruc,
+                nombre_empresa: existingRib.nombre_empresa || 'Empresa Manual',
+                actividad_empresa: '',
+                created_at: existingRib.created_at,
+                updated_at: existingRib.updated_at,
+            } as FichaRuc);
+            setCreateWithoutRuc(true);
+            setInitialSearchedFicha({ 
+                ruc: existingRib.ruc, 
+                nombre_empresa: existingRib.nombre_empresa || 'Empresa Manual' 
+            });
+            setAccionistas([]);
+            setGerentes([]);
+          }
+          
+          await handleSelectRibForEdit(existingRib);
+          showSuccess('Se encontró un RIB existente para esta solicitud.');
+          
+        } else {
+          setRucInput(ruc);
+          const fichaData = await FichaRucService.getByRuc(ruc);
+          let empresaNombreForLabel = '';
+          
+          if (fichaData) {
+             setSearchedFicha(fichaData);
+             empresaNombreForLabel = fichaData.nombre_empresa;
+             
+             const [ribData, accionistasData, gerentesData] = await Promise.all([
+                RibService.getByRuc(ruc),
+                AccionistaService.getByRuc(ruc),
+                GerenciaService.getAllByRuc(ruc)
+             ]);
+             setExistingRibs(ribData);
+             setAccionistas(accionistasData);
+             setGerentes(gerentesData);
+             setCreateWithoutRuc(false);
+          } else {
+             const { data: solicitudData } = await supabase
+                .from('solicitudes_operacion')
+                .select('proveedor')
+                .eq('id', solicitudId)
+                .single();
+                
+             const nombreProveedor = solicitudData?.proveedor || 'Empresa sin nombre';
+             empresaNombreForLabel = nombreProveedor;
+             
+             const manualFicha = {
+                id: 0,
+                ruc: ruc,
+                nombre_empresa: nombreProveedor,
+                actividad_empresa: '',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+             } as FichaRuc;
+             
+             setSearchedFicha(manualFicha);
+             setCreateWithoutRuc(true);
+             setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
+             setAccionistas([]);
+             setGerentes([]);
+             
+             showSuccess('Ficha RUC no encontrada. Iniciando modo manual con datos de la solicitud.');
+          }
+          
+          setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
+          
+          const { data: solicitud } = await supabase
             .from('solicitudes_operacion')
-            .select('proveedor')
+            .select('id, created_at')
             .eq('id', solicitudId)
             .single();
             
-         const nombreProveedor = solicitudData?.proveedor || 'Empresa sin nombre';
-         empresaNombreForLabel = nombreProveedor;
-         
-         const manualFicha = {
-            id: 0,
-            ruc: ruc,
-            nombre_empresa: nombreProveedor,
-            actividad_empresa: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-         } as FichaRuc;
-         
-         setSearchedFicha(manualFicha);
-         setCreateWithoutRuc(true);
-         setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
-         setAccionistas([]);
-         setGerentes([]);
-         
-         showSuccess('Ficha RUC no encontrada. Iniciando modo manual con datos de la solicitud.');
-      }
-      
-      setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
-      
-      const { data: solicitud } = await supabase
-        .from('solicitudes_operacion')
-        .select('id, created_at')
-        .eq('id', solicitudId)
-        .single();
-        
-      if (solicitud) {
-         setInitialSolicitudLabel(`${empresaNombreForLabel} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
-      }
-      
-      setView('form');
+          if (solicitud) {
+             setInitialSolicitudLabel(`${empresaNombreForLabel} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+          }
+          
+          setView('form');
+        }
+    } catch (e) {
+        console.error("Error auto-selecting RIB:", e);
+        showError("Error al cargar datos automáticos");
+    } finally {
+        setInitializing(false);
     }
   };
 
@@ -284,7 +301,6 @@ const RibPage = () => {
       }
     } catch (err) {
       console.error("Failed to load RIBs:", err);
-      showError('No se pudieron cargar los análisis RIB.');
     } finally {
       setLoadingAllRibs(false);
     }
@@ -448,7 +464,7 @@ const RibPage = () => {
         }
       } catch (err) {
         console.error("Error fetching creator details:", err);
-        showError("No se pudieron cargar los detalles del creador.");
+        // Silent fail or just default
         setCreatorDetails({ fullName: 'Error al cargar', email: '' });
       }
     }
@@ -488,6 +504,7 @@ const RibPage = () => {
 
   const handleEditFromList = async (rib: RibWithDetails) => {
     setSearching(true);
+    setInitializing(true); // START LOADING
     setError(null);
     try {
       const fichaData = await FichaRucService.getByRuc(rib.ruc);
@@ -534,6 +551,7 @@ const RibPage = () => {
       await handleSelectRibForEdit(rib);
     } finally {
       setSearching(false);
+      setInitializing(false); // END LOADING
     }
   };
 
@@ -617,6 +635,19 @@ const RibPage = () => {
   };
 
   const totalPorcentaje = accionistas.reduce((sum, acc) => sum + (Number(acc.porcentaje) || 0), 0);
+
+  // VISTA DE CARGA INICIAL
+  if (initializing) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+          <Loader2 className="h-12 w-12 text-[#00FF80] animate-spin mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Cargando Análisis RIB...</h2>
+          <p className="text-gray-400">Preparando datos del cliente y solicitud</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
