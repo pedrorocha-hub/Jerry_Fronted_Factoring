@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, ClipboardCopy, Layers, Percent, Clock, Wallet, MapPin, Phone, UserCheck, DollarSign, Handshake, History, Camera } from 'lucide-react';
+import { Search, FilePlus, Loader2, AlertCircle, FileText, ShieldCheck, User, Briefcase, XCircle, ArrowLeft, Calendar, RefreshCw, Trash2, Plus, Minus, ClipboardCopy, Layers, Percent, Clock, Wallet, MapPin, Phone, UserCheck, DollarSign, Handshake, History, Camera } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -90,6 +90,7 @@ const SolicitudOperacionCreateEditPage = () => {
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   
   const [isDocumentationComplete, setIsDocumentationComplete] = useState(true);
+  const [isDatosSolicitudOpen, setIsDatosSolicitudOpen] = useState(false);
 
   const [riesgoRows, setRiesgoRows] = useState<Partial<RiesgoRow>[]>([
     { lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }
@@ -255,6 +256,11 @@ const SolicitudOperacionCreateEditPage = () => {
     if ((solicitud as any).deudor_ruc) {
       setDeudorRucInput((solicitud as any).deudor_ruc);
       await handleSearchDeudor((solicitud as any).deudor_ruc);
+    }
+
+    // Si hay datos relevantes en "Datos de la Solicitud", abrir el acordeón
+    if (solicitud.resumen_solicitud || solicitud.tipo_cambio || solicitud.moneda_operacion || solicitud.orden_servicio || solicitud.factura) {
+      setIsDatosSolicitudOpen(true);
     }
 
     window.scrollTo(0, 0);
@@ -789,6 +795,8 @@ const SolicitudOperacionCreateEditPage = () => {
                  ruc={searchedFicha?.ruc || rucInput}
                  tipoProducto={solicitudFormData.tipo_producto}
                  onValidationChange={setIsDocumentationComplete}
+                 solicitudId={id || createdSolicitudId || undefined} 
+                 readonly={!isAdmin && !!id}
                />
 
                {editingSolicitud && (
@@ -860,59 +868,69 @@ const SolicitudOperacionCreateEditPage = () => {
 
                   {/* Datos de la Solicitud */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="flex items-center text-white"><FileText className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de la Solicitud</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="flex items-center text-white">
+                        <FileText className="h-5 w-5 mr-2 text-[#00FF80]" />
+                        Datos de la Solicitud
+                      </CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setIsDatosSolicitudOpen(!isDatosSolicitudOpen)}>
+                        {isDatosSolicitudOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </Button>
+                    </CardHeader>
+                    {isDatosSolicitudOpen && (
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div><Label htmlFor="fecha_ficha">Fecha del día</Label><Input id="fecha_ficha" type="date" value={solicitudFormData.fecha_ficha} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div>
+                            <Label htmlFor="proveedor">Proveedor</Label>
+                            <Input 
+                              id="proveedor" 
+                              value={createWithoutRuc ? solicitudFormData.proveedor : (searchedFicha?.nombre_empresa || '')} 
+                              onChange={createWithoutRuc ? handleFormChange : undefined}
+                              disabled={!createWithoutRuc} 
+                              className={createWithoutRuc ? "bg-gray-900/50 border-gray-700" : "bg-gray-800 border-gray-700 text-gray-400"} 
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="ruc_manual">Número de RUC</Label>
+                            <Input 
+                              id="ruc_manual" 
+                              value={createWithoutRuc ? rucInput : (searchedFicha?.ruc || '')} 
+                              onChange={createWithoutRuc ? (e) => setRucInput(e.target.value) : undefined}
+                              disabled={!createWithoutRuc} 
+                              className={createWithoutRuc ? "bg-gray-900/50 border-gray-700 font-mono" : "bg-gray-800 border-gray-700 text-gray-400 font-mono"}
+                              maxLength={11}
+                              placeholder="11 dígitos"
+                            />
+                          </div>
+                        </div>
                         <div>
-                          <Label htmlFor="proveedor">Proveedor</Label>
+                          <Label htmlFor="actividad_manual">Actividad Empresarial</Label>
                           <Input 
-                            id="proveedor" 
-                            value={createWithoutRuc ? solicitudFormData.proveedor : (searchedFicha?.nombre_empresa || '')} 
-                            onChange={createWithoutRuc ? handleFormChange : undefined}
-                            disabled={!createWithoutRuc} 
-                            className={createWithoutRuc ? "bg-gray-900/50 border-gray-700" : "bg-gray-800 border-gray-700 text-gray-400"} 
+                            id="actividad_manual" 
+                            value={solicitudFormData.actividad_manual} 
+                            onChange={handleFormChange} 
+                            placeholder="Giro del negocio"
+                            className="bg-gray-900/50 border-gray-700 text-white"
                           />
                         </div>
-                        <div>
-                          <Label htmlFor="ruc_manual">Número de RUC</Label>
-                          <Input 
-                            id="ruc_manual" 
-                            value={createWithoutRuc ? rucInput : (searchedFicha?.ruc || '')} 
-                            onChange={createWithoutRuc ? (e) => setRucInput(e.target.value) : undefined}
-                            disabled={!createWithoutRuc} 
-                            className={createWithoutRuc ? "bg-gray-900/50 border-gray-700 font-mono" : "bg-gray-800 border-gray-700 text-gray-400 font-mono"}
-                            maxLength={11}
-                            placeholder="11 dígitos"
-                          />
+                        {/* Moneda y Cambio */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div><Label htmlFor="tipo_cambio">Tipo de Cambio</Label><Input id="tipo_cambio" type="number" step="0.01" value={solicitudFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div>
+                            <Label htmlFor="moneda_operacion">Moneda de la Operación</Label>
+                            <Select value={solicitudFormData.moneda_operacion} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, moneda_operacion: value }))} disabled={!isAdmin}>
+                              <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
+                              <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                                <SelectItem value="Soles" className="hover:bg-gray-800">Soles</SelectItem>
+                                <SelectItem value="Dolares" className="hover:bg-gray-800">Dólares</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="actividad_manual">Actividad Empresarial</Label>
-                        <Input 
-                          id="actividad_manual" 
-                          value={solicitudFormData.actividad_manual} 
-                          onChange={handleFormChange} 
-                          placeholder="Giro del negocio"
-                          className="bg-gray-900/50 border-gray-700 text-white"
-                        />
-                      </div>
-                      {/* Moneda y Cambio */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><Label htmlFor="tipo_cambio">Tipo de Cambio</Label><Input id="tipo_cambio" type="number" step="0.01" value={solicitudFormData.tipo_cambio} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                        <div>
-                          <Label htmlFor="moneda_operacion">Moneda de la Operación</Label>
-                          <Select value={solicitudFormData.moneda_operacion} onValueChange={(value) => setSolicitudFormData(prev => ({ ...prev, moneda_operacion: value }))} disabled={!isAdmin}>
-                            <SelectTrigger className="bg-gray-900/50 border-gray-700"><SelectValue placeholder="Seleccionar moneda" /></SelectTrigger>
-                            <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                              <SelectItem value="Soles" className="hover:bg-gray-800">Soles</SelectItem>
-                              <SelectItem value="Dolares" className="hover:bg-gray-800">Dólares</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div><Label htmlFor="resumen_solicitud">Resumen de solicitud</Label><Textarea id="resumen_solicitud" value={solicitudFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                    </CardContent>
+                        <div><Label htmlFor="resumen_solicitud">Resumen de solicitud</Label><Textarea id="resumen_solicitud" value={solicitudFormData.resumen_solicitud} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                      </CardContent>
+                    )}
                   </Card>
 
                   {/* Condiciones Comerciales */}
@@ -1342,7 +1360,7 @@ const SolicitudOperacionCreateEditPage = () => {
                     )}
                   </div>
                 </div>
-              )}
+               )}
             </div>
           </div>
         </div>
