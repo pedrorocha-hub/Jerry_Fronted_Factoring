@@ -1,10 +1,82 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useEffect } from 'react';
 import { DossierRib } from '@/types/dossier';
 import { RibEeff } from '@/types/rib-eeff';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DossierPdfTemplateProps {
   dossier: DossierRib;
 }
+
+const DocumentRow = ({ doc, index, styles }: { doc: any, index: number, styles: any }) => {
+  const [url, setUrl] = useState<string>('');
+
+  useEffect(() => {
+    const fetchUrl = async () => {
+      try {
+        if (!doc.storage_path) return;
+        
+        const { data } = await supabase.storage
+          .from('documentos')
+          .createSignedUrl(doc.storage_path, 3600, {
+            download: doc.nombre_archivo || 'documento'
+          });
+        
+        if (data?.signedUrl) {
+          setUrl(data.signedUrl);
+        }
+      } catch (error) {
+        console.error('Error creating signed URL:', error);
+      }
+    };
+
+    fetchUrl();
+  }, [doc.storage_path, doc.nombre_archivo]);
+
+  let tipoLabel = doc.tipo;
+  if (doc.tipo === 'factura_negociar') tipoLabel = 'Factura';
+  if (doc.tipo === 'evidencia_visita') tipoLabel = 'Evidencia Visita';
+  if (doc.tipo === 'sustentos') tipoLabel = 'Sustento';
+
+  return (
+    <tr style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
+      <td style={styles.td}>
+         <span style={{
+           textTransform: 'uppercase', 
+           fontSize: '7px', 
+           fontWeight: 'bold',
+           color: doc.tipo === 'factura_negociar' ? '#2563eb' : '#374151'
+         }}>
+           {tipoLabel}
+         </span>
+      </td>
+      <td style={styles.td}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>{doc.nombre_archivo}</span>
+          {url && (
+            <a 
+              href={url}
+              style={{ 
+                color: '#2563eb', 
+                textDecoration: 'none', 
+                fontSize: '8px', 
+                fontWeight: 'bold',
+                marginLeft: '8px',
+                border: '1px solid #2563eb',
+                borderRadius: '3px',
+                padding: '1px 4px',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer'
+              }}
+            >
+              DESCARGAR PDF
+            </a>
+          )}
+        </div>
+      </td>
+      <td style={styles.tdLast}>{new Date(doc.created_at).toLocaleDateString('es-PE')}</td>
+    </tr>
+  );
+};
 
 const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>(({ dossier }, ref) => {
   const styles = {
@@ -818,49 +890,8 @@ const DossierPdfTemplate = forwardRef<HTMLDivElement, DossierPdfTemplateProps>((
                 </thead>
                 <tbody>
                   {dossier.documentos.map((doc: any, index: number) => {
-                     let tipoLabel = doc.tipo;
-                     if (doc.tipo === 'factura_negociar') tipoLabel = 'Factura';
-                     if (doc.tipo === 'evidencia_visita') tipoLabel = 'Evidencia Visita';
-                     if (doc.tipo === 'sustentos') tipoLabel = 'Sustento';
-                     
                      return (
-                        <tr key={index} style={{ ...(index % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd), ...styles.tr }}>
-                          <td style={styles.td}>
-                             <span style={{
-                               textTransform: 'uppercase', 
-                               fontSize: '7px', 
-                               fontWeight: 'bold',
-                               color: doc.tipo === 'factura_negociar' ? '#2563eb' : '#374151'
-                             }}>
-                               {tipoLabel}
-                             </span>
-                          </td>
-                          <td style={styles.td}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <span>{doc.nombre_archivo}</span>
-                              <a 
-                                href={`https://kjeprmbqwtzeadtfrxie.supabase.co/storage/v1/object/public/documentos/${doc.storage_path}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ 
-                                  color: '#2563eb', 
-                                  textDecoration: 'none', 
-                                  fontSize: '8px', 
-                                  fontWeight: 'bold',
-                                  marginLeft: '8px',
-                                  border: '1px solid #2563eb',
-                                  borderRadius: '3px',
-                                  padding: '1px 4px',
-                                  whiteSpace: 'nowrap',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                VER PDF
-                              </a>
-                            </div>
-                          </td>
-                          <td style={styles.tdLast}>{new Date(doc.created_at).toLocaleDateString('es-PE')}</td>
-                        </tr>
+                        <DocumentRow key={index} doc={doc} index={index} styles={styles} />
                      );
                   })}
                 </tbody>
