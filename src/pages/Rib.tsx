@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users, Briefcase, Plus, FileText } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Building2, Loader2, AlertCircle, Save, Edit, Trash2, ArrowLeft, User, Calendar, Clock, Users, Briefcase, Plus, FileText, ChevronUp, ChevronDown, MapPin, Eye } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,7 +41,7 @@ const getStatusColor = (status: RibStatus | null | undefined) => {
 
 const RibPage = () => {
   const { isAdmin } = useSession();
-  const { id } = useParams<{ id: string }>(); // Obtener ID de la URL
+  const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const [view, setView] = useState<'list' | 'search_results' | 'form' | 'create_mode'>('list');
   const [rucInput, setRucInput] = useState('');
@@ -61,6 +61,21 @@ const RibPage = () => {
   const [gerentes, setGerentes] = useState<Gerente[]>([]);
   const [initialSolicitudLabel, setInitialSolicitudLabel] = useState<string | null>(null);
   
+  // Estados para controlar secciones colapsables
+  const [openSections, setOpenSections] = useState({
+    company: true,
+    contact: true,
+    visita: false,
+    details: false,
+    shareholders: true,
+    management: true,
+    admin: true
+  });
+
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
   const emptyForm = {
     direccion: '',
     como_llego_lcp: '',
@@ -81,11 +96,15 @@ const RibPage = () => {
   const [initialSearchedFicha, setInitialSearchedFicha] = useState<FichaRuc | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
+  // Verificadores de datos para estilos
+  const hasContactData = !!(formData.direccion || formData.telefono || formData.grupo_economico || formData.como_llego_lcp);
+  const hasVisitaData = !!formData.visita;
+  const hasDetailsData = !!(formData.descripcion_empresa || formData.inicio_actividades || formData.relacion_comercial_deudor);
+
   useEffect(() => {
     loadAllRibs();
   }, []);
 
-  // Efecto para cargar registro por ID
   useEffect(() => {
     if (id && allRibs.length > 0) {
       const ribToEdit = allRibs.find(r => r.id === id);
@@ -95,7 +114,6 @@ const RibPage = () => {
     }
   }, [id, allRibs]);
 
-  // Efecto para manejar la redirección automática desde Solicitudes
   useEffect(() => {
     const solicitudIdParam = searchParams.get('solicitud_id');
     const rucParam = searchParams.get('ruc');
@@ -106,7 +124,6 @@ const RibPage = () => {
   }, [searchParams, allRibs, id]);
 
   const handleAutoSelect = async (solicitudId: string, ruc: string) => {
-    // Verificar si ya existe un RIB para esta solicitud
     const { data: existingRib, error } = await supabase
       .from('rib')
       .select('*')
@@ -114,12 +131,10 @@ const RibPage = () => {
       .maybeSingle();
 
     if (existingRib) {
-      // Si existe, editarlo directamente
       const fichaData = await FichaRucService.getByRuc(existingRib.ruc);
       
       if (fichaData) {
         setSearchedFicha(fichaData);
-        // Cargar accionistas y gerentes
         const [accionistasData, gerentesData] = await Promise.all([
           AccionistaService.getByRuc(existingRib.ruc),
           GerenciaService.getAllByRuc(existingRib.ruc)
@@ -128,7 +143,6 @@ const RibPage = () => {
         setGerentes(gerentesData);
         setCreateWithoutRuc(false);
       } else {
-        // Fallback: RIB existe pero no tiene Ficha RUC asociada (modo manual)
         setSearchedFicha({
             id: 0,
             ruc: existingRib.ruc,
@@ -150,15 +164,11 @@ const RibPage = () => {
       showSuccess('Se encontró un RIB existente para esta solicitud.');
       
     } else {
-      // Si no existe, preparar formulario de creación
       setRucInput(ruc);
-      
-      // 1. Intentar buscar ficha RUC
       const fichaData = await FichaRucService.getByRuc(ruc);
       let empresaNombreForLabel = '';
       
       if (fichaData) {
-         // Caso: Ficha RUC existe en el sistema
          setSearchedFicha(fichaData);
          empresaNombreForLabel = fichaData.nombre_empresa;
          
@@ -172,7 +182,6 @@ const RibPage = () => {
          setGerentes(gerentesData);
          setCreateWithoutRuc(false);
       } else {
-         // Caso: Ficha RUC NO existe -> Activar MODO MANUAL usando datos de la Solicitud
          const { data: solicitudData } = await supabase
             .from('solicitudes_operacion')
             .select('proveedor')
@@ -200,10 +209,8 @@ const RibPage = () => {
          showSuccess('Ficha RUC no encontrada. Iniciando modo manual con datos de la solicitud.');
       }
       
-      // Pre-seleccionar la solicitud en el formulario
       setFormData(prev => ({ ...prev, solicitud_id: solicitudId }));
       
-      // Buscar datos de la solicitud para el label del combobox
       const { data: solicitud } = await supabase
         .from('solicitudes_operacion')
         .select('id, created_at')
@@ -267,7 +274,6 @@ const RibPage = () => {
 
         const enrichedRibs = ribData.map(rib => ({
           ...rib,
-          // Usar nombre_empresa del RIB si existe (creado manualmente), sino buscar en ficha_ruc
           nombre_empresa: rib.nombre_empresa || rucToNameMap.get(rib.ruc) || 'Razón Social no encontrada',
           profiles: rib.user_id ? userMap.get(rib.user_id) || null : null,
         }));
@@ -293,11 +299,19 @@ const RibPage = () => {
     setCreateWithoutRuc(false);
     setInitialRucInput('');
     setInitialSearchedFicha(null);
+    setOpenSections({
+        company: true,
+        contact: true,
+        visita: false,
+        details: false,
+        shareholders: true,
+        management: true,
+        admin: true
+    });
   };
 
   const handleSearch = async (rucToSearch: string = rucInput) => {
     if (!rucToSearch || rucToSearch.length !== 11) {
-      // Solo mostrar error si no estamos en un proceso automático (para evitar spam de toasts)
       if (!searchParams.get('ruc') && !id) {
         setError('Por favor, ingrese un RUC válido de 11 dígitos.');
       }
@@ -307,8 +321,6 @@ const RibPage = () => {
     setError(null);
     setSearchedFicha(null);
     setExistingRibs([]);
-    // NOTA: No reseteamos todo el formulario aquí para mantener el solicitud_id si viene de la URL
-    // resetForm(); 
     setAccionistas([]);
     setGerentes([]);
 
@@ -324,7 +336,6 @@ const RibPage = () => {
         setExistingRibs(ribData);
         setAccionistas(accionistasData);
         setGerentes(gerentesData);
-        // Si venimos de redirección automática o edición por ID, no cambiamos la vista a search_results
         if (!searchParams.get('solicitud_id') && !id) {
             setView('search_results');
         }
@@ -365,7 +376,6 @@ const RibPage = () => {
     }
     setSaving(true);
     try {
-      // Preparar datos incluyendo nombre_empresa si es modo manual
       const dataToSave = {
         ...formData,
         nombre_empresa: createWithoutRuc ? searchedFicha?.nombre_empresa : null,
@@ -379,7 +389,6 @@ const RibPage = () => {
         showSuccess('Análisis RIB creado.');
       }
       await loadAllRibs();
-      // Limpiar params de URL para evitar re-loading
       window.history.replaceState({}, '', '/rib');
       handleBackToList();
     } catch (err) {
@@ -407,7 +416,6 @@ const RibPage = () => {
     setFormData(newFormData);
     setInitialFormData(newFormData);
     
-    // Guardar valores iniciales para detección de cambios en modo manual
     setInitialRucInput(rucInput);
     setInitialSearchedFicha(searchedFicha);
 
@@ -444,6 +452,18 @@ const RibPage = () => {
         setCreatorDetails({ fullName: 'Error al cargar', email: '' });
       }
     }
+
+    // Configurar secciones abiertas según si tienen datos
+    setOpenSections({
+        company: true, // Siempre abierta al editar
+        contact: !!(rib.direccion || rib.telefono || rib.grupo_economico),
+        visita: !!rib.visita,
+        details: !!(rib.descripcion_empresa || rib.inicio_actividades),
+        shareholders: true,
+        management: true,
+        admin: true
+    });
+
     setView('form');
   };
 
@@ -470,11 +490,9 @@ const RibPage = () => {
     setSearching(true);
     setError(null);
     try {
-      // Intentar buscar la ficha RUC
       const fichaData = await FichaRucService.getByRuc(rib.ruc);
       
       if (fichaData) {
-        // RIB con ficha RUC existente
         setSearchedFicha(fichaData);
         const [accionistasData, gerentesData] = await Promise.all([
           AccionistaService.getByRuc(rib.ruc),
@@ -484,7 +502,6 @@ const RibPage = () => {
         setGerentes(gerentesData);
         setCreateWithoutRuc(false);
       } else {
-        // RIB creado manualmente sin ficha RUC
         setSearchedFicha({
           id: 0,
           ruc: rib.ruc,
@@ -501,7 +518,6 @@ const RibPage = () => {
       
       await handleSelectRibForEdit(rib);
     } catch (err) {
-      // Si hay error al buscar, asumir que es un RIB manual
       setSearchedFicha({
         id: 0,
         ruc: rib.ruc,
@@ -530,7 +546,6 @@ const RibPage = () => {
     if (isDirty && !window.confirm('Hay cambios sin guardar. ¿Está seguro de que quiere volver a la lista?')) {
       return;
     }
-    // Limpiar parámetros de la URL al volver
     window.history.replaceState({}, '', '/rib');
     
     setView('list');
@@ -567,6 +582,8 @@ const RibPage = () => {
     setInitialSearchedFicha(emptyFicha);
     setInitialRucInput('');
     setView('form');
+    // En modo manual, abrimos la primera sección editable
+    setOpenSections(prev => ({...prev, contact: true}));
   };
 
   const handleSearchAndCreate = async () => {
@@ -686,7 +703,6 @@ const RibPage = () => {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="space-y-6">
-                  {/* Opción 1: Buscar con RUC */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="bg-[#00FF80] text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
@@ -726,7 +742,6 @@ const RibPage = () => {
                     </div>
                   </div>
 
-                  {/* Divisor */}
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                       <div className="w-full border-t border-gray-800"></div>
@@ -736,7 +751,6 @@ const RibPage = () => {
                     </div>
                   </div>
 
-                  {/* Opción 2: Crear sin RUC */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <div className="bg-gray-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
@@ -759,7 +773,6 @@ const RibPage = () => {
                   </div>
                 </div>
 
-                {/* Botón Cancelar */}
                 <div className="mt-6 pt-6 border-t border-gray-800">
                   <Button 
                     variant="ghost" 
@@ -813,311 +826,394 @@ const RibPage = () => {
 
           {view === 'form' && searchedFicha && (
             <div className="space-y-6">
-              {/* WIZARD PROCESS INDICATOR */}
               <RibProcessWizard solicitudId={formData.solicitud_id || undefined} currentStep="rib" />
 
+              {/* Card 1: Información de la Empresa */}
               <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-white">
-                    <Building2 className="h-5 w-5 mr-2 text-[#00FF80]" />
-                    Información de la Empresa
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-900/50 transition-colors"
+                  onClick={() => toggleSection('company')}
+                >
+                  <CardTitle className={`flex items-center justify-between ${openSections.company ? 'text-white' : 'text-gray-500'}`}>
+                    <div className="flex items-center">
+                        <Building2 className={`h-5 w-5 mr-2 ${openSections.company ? 'text-[#00FF80]' : 'text-gray-600'}`} />
+                        Información de la Empresa
+                    </div>
+                    {openSections.company ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {createWithoutRuc ? (
-                    <>
-                      <div>
-                        <Label htmlFor="ruc_manual">RUC</Label>
-                        <Input 
-                          id="ruc_manual" 
-                          value={rucInput} 
-                          onChange={(e) => setRucInput(e.target.value)}
-                          className="bg-gray-900/50 border-gray-700 font-mono text-white"
-                          maxLength={11}
-                          placeholder="11 dígitos"
-                          disabled={!isAdmin}
-                        />
+                {openSections.company && (
+                  <CardContent className="space-y-4">
+                    {createWithoutRuc ? (
+                      <>
+                        <div>
+                          <Label htmlFor="ruc_manual">RUC</Label>
+                          <Input 
+                            id="ruc_manual" 
+                            value={rucInput} 
+                            onChange={(e) => setRucInput(e.target.value)}
+                            className="bg-gray-900/50 border-gray-700 font-mono text-white"
+                            maxLength={11}
+                            placeholder="11 dígitos"
+                            disabled={!isAdmin}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="nombre_empresa_manual">Razón Social</Label>
+                          <Input 
+                            id="nombre_empresa_manual" 
+                            value={searchedFicha.nombre_empresa} 
+                            onChange={(e) => setSearchedFicha(prev => prev ? {...prev, nombre_empresa: e.target.value} : null)}
+                            className="bg-gray-900/50 border-gray-700"
+                            placeholder="Nombre de la empresa"
+                            disabled={!isAdmin}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-2 text-sm">
+                        <p><strong className="text-gray-400">RUC:</strong> <span className="font-mono">{searchedFicha.ruc}</span></p>
+                        <p><strong className="text-gray-400">Razón Social:</strong> {searchedFicha.nombre_empresa}</p>
+                        <p><strong className="text-gray-400">Estado:</strong> {searchedFicha.estado_contribuyente}</p>
                       </div>
-                      <div>
-                        <Label htmlFor="nombre_empresa_manual">Razón Social</Label>
-                        <Input 
-                          id="nombre_empresa_manual" 
-                          value={searchedFicha.nombre_empresa} 
-                          onChange={(e) => setSearchedFicha(prev => prev ? {...prev, nombre_empresa: e.target.value} : null)}
-                          className="bg-gray-900/50 border-gray-700"
-                          placeholder="Nombre de la empresa"
-                          disabled={!isAdmin}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-2 text-sm">
-                      <p><strong className="text-gray-400">RUC:</strong> <span className="font-mono">{searchedFicha.ruc}</span></p>
-                      <p><strong className="text-gray-400">Razón Social:</strong> {searchedFicha.nombre_empresa}</p>
-                      <p><strong className="text-gray-400">Estado:</strong> {searchedFicha.estado_contribuyente}</p>
-                    </div>
-                  )}
-                </CardContent>
+                    )}
+                  </CardContent>
+                )}
               </Card>
 
+              {/* Card 2: Datos de Contacto y Ubicación */}
               <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-white">
-                    <span>{selectedRib ? 'Editando Análisis RIB' : 'Nuevo Análisis RIB'}</span>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-900/50 transition-colors"
+                  onClick={() => toggleSection('contact')}
+                >
+                  <CardTitle className={`flex items-center justify-between ${openSections.contact || hasContactData ? 'text-white' : 'text-gray-500'}`}>
+                    <div className="flex items-center">
+                        <MapPin className={`h-5 w-5 mr-2 ${openSections.contact || hasContactData ? 'text-[#00FF80]' : 'text-gray-600'}`} />
+                        Datos de Contacto y Ubicación
+                    </div>
+                    {openSections.contact ? <ChevronUp className="h-5 w-5" /> : (
+                         <div className="flex items-center text-sm font-normal">
+                             <span>Añadir</span> <Plus className="ml-1 h-4 w-4" />
+                         </div>
+                    )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="direccion">Dirección del Proveedor</Label>
-                    <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {openSections.contact && (
+                  <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="telefono">Teléfono</Label>
-                      <Input id="telefono" value={formData.telefono || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      <Label htmlFor="direccion">Dirección del Proveedor</Label>
+                      <Input id="direccion" value={formData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="telefono">Teléfono</Label>
+                        <Input id="telefono" value={formData.telefono || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      </div>
+                      <div>
+                        <Label htmlFor="grupo_economico">Grupo Económico</Label>
+                        <Input id="grupo_economico" value={formData.grupo_economico || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      </div>
                     </div>
                     <div>
-                      <Label htmlFor="grupo_economico">Grupo Económico</Label>
-                      <Input id="grupo_economico" value={formData.grupo_economico || ''} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} />
+                      <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
+                      <Textarea
+                        id="como_llego_lcp"
+                        value={formData.como_llego_lcp}
+                        onChange={handleFormChange}
+                        placeholder="Especificar cómo llegó a LCP; si es referido indicar el nombre completo de quien proviene la referencia"
+                        className="bg-gray-900/50 border-gray-700"
+                        disabled={!isAdmin}
+                      />
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="como_llego_lcp">¿Cómo llegó a LCP?</Label>
-                    <Textarea
-                      id="como_llego_lcp"
-                      value={formData.como_llego_lcp}
-                      onChange={handleFormChange}
-                      placeholder="Especificar cómo llegó a LCP; si es referido indicar el nombre completo de quien proviene la referencia"
-                      className="bg-gray-900/50 border-gray-700"
-                      disabled={!isAdmin}
-                    />
-                  </div>
-                </CardContent>
+                  </CardContent>
+                )}
               </Card>
 
+              {/* Card 3: Visita */}
               <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Visita</CardTitle>
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-900/50 transition-colors"
+                  onClick={() => toggleSection('visita')}
+                >
+                  <CardTitle className={`flex items-center justify-between ${openSections.visita || hasVisitaData ? 'text-white' : 'text-gray-500'}`}>
+                    <div className="flex items-center">
+                        <Eye className={`h-5 w-5 mr-2 ${openSections.visita || hasVisitaData ? 'text-[#00FF80]' : 'text-gray-600'}`} />
+                        Visita
+                    </div>
+                     {openSections.visita ? <ChevronUp className="h-5 w-5" /> : (
+                         <div className="flex items-center text-sm font-normal">
+                             <span>Añadir</span> <Plus className="ml-1 h-4 w-4" />
+                         </div>
+                    )}
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <Textarea
-                    id="visita"
-                    value={formData.visita}
-                    onChange={handleFormChange}
-                    placeholder="(indicar la fecha de la visita día/mes/año, con quien se tuvo la reunión, que funciona en la dirección, si es un local/oficina propio o alquilada, entre otra información que se considere relevante)"
-                    className="bg-gray-900/50 border-gray-700 min-h-[120px]"
-                    disabled={!isAdmin}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-white">Detalles Adicionales</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="descripcion_empresa">Descripción de la empresa</Label>
+                {openSections.visita && (
+                  <CardContent>
                     <Textarea
-                      id="descripcion_empresa"
-                      value={formData.descripcion_empresa || ''}
+                      id="visita"
+                      value={formData.visita}
                       onChange={handleFormChange}
-                      placeholder="(comentar la actividad de la empresa en resumen, líneas de negocio, principales clientes, principales proveedores, proyección de ventas y en qué se sustenta; quien posee el know-how del negocio, así como su experiencia, su formación; entre otra información que se pueda tener en la visita o reunión)"
+                      placeholder="(indicar la fecha de la visita día/mes/año, con quien se tuvo la reunión, que funciona en la dirección, si es un local/oficina propio o alquilada, entre otra información que se considere relevante)"
                       className="bg-gray-900/50 border-gray-700 min-h-[120px]"
                       disabled={!isAdmin}
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="inicio_actividades">Inicio de actividades</Label>
-                    <DatePicker
-                      date={formData.inicio_actividades ? new Date(formData.inicio_actividades) : undefined}
-                      setDate={(date) => setFormData(prev => ({ ...prev, inicio_actividades: date ? date.toISOString().split('T')[0] : null }))}
-                      disabled={!isAdmin}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="relacion_comercial_deudor">Relación comercial con el deudor</Label>
-                    <Textarea
-                      id="relacion_comercial_deudor"
-                      value={formData.relacion_comercial_deudor || ''}
-                      onChange={handleFormChange}
-                      placeholder="(aquí pueden indicar la relación entre el proveedor y deudor, además de comentar brevemente cómo se orgina la factura a descontar)"
-                      className="bg-gray-900/50 border-gray-700"
-                      disabled={!isAdmin}
-                    />
-                  </div>
-                </CardContent>
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Card 4: Detalles Adicionales */}
+              <Card className="bg-[#121212] border border-gray-800">
+                <CardHeader 
+                  className="cursor-pointer hover:bg-gray-900/50 transition-colors"
+                  onClick={() => toggleSection('details')}
+                >
+                  <CardTitle className={`flex items-center justify-between ${openSections.details || hasDetailsData ? 'text-white' : 'text-gray-500'}`}>
+                    <div className="flex items-center">
+                        <FileText className={`h-5 w-5 mr-2 ${openSections.details || hasDetailsData ? 'text-[#00FF80]' : 'text-gray-600'}`} />
+                        Detalles Adicionales
+                    </div>
+                     {openSections.details ? <ChevronUp className="h-5 w-5" /> : (
+                         <div className="flex items-center text-sm font-normal">
+                             <span>Añadir</span> <Plus className="ml-1 h-4 w-4" />
+                         </div>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                {openSections.details && (
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="descripcion_empresa">Descripción de la empresa</Label>
+                      <Textarea
+                        id="descripcion_empresa"
+                        value={formData.descripcion_empresa || ''}
+                        onChange={handleFormChange}
+                        placeholder="(comentar la actividad de la empresa en resumen, líneas de negocio, principales clientes, principales proveedores, proyección de ventas y en qué se sustenta; quien posee el know-how del negocio, así como su experiencia, su formación; entre otra información que se pueda tener en la visita o reunión)"
+                        className="bg-gray-900/50 border-gray-700 min-h-[120px]"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="inicio_actividades">Inicio de actividades</Label>
+                      <DatePicker
+                        date={formData.inicio_actividades ? new Date(formData.inicio_actividades) : undefined}
+                        setDate={(date) => setFormData(prev => ({ ...prev, inicio_actividades: date ? date.toISOString().split('T')[0] : null }))}
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="relacion_comercial_deudor">Relación comercial con el deudor</Label>
+                      <Textarea
+                        id="relacion_comercial_deudor"
+                        value={formData.relacion_comercial_deudor || ''}
+                        onChange={handleFormChange}
+                        placeholder="(aquí pueden indicar la relación entre el proveedor y deudor, además de comentar brevemente cómo se orgina la factura a descontar)"
+                        className="bg-gray-900/50 border-gray-700"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                  </CardContent>
+                )}
               </Card>
 
               {accionistas.length > 0 && (
                 <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-white">
-                      <Users className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      Accionistas
+                  <CardHeader 
+                    className="cursor-pointer hover:bg-gray-900/50 transition-colors"
+                    onClick={() => toggleSection('shareholders')}
+                  >
+                    <CardTitle className={`flex items-center justify-between ${openSections.shareholders ? 'text-white' : 'text-gray-500'}`}>
+                      <div className="flex items-center">
+                          <Users className={`h-5 w-5 mr-2 ${openSections.shareholders ? 'text-[#00FF80]' : 'text-gray-600'}`} />
+                          Accionistas
+                      </div>
+                      {openSections.shareholders ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-gray-800 hover:bg-gray-900/50">
-                          <TableHead className="text-gray-300">DNI</TableHead>
-                          <TableHead className="text-gray-300">Nombre</TableHead>
-                          <TableHead className="text-gray-300">Porcentaje</TableHead>
-                          <TableHead className="text-gray-300">Vínculo</TableHead>
-                          <TableHead className="text-gray-300">Calificación</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {accionistas.map(accionista => (
-                          <TableRow key={accionista.id} className="border-gray-800 hover:bg-gray-900/50">
-                            <TableCell className="font-mono">{accionista.dni}</TableCell>
-                            <TableCell>{accionista.nombre}</TableCell>
-                            <TableCell>{accionista.porcentaje ? `${accionista.porcentaje}%` : '-'}</TableCell>
-                            <TableCell>{accionista.vinculo || '-'}</TableCell>
-                            <TableCell>{accionista.calificacion || '-'}</TableCell>
+                  {openSections.shareholders && (
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-gray-800 hover:bg-gray-900/50">
+                            <TableHead className="text-gray-300">DNI</TableHead>
+                            <TableHead className="text-gray-300">Nombre</TableHead>
+                            <TableHead className="text-gray-300">Porcentaje</TableHead>
+                            <TableHead className="text-gray-300">Vínculo</TableHead>
+                            <TableHead className="text-gray-300">Calificación</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                      <TableFooter>
-                        <TableRow className="border-gray-800 font-bold text-white hover:bg-gray-900/50">
-                          <TableCell colSpan={2} className="text-right pr-4">Total</TableCell>
-                          <TableCell>{totalPorcentaje.toFixed(2)}%</TableCell>
-                          <TableCell colSpan={2}></TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    </Table>
-                  </CardContent>
+                        </TableHeader>
+                        <TableBody>
+                          {accionistas.map(accionista => (
+                            <TableRow key={accionista.id} className="border-gray-800 hover:bg-gray-900/50">
+                              <TableCell className="font-mono">{accionista.dni}</TableCell>
+                              <TableCell>{accionista.nombre}</TableCell>
+                              <TableCell>{accionista.porcentaje ? `${accionista.porcentaje}%` : '-'}</TableCell>
+                              <TableCell>{accionista.vinculo || '-'}</TableCell>
+                              <TableCell>{accionista.calificacion || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                        <TableFooter>
+                          <TableRow className="border-gray-800 font-bold text-white hover:bg-gray-900/50">
+                            <TableCell colSpan={2} className="text-right pr-4">Total</TableCell>
+                            <TableCell>{totalPorcentaje.toFixed(2)}%</TableCell>
+                            <TableCell colSpan={2}></TableCell>
+                          </TableRow>
+                        </TableFooter>
+                      </Table>
+                    </CardContent>
+                  )}
                 </Card>
               )}
 
               {gerentes.length > 0 && (
                 <Card className="bg-[#121212] border border-gray-800">
-                  <CardHeader>
-                    <CardTitle className="flex items-center text-white">
-                      <Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />
-                      Gerencia
+                  <CardHeader 
+                    className="cursor-pointer hover:bg-gray-900/50 transition-colors"
+                    onClick={() => toggleSection('management')}
+                  >
+                    <CardTitle className={`flex items-center justify-between ${openSections.management ? 'text-white' : 'text-gray-500'}`}>
+                      <div className="flex items-center">
+                          <Briefcase className={`h-5 w-5 mr-2 ${openSections.management ? 'text-[#00FF80]' : 'text-gray-600'}`} />
+                          Gerencia
+                      </div>
+                      {openSections.management ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-gray-800 hover:bg-gray-900/50">
-                          <TableHead className="text-gray-300">DNI</TableHead>
-                          <TableHead className="text-gray-300">Nombre</TableHead>
-                          <TableHead className="text-gray-300">Cargo</TableHead>
-                          <TableHead className="text-gray-300">Vínculo</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {gerentes.map(gerente => (
-                          <TableRow key={gerente.id} className="border-gray-800 hover:bg-gray-900/50">
-                            <TableCell className="font-mono">{gerente.dni}</TableCell>
-                            <TableCell>{gerente.nombre}</TableCell>
-                            <TableCell>{gerente.cargo || '-'}</TableCell>
-                            <TableCell>{gerente.vinculo || '-'}</TableCell>
+                  {openSections.management && (
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-gray-800 hover:bg-gray-900/50">
+                            <TableHead className="text-gray-300">DNI</TableHead>
+                            <TableHead className="text-gray-300">Nombre</TableHead>
+                            <TableHead className="text-gray-300">Cargo</TableHead>
+                            <TableHead className="text-gray-300">Vínculo</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
+                        </TableHeader>
+                        <TableBody>
+                          {gerentes.map(gerente => (
+                            <TableRow key={gerente.id} className="border-gray-800 hover:bg-gray-900/50">
+                              <TableCell className="font-mono">{gerente.dni}</TableCell>
+                              <TableCell>{gerente.nombre}</TableCell>
+                              <TableCell>{gerente.cargo || '-'}</TableCell>
+                              <TableCell>{gerente.vinculo || '-'}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  )}
                 </Card>
               )}
 
               <Card className="bg-[#121212] border border-gray-800">
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-white">Gestión del Análisis</CardTitle>
-                    {isAdmin && (
-                      <Button onClick={handleSave} disabled={saving || !isDirty}>
-                        {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        {selectedRib ? 'Actualizar' : 'Guardar'}
-                      </Button>
-                    )}
+                <CardHeader 
+                    className="cursor-pointer hover:bg-gray-900/50 transition-colors"
+                    onClick={() => toggleSection('admin')}
+                >
+                  <div className="flex justify-between items-center w-full">
+                    <CardTitle className={`flex items-center ${openSections.admin ? 'text-white' : 'text-gray-500'}`}>
+                        Gestión del Análisis
+                    </CardTitle>
+                    <div className="flex items-center gap-4">
+                        {isAdmin && (
+                          <Button 
+                            onClick={(e) => { e.stopPropagation(); handleSave(); }} 
+                            disabled={saving || !isDirty}
+                            size="sm"
+                          >
+                            {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                            {selectedRib ? 'Actualizar' : 'Guardar'}
+                          </Button>
+                        )}
+                        {openSections.admin ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-col items-start space-y-4 text-sm text-gray-300 pt-4">
-                  <div className="w-full pt-2">
-                    <Label htmlFor="solicitud_id" className="font-semibold text-white">Asociar a Solicitud de Operación</Label>
-                    <AsyncCombobox
-                      value={formData.solicitud_id}
-                      onChange={(value) => setFormData(prev => ({ ...prev, solicitud_id: value }))}
-                      onSearch={searchSolicitudes}
-                      placeholder="Buscar por RUC, empresa o ID de solicitud..."
-                      searchPlaceholder="Escriba para buscar..."
-                      emptyMessage="No se encontraron solicitudes."
-                      disabled={!isAdmin}
-                      initialDisplayValue={initialSolicitudLabel}
-                      popoverWidth="w-[600px] max-w-[90vw]"
-                    />
-                  </div>
-                  <div className="w-full pt-2">
-                    <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
-                    <Input
-                      id="validado_por"
-                      value={formData.validado_por || ''}
-                      onChange={handleFormChange}
-                      className="bg-gray-900/50 border-gray-700 mt-1"
-                      disabled={!isAdmin}
-                    />
-                  </div>
-                  <div className="w-full pt-2">
-                    <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) => handleStatusChange(value as RibStatus)}
-                      disabled={!isAdmin}
-                    >
-                      <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
-                        <SelectValue placeholder="Seleccione un estado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Borrador">Borrador</SelectItem>
-                        <SelectItem value="En revisión">En revisión</SelectItem>
-                        <SelectItem value="Completado">Completado</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {selectedRib && (
-                    <div className="w-full pt-4 border-t border-gray-800 mt-4 space-y-2">
-                      <div className="flex items-start">
-                        <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" />
-                        <div>
-                          <p>
-                            <strong className="text-gray-400">Ejecutivo:</strong>
-                            {selectedRib.user_id ? (
-                              creatorDetails ? (
-                                <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                {openSections.admin && (
+                  <CardContent className="flex flex-col items-start space-y-4 text-sm text-gray-300 pt-4">
+                    <div className="w-full pt-2">
+                      <Label htmlFor="solicitud_id" className="font-semibold text-white">Asociar a Solicitud de Operación</Label>
+                      <AsyncCombobox
+                        value={formData.solicitud_id}
+                        onChange={(value) => setFormData(prev => ({ ...prev, solicitud_id: value }))}
+                        onSearch={searchSolicitudes}
+                        placeholder="Buscar por RUC, empresa o ID de solicitud..."
+                        searchPlaceholder="Escriba para buscar..."
+                        emptyMessage="No se encontraron solicitudes."
+                        disabled={!isAdmin}
+                        initialDisplayValue={initialSolicitudLabel}
+                        popoverWidth="w-[600px] max-w-[90vw]"
+                      />
+                    </div>
+                    <div className="w-full pt-2">
+                      <Label htmlFor="validado_por" className="font-semibold text-white">Validado por</Label>
+                      <Input
+                        id="validado_por"
+                        value={formData.validado_por || ''}
+                        onChange={handleFormChange}
+                        className="bg-gray-900/50 border-gray-700 mt-1"
+                        disabled={!isAdmin}
+                      />
+                    </div>
+                    <div className="w-full pt-2">
+                      <Label htmlFor="status-edit" className="font-semibold text-white">Estado de Solicitud</Label>
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value) => handleStatusChange(value as RibStatus)}
+                        disabled={!isAdmin}
+                      >
+                        <SelectTrigger id="status-edit" className="bg-gray-900/50 border-gray-700 mt-1">
+                          <SelectValue placeholder="Seleccione un estado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Borrador">Borrador</SelectItem>
+                          <SelectItem value="En revisión">En revisión</SelectItem>
+                          <SelectItem value="Completado">Completado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedRib && (
+                      <div className="w-full pt-4 border-t border-gray-800 mt-4 space-y-2">
+                        <div className="flex items-start">
+                          <User className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0 mt-1" />
+                          <div>
+                            <p>
+                              <strong className="text-gray-400">Ejecutivo:</strong>
+                              {selectedRib.user_id ? (
+                                creatorDetails ? (
+                                  <span> {creatorDetails.fullName} ({creatorDetails.email})</span>
+                                ) : (
+                                  <span> Cargando...</span>
+                                )
                               ) : (
-                                <span> Cargando...</span>
-                              )
-                            ) : (
-                              <span> Desconocido</span>
-                            )}
-                          </p>
-                          <div className="flex items-center mt-1 text-gray-500">
-                            <Calendar className="h-4 w-4 mr-2" />
-                            <span className="text-xs">
-                              {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
-                            </span>
+                                <span> Desconocido</span>
+                              )}
+                            </p>
+                            <div className="flex items-center mt-1 text-gray-500">
+                              <Calendar className="h-4 w-4 mr-2" />
+                              <span className="text-xs">
+                                {new Date(selectedRib.created_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                        <div>
-                          <strong className="text-gray-400">Última modificación:</strong>{' '}
-                          {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                          <div>
+                            <strong className="text-gray-400">Última modificación:</strong>{' '}
+                            {new Date(selectedRib.updated_at).toLocaleString('es-PE', { timeZone: 'America/Lima' })}
+                          </div>
+                        </div>
+                        
+                        <div className="w-full pt-4 border-t border-gray-800">
+                          <RibAuditLogViewer ribId={selectedRib.id} />
                         </div>
                       </div>
-                      
-                      {/* Botón para ver historial de auditoría */}
-                      <div className="w-full pt-4 border-t border-gray-800">
-                        <RibAuditLogViewer ribId={selectedRib.id} />
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
+                    )}
+                  </CardContent>
+                )}
               </Card>
 
             </div>
