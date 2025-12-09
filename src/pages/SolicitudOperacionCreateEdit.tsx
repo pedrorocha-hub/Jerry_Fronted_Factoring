@@ -90,7 +90,15 @@ const SolicitudOperacionCreateEditPage = () => {
   const [creatorInfo, setCreatorInfo] = useState<CreatorInfo | null>(null);
   
   const [isDocumentationComplete, setIsDocumentationComplete] = useState(true);
+
+  // Estados de visibilidad de las secciones (Colapsables)
   const [isDatosSolicitudOpen, setIsDatosSolicitudOpen] = useState(false);
+  const [isCondicionesOpen, setIsCondicionesOpen] = useState(false);
+  const [isRelacionOpen, setIsRelacionOpen] = useState(false);
+  const [isExperienciaOpen, setIsExperienciaOpen] = useState(false);
+  const [isRiesgoProveedorOpen, setIsRiesgoProveedorOpen] = useState(false);
+  const [isRiesgoDeudorOpen, setIsRiesgoDeudorOpen] = useState(false);
+  const [isContactoOpen, setIsContactoOpen] = useState(false);
 
   const [riesgoRows, setRiesgoRows] = useState<Partial<RiesgoRow>[]>([
     { lp: '', producto: '', deudor: '', lp_vigente_gve: '', riesgo_aprobado: '', propuesta_comercial: '', exposicion_total: '0' }
@@ -170,6 +178,8 @@ const SolicitudOperacionCreateEditPage = () => {
         propuesta_comercial: r.propuesta_comercial?.toString() || '',
         exposicion_total: '0',
       })));
+      // Abrir sección si tiene datos
+      setIsRiesgoProveedorOpen(true);
     } else {
       setRiesgoRows([{
         lp: solicitud.lp || '',
@@ -253,14 +263,31 @@ const SolicitudOperacionCreateEditPage = () => {
       detalle_pagos_observados: solicitud.detalle_pagos_observados || ''
     });
 
-    if ((solicitud as any).deudor_ruc) {
-      setDeudorRucInput((solicitud as any).deudor_ruc);
-      await handleSearchDeudor((solicitud as any).deudor_ruc);
-    }
-
-    // Si hay datos relevantes en "Datos de la Solicitud", abrir el acordeón
+    // Abrir secciones si tienen datos relevantes
     if (solicitud.resumen_solicitud || solicitud.tipo_cambio || solicitud.moneda_operacion || solicitud.orden_servicio || solicitud.factura) {
       setIsDatosSolicitudOpen(true);
+    }
+    
+    if (solicitud.monto_original || solicitud.tasa_tea || solicitud.comision_estructuracion) {
+      setIsCondicionesOpen(true);
+    }
+
+    if (solicitud.antiguedad_vinculo || solicitud.volumen_estimado) {
+      setIsRelacionOpen(true);
+    }
+
+    if (solicitud.experiencia_lcp) {
+      setIsExperienciaOpen(true);
+    }
+
+    if (solicitud.direccion || solicitud.visita_contacto_nombre) {
+      setIsContactoOpen(true);
+    }
+
+    if ((solicitud as any).deudor_ruc) {
+      setDeudorRucInput((solicitud as any).deudor_ruc);
+      setIsRiesgoDeudorOpen(true);
+      await handleSearchDeudor((solicitud as any).deudor_ruc);
     }
 
     window.scrollTo(0, 0);
@@ -873,7 +900,7 @@ const SolicitudOperacionCreateEditPage = () => {
                         <FileText className="h-5 w-5 mr-2 text-[#00FF80]" />
                         Datos de la Solicitud
                       </CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setIsDatosSolicitudOpen(!isDatosSolicitudOpen)}>
+                      <Button variant="ghost" size="sm" onClick={() => setIsDatosSolicitudOpen(!isDatosSolicitudOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
                         {isDatosSolicitudOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </CardHeader>
@@ -935,349 +962,385 @@ const SolicitudOperacionCreateEditPage = () => {
 
                   {/* Condiciones Comerciales */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="flex items-center text-white">
                         <Wallet className="h-5 w-5 mr-2 text-[#00FF80]" />
                         Condiciones Comerciales
                       </CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setIsCondicionesOpen(!isCondicionesOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        {isCondicionesOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </Button>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="monto_original" className="text-gray-300 flex items-center gap-2">
-                            <DollarSign className="h-3 w-3" /> Monto Original (Valor Facial)
-                          </Label>
-                          <Input 
-                            id="monto_original" 
-                            type="number" 
-                            step="0.01"
-                            value={solicitudFormData.monto_original} 
-                            onChange={handleFormChange} 
-                            placeholder="0.00"
-                            className="bg-gray-900/50 border-gray-700" 
-                            disabled={!isAdmin} 
-                          />
+                    {isCondicionesOpen && (
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor="monto_original" className="text-gray-300 flex items-center gap-2">
+                              <DollarSign className="h-3 w-3" /> Monto Original (Valor Facial)
+                            </Label>
+                            <Input 
+                              id="monto_original" 
+                              type="number" 
+                              step="0.01"
+                              value={solicitudFormData.monto_original} 
+                              onChange={handleFormChange} 
+                              placeholder="0.00"
+                              className="bg-gray-900/50 border-gray-700" 
+                              disabled={!isAdmin} 
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="valor_neto" className="text-gray-300 flex items-center gap-2">
+                              <DollarSign className="h-3 w-3" /> Valor Neto a Financiar
+                            </Label>
+                            <Input 
+                              id="valor_neto" 
+                              type="number" 
+                              step="0.01"
+                              value={solicitudFormData.valor_neto} 
+                              onChange={handleFormChange} 
+                              placeholder="Valor Facial - Detracciones"
+                              className="bg-gray-900/50 border-gray-700" 
+                              disabled={!isAdmin} 
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="vigencia_aprobacion" className="text-gray-300 flex items-center gap-2">
+                              <Clock className="h-3 w-3" /> Vigencia Aprobación
+                            </Label>
+                            <Input 
+                              id="vigencia_aprobacion" 
+                              value={solicitudFormData.vigencia_aprobacion} 
+                              onChange={handleFormChange} 
+                              placeholder="30 días / 12 meses"
+                              className="bg-gray-900/50 border-gray-700" 
+                              disabled={!isAdmin} 
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="valor_neto" className="text-gray-300 flex items-center gap-2">
-                            <DollarSign className="h-3 w-3" /> Valor Neto a Financiar
-                          </Label>
-                          <Input 
-                            id="valor_neto" 
-                            type="number" 
-                            step="0.01"
-                            value={solicitudFormData.valor_neto} 
-                            onChange={handleFormChange} 
-                            placeholder="Valor Facial - Detracciones"
-                            className="bg-gray-900/50 border-gray-700" 
-                            disabled={!isAdmin} 
-                          />
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <Label htmlFor="porcentaje_anticipo" className="text-gray-300 text-xs mb-1 block">% Anticipo</Label>
+                            <Input id="porcentaje_anticipo" type="number" value={solicitudFormData.porcentaje_anticipo} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                          </div>
+                          <div>
+                            <Label htmlFor="tasa_minima" className="text-gray-300 text-xs mb-1 block">Tasa (%)</Label>
+                            <Input id="tasa_minima" type="number" step="0.01" value={solicitudFormData.tasa_minima} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                          </div>
+                          <div>
+                            <Label htmlFor="plazo_dias" className="text-gray-300 text-xs mb-1 block">Plazo (Días)</Label>
+                            <Input id="plazo_dias" type="number" value={solicitudFormData.plazo_dias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                          </div>
+                          <div>
+                            <Label htmlFor="comision_estructuracion" className="text-gray-300 text-xs mb-1 block">Comisión (%)</Label>
+                            <Input id="comision_estructuracion" type="number" step="0.01" value={solicitudFormData.comision_estructuracion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
+                          </div>
                         </div>
-                         <div>
-                          <Label htmlFor="vigencia_aprobacion" className="text-gray-300 flex items-center gap-2">
-                            <Clock className="h-3 w-3" /> Vigencia Aprobación
-                          </Label>
-                          <Input 
-                            id="vigencia_aprobacion" 
-                            value={solicitudFormData.vigencia_aprobacion} 
-                            onChange={handleFormChange} 
-                            placeholder="30 días / 12 meses"
-                            className="bg-gray-900/50 border-gray-700" 
-                            disabled={!isAdmin} 
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <Label htmlFor="porcentaje_anticipo" className="text-gray-300 text-xs mb-1 block">% Anticipo</Label>
-                          <Input id="porcentaje_anticipo" type="number" value={solicitudFormData.porcentaje_anticipo} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                        <div>
-                          <Label htmlFor="tasa_minima" className="text-gray-300 text-xs mb-1 block">Tasa (%)</Label>
-                          <Input id="tasa_minima" type="number" step="0.01" value={solicitudFormData.tasa_minima} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                        <div>
-                          <Label htmlFor="plazo_dias" className="text-gray-300 text-xs mb-1 block">Plazo (Días)</Label>
-                          <Input id="plazo_dias" type="number" value={solicitudFormData.plazo_dias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                        <div>
-                          <Label htmlFor="comision_estructuracion" className="text-gray-300 text-xs mb-1 block">Comisión (%)</Label>
-                          <Input id="comision_estructuracion" type="number" step="0.01" value={solicitudFormData.comision_estructuracion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" />
-                        </div>
-                      </div>
 
-                      <div className="pt-2">
-                        <Label htmlFor="condiciones_desembolso" className="text-gray-300">Otras Condiciones (Texto Libre)</Label>
-                        <Textarea 
-                          id="condiciones_desembolso" 
-                          value={solicitudFormData.condiciones_desembolso} 
-                          onChange={handleFormChange} 
-                          placeholder="Detalles adicionales sobre el desembolso..."
-                          className="bg-gray-900/50 border-gray-700 min-h-[80px] mt-2" 
-                          disabled={!isAdmin} 
-                        />
-                      </div>
-                    </CardContent>
+                        <div className="pt-2">
+                          <Label htmlFor="condiciones_desembolso" className="text-gray-300">Otras Condiciones (Texto Libre)</Label>
+                          <Textarea 
+                            id="condiciones_desembolso" 
+                            value={solicitudFormData.condiciones_desembolso} 
+                            onChange={handleFormChange} 
+                            placeholder="Detalles adicionales sobre el desembolso..."
+                            className="bg-gray-900/50 border-gray-700 min-h-[80px] mt-2" 
+                            disabled={!isAdmin} 
+                          />
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                   
                   {/* Relación Comercial */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="flex items-center text-white">
                         <Handshake className="h-5 w-5 mr-2 text-[#00FF80]" />
                         Relación Comercial
                       </CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setIsRelacionOpen(!isRelacionOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        {isRelacionOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </Button>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <Label htmlFor="antiguedad_vinculo" className="text-gray-300">Antigüedad del Vínculo</Label>
-                            <Input id="antiguedad_vinculo" value={solicitudFormData.antiguedad_vinculo} onChange={handleFormChange} placeholder="Ej: 3 años" className="bg-gray-900/50 border-gray-700" />
-                          </div>
-                          <div>
-                            <Label htmlFor="volumen_estimado" className="text-gray-300">Volumen Estimado (Facturación)</Label>
-                            <Input id="volumen_estimado" type="number" value={solicitudFormData.volumen_estimado} onChange={handleFormChange} placeholder="0.00" className="bg-gray-900/50 border-gray-700" />
-                          </div>
-                          <div>
-                            <Label htmlFor="condicion_pago_dias" className="text-gray-300">Condición de Pago (Días)</Label>
-                            <Input id="condicion_pago_dias" type="number" value={solicitudFormData.condicion_pago_dias} onChange={handleFormChange} placeholder="Ej: 45" className="bg-gray-900/50 border-gray-700" />
-                          </div>
-                       </div>
-                    </CardContent>
+                    {isRelacionOpen && (
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <Label htmlFor="antiguedad_vinculo" className="text-gray-300">Antigüedad del Vínculo</Label>
+                              <Input id="antiguedad_vinculo" value={solicitudFormData.antiguedad_vinculo} onChange={handleFormChange} placeholder="Ej: 3 años" className="bg-gray-900/50 border-gray-700" />
+                            </div>
+                            <div>
+                              <Label htmlFor="volumen_estimado" className="text-gray-300">Volumen Estimado (Facturación)</Label>
+                              <Input id="volumen_estimado" type="number" value={solicitudFormData.volumen_estimado} onChange={handleFormChange} placeholder="0.00" className="bg-gray-900/50 border-gray-700" />
+                            </div>
+                            <div>
+                              <Label htmlFor="condicion_pago_dias" className="text-gray-300">Condición de Pago (Días)</Label>
+                              <Input id="condicion_pago_dias" type="number" value={solicitudFormData.condicion_pago_dias} onChange={handleFormChange} placeholder="Ej: 45" className="bg-gray-900/50 border-gray-700" />
+                            </div>
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
 
                   {/* Experiencia de Pago */}
                    <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <CardTitle className="flex items-center text-white">
                         <History className="h-5 w-5 mr-2 text-[#00FF80]" />
                         Experiencia de Pago
                       </CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setIsExperienciaOpen(!isExperienciaOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        {isExperienciaOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </Button>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="experiencia_lcp" className="text-gray-300">Experiencia en LCP</Label>
-                            <Select 
-                                value={solicitudFormData.experiencia_lcp || ''} 
-                                onValueChange={(val) => setSolicitudFormData(prev => ({...prev, experiencia_lcp: val as any}))}
-                            >
-                              <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white"><SelectValue placeholder="Seleccione..." /></SelectTrigger>
-                              <SelectContent className="bg-[#121212] border-gray-800">
-                                <SelectItem value="Nueva">Primera Operación</SelectItem>
-                                <SelectItem value="Recurrente">Recurrente</SelectItem>
-                                <SelectItem value="Con Mora">Con Mora</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                             <div className="flex items-center space-x-2 pt-4">
-                                <Checkbox 
-                                  id="check_pagos_observados" 
-                                  checked={solicitudFormData.check_pagos_observados}
-                                  onCheckedChange={(checked) => setSolicitudFormData(prev => ({...prev, check_pagos_observados: checked as boolean}))}
+                    {isExperienciaOpen && (
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="experiencia_lcp" className="text-gray-300">Experiencia en LCP</Label>
+                              <Select 
+                                  value={solicitudFormData.experiencia_lcp || ''} 
+                                  onValueChange={(val) => setSolicitudFormData(prev => ({...prev, experiencia_lcp: val as any}))}
+                              >
+                                <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white"><SelectValue placeholder="Seleccione..." /></SelectTrigger>
+                                <SelectContent className="bg-[#121212] border-gray-800">
+                                  <SelectItem value="Nueva">Primera Operación</SelectItem>
+                                  <SelectItem value="Recurrente">Recurrente</SelectItem>
+                                  <SelectItem value="Con Mora">Con Mora</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <div className="flex items-center space-x-2 pt-4">
+                                  <Checkbox 
+                                    id="check_pagos_observados" 
+                                    checked={solicitudFormData.check_pagos_observados}
+                                    onCheckedChange={(checked) => setSolicitudFormData(prev => ({...prev, check_pagos_observados: checked as boolean}))}
+                                  />
+                                  <Label htmlFor="check_pagos_observados" className="text-white">Pagos observados con sustento</Label>
+                              </div>
+                              {solicitudFormData.check_pagos_observados && (
+                                <Input 
+                                  id="detalle_pagos_observados" 
+                                  value={solicitudFormData.detalle_pagos_observados} 
+                                  onChange={handleFormChange}
+                                  placeholder="Detalle breve de la observación..."
+                                  className="bg-gray-900/50 border-gray-700"
                                 />
-                                <Label htmlFor="check_pagos_observados" className="text-white">Pagos observados con sustento</Label>
-                             </div>
-                             {solicitudFormData.check_pagos_observados && (
-                               <Input 
-                                 id="detalle_pagos_observados" 
-                                 value={solicitudFormData.detalle_pagos_observados} 
-                                 onChange={handleFormChange}
-                                 placeholder="Detalle breve de la observación..."
-                                 className="bg-gray-900/50 border-gray-700"
-                               />
-                             )}
-                          </div>
-                       </div>
-                    </CardContent>
+                              )}
+                            </div>
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
 
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="flex items-center text-white"><Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Proveedor</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                      {riesgoRows.map((row, index) => (
-                        <div key={index} className="p-4 border border-gray-800 rounded-lg space-y-4 relative">
-                          {isAdmin && riesgoRows.length > 1 && (
-                            <Button variant="ghost" size="icon" onClick={() => handleRemoveRiesgoRow(index)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10">
-                              <Trash2 className="h-4 w-4" />
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="flex items-center text-white"><Briefcase className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Proveedor</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoProveedorOpen(!isRiesgoProveedorOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        {isRiesgoProveedorOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </Button>
+                    </CardHeader>
+                    {isRiesgoProveedorOpen && (
+                      <CardContent className="space-y-4">
+                        {riesgoRows.map((row, index) => (
+                          <div key={index} className="p-4 border border-gray-800 rounded-lg space-y-4 relative">
+                            {isAdmin && riesgoRows.length > 1 && (
+                              <Button variant="ghost" size="icon" onClick={() => handleRemoveRiesgoRow(index)} className="absolute top-2 right-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                              <div><Label>L/P</Label><Input value={row.lp || ''} onChange={(e) => handleRiesgoChange(index, 'lp', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                              <div><Label>Producto</Label><Input value={row.producto || ''} onChange={(e) => handleRiesgoChange(index, 'producto', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                              <div><Label>Deudor</Label><Input value={row.deudor || ''} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                              <div><Label>L/P Vigente (GVE)</Label><Input value={row.lp_vigente_gve || ''} onChange={(e) => handleRiesgoChange(index, 'lp_vigente_gve', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                              <div><Label>Riesgo Aprobado</Label><Input type="number" step="0.01" value={row.riesgo_aprobado || ''} onChange={(e) => handleRiesgoChange(index, 'riesgo_aprobado', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                              <div><Label>Propuesta Comercial</Label><Input type="number" step="0.01" value={row.propuesta_comercial || ''} onChange={(e) => handleRiesgoChange(index, 'propuesta_comercial', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                              <div><Label>Exposición Total</Label><Input value={((parseFloat(row.riesgo_aprobado || '0') || 0) + (parseFloat(row.propuesta_comercial || '0') || 0)).toFixed(2)} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
+                            </div>
+                          </div>
+                        ))}
+                        {isAdmin && (
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="text-right flex-1">
+                              <Label className="text-gray-400 mr-2">Exposición Total (Soles):</Label>
+                              <span className="font-bold text-lg text-white">{solicitudFormData.exposicion_total}</span>
+                            </div>
+                            <Button variant="outline" onClick={handleAddRiesgoRow} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Agregar Fila
                             </Button>
-                          )}
-                          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                            <div><Label>L/P</Label><Input value={row.lp || ''} onChange={(e) => handleRiesgoChange(index, 'lp', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                            <div><Label>Producto</Label><Input value={row.producto || ''} onChange={(e) => handleRiesgoChange(index, 'producto', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                            <div><Label>Deudor</Label><Input value={row.deudor || ''} onChange={(e) => handleRiesgoChange(index, 'deudor', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                            <div><Label>L/P Vigente (GVE)</Label><Input value={row.lp_vigente_gve || ''} onChange={(e) => handleRiesgoChange(index, 'lp_vigente_gve', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                            <div><Label>Riesgo Aprobado</Label><Input type="number" step="0.01" value={row.riesgo_aprobado || ''} onChange={(e) => handleRiesgoChange(index, 'riesgo_aprobado', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                            <div><Label>Propuesta Comercial</Label><Input type="number" step="0.01" value={row.propuesta_comercial || ''} onChange={(e) => handleRiesgoChange(index, 'propuesta_comercial', e.target.value)} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                            <div><Label>Exposición Total</Label><Input value={((parseFloat(row.riesgo_aprobado || '0') || 0) + (parseFloat(row.propuesta_comercial || '0') || 0)).toFixed(2)} disabled className="bg-gray-800 border-gray-700 text-gray-400" /></div>
                           </div>
+                        )}
+                        <div className="space-y-4 pt-4 border-t border-gray-800 mt-4">
+                          <div><Label htmlFor="garantias">Garantías</Label><Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
+                          <div><Label htmlFor="comentarios">Comentarios Generales</Label><Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
                         </div>
-                      ))}
-                      {isAdmin && (
-                        <div className="flex items-center justify-between mt-4">
-                          <div className="text-right flex-1">
-                            <Label className="text-gray-400 mr-2">Exposición Total (Soles):</Label>
-                            <span className="font-bold text-lg text-white">{solicitudFormData.exposicion_total}</span>
-                          </div>
-                          <Button variant="outline" onClick={handleAddRiesgoRow} className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Agregar Fila
-                          </Button>
-                        </div>
-                      )}
-                      <div className="space-y-4 pt-4 border-t border-gray-800 mt-4">
-                        <div><Label htmlFor="garantias">Garantías</Label><Textarea id="garantias" value={solicitudFormData.garantias} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                        <div><Label htmlFor="comentarios">Comentarios Generales</Label><Textarea id="comentarios" value={solicitudFormData.comentarios} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} /></div>
-                      </div>
-                    </CardContent>
+                      </CardContent>
+                    )}
                   </Card>
 
                   {/* Datos del Deudor */}
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="flex items-center text-white"><ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Deudor</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-gray-400">Buscar Deudor en TOP 10K</Label>
-                        <div className="flex gap-2">
-                          <AsyncCombobox
-                            value={deudorRucInput}
-                            onChange={(value) => setDeudorRucInput(value || '')}
-                            onSearch={searchTop10k}
-                            placeholder="Buscar por RUC o razón social..."
-                            searchPlaceholder="Escriba para buscar..."
-                            emptyMessage="No se encontraron empresas en TOP 10K."
-                            className="flex-1"
-                            disabled={!isAdmin}
-                          />
-                          <Button
-                            onClick={() => handleSearchDeudor(deudorRucInput)}
-                            disabled={searchingDeudor || !deudorRucInput || !isAdmin}
-                            className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
-                          >
-                            {searchingDeudor ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Search className="h-4 w-4" />
-                            )}
-                          </Button>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="flex items-center text-white"><ShieldCheck className="h-5 w-5 mr-2 text-[#00FF80]" />Riesgo Vigente del Deudor</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setIsRiesgoDeudorOpen(!isRiesgoDeudorOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        {isRiesgoDeudorOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </Button>
+                    </CardHeader>
+                    {isRiesgoDeudorOpen && (
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label className="text-gray-400">Buscar Deudor en TOP 10K</Label>
+                          <div className="flex gap-2">
+                            <AsyncCombobox
+                              value={deudorRucInput}
+                              onChange={(value) => setDeudorRucInput(value || '')}
+                              onSearch={searchTop10k}
+                              placeholder="Buscar por RUC o razón social..."
+                              searchPlaceholder="Escriba para buscar..."
+                              emptyMessage="No se encontraron empresas en TOP 10K."
+                              className="flex-1"
+                              disabled={!isAdmin}
+                            />
+                            <Button
+                              onClick={() => handleSearchDeudor(deudorRucInput)}
+                              disabled={searchingDeudor || !deudorRucInput || !isAdmin}
+                              className="bg-[#00FF80] hover:bg-[#00FF80]/90 text-black"
+                            >
+                              {searchingDeudor ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Search className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
 
-                      {top10kData ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-800">
-                          <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{top10kData.ruc}</p></div>
-                          <div className="lg:col-span-3"><Label className="text-gray-400">Razón Social</Label><p className="text-white">{top10kData.razon_social || 'N/A'}</p></div>
-                          <div><Label className="text-gray-400">Sector</Label><p className="text-white">{top10kData.sector || 'N/A'}</p></div>
-                          <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2024 || 'N/A'}</p></div>
-                          <div><Label className="text-gray-400">Ranking 2023</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2023 || 'N/A'}</p></div>
-                          <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2024_soles_maximo)}</p></div>
-                          <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2023_soles_maximo)}</p></div>
-                          <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p></div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-gray-500 border-t border-gray-800">
-                          <ShieldCheck className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                          <p>Busque una empresa para ver sus datos de riesgo en TOP 10K</p>
-                        </div>
-                      )}
-                    </CardContent>
+                        {top10kData ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-800">
+                            <div><Label className="text-gray-400">RUC</Label><p className="font-mono text-white">{top10kData.ruc}</p></div>
+                            <div className="lg:col-span-3"><Label className="text-gray-400">Razón Social</Label><p className="text-white">{top10kData.razon_social || 'N/A'}</p></div>
+                            <div><Label className="text-gray-400">Sector</Label><p className="text-white">{top10kData.sector || 'N/A'}</p></div>
+                            <div><Label className="text-gray-400">Ranking 2024</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2024 || 'N/A'}</p></div>
+                            <div><Label className="text-gray-400">Ranking 2023</Label><p className="font-mono text-white text-lg">#{top10kData.ranking_2023 || 'N/A'}</p></div>
+                            <div><Label className="text-gray-400">Facturado 2024 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2024_soles_maximo)}</p></div>
+                            <div><Label className="text-gray-400">Facturado 2023 (Máx)</Label><p className="font-mono text-white">{formatCurrency(top10kData.facturado_2023_soles_maximo)}</p></div>
+                            <div className="md:col-span-2"><Label className="text-gray-400">Giro (CIIU)</Label><p className="text-white text-sm">{top10kData.descripcion_ciiu_rev3 || 'N/A'}</p></div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 text-gray-500 border-t border-gray-800">
+                            <ShieldCheck className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                            <p>Busque una empresa para ver sus datos de riesgo en TOP 10K</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    )}
                   </Card>
 
                   <Card className="bg-[#121212] border border-gray-800">
-                    <CardHeader><CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de Contacto y Visita Comercial</CardTitle></CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Sección 1: Dirección Física */}
-                      <div className="space-y-2">
-                         <Label htmlFor="direccion" className="flex items-center gap-2 text-gray-300">
-                           <MapPin className="h-4 w-4 text-[#00FF80]" /> Dirección Física
-                         </Label>
-                         <Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} placeholder="Dirección completa de la empresa" />
-                      </div>
-
-                      {/* Sección 2: Detalles de la Visita (Reemplaza input simple 'visita') */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-800">
-                         <div>
-                           <Label htmlFor="visita_tipo" className="flex items-center gap-2 text-gray-300 mb-2">
-                             <UserCheck className="h-4 w-4 text-[#00FF80]" /> Tipo de Visita
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="flex items-center text-white"><User className="h-5 w-5 mr-2 text-[#00FF80]" />Datos de Contacto y Visita Comercial</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setIsContactoOpen(!isContactoOpen)} className="text-[#00FF80] hover:text-[#00FF80] hover:bg-[#00FF80]/10">
+                        {isContactoOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                      </Button>
+                    </CardHeader>
+                    {isContactoOpen && (
+                      <CardContent className="space-y-6">
+                        {/* Sección 1: Dirección Física */}
+                        <div className="space-y-2">
+                           <Label htmlFor="direccion" className="flex items-center gap-2 text-gray-300">
+                             <MapPin className="h-4 w-4 text-[#00FF80]" /> Dirección Física
                            </Label>
-                           <Select 
-                             value={solicitudFormData.visita_tipo || 'Presencial'} 
-                             onValueChange={(value: any) => setSolicitudFormData(prev => ({ ...prev, visita_tipo: value }))}
-                             disabled={!isAdmin}
-                           >
-                             <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
-                               <SelectValue />
-                             </SelectTrigger>
-                             <SelectContent className="bg-[#121212] border-gray-800 text-white">
-                               <SelectItem value="Presencial">Presencial</SelectItem>
-                               <SelectItem value="Virtual">Virtual (Zoom/Meet)</SelectItem>
-                               <SelectItem value="No Realizada">No Realizada</SelectItem>
-                             </SelectContent>
-                           </Select>
-                         </div>
-                         <div>
-                           <Label htmlFor="visita_fecha" className="flex items-center gap-2 text-gray-300 mb-2">
-                             <Calendar className="h-4 w-4 text-[#00FF80]" /> Fecha de Visita
-                           </Label>
-                           <Input 
-                             id="visita_fecha" 
-                             type="date" 
-                             value={solicitudFormData.visita_fecha} 
-                             onChange={handleFormChange} 
-                             className="bg-gray-900/50 border-gray-700" 
-                             disabled={!isAdmin} 
-                           />
-                         </div>
-                      </div>
-
-                      {/* Sección 3: Detalles del Contacto */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-800">
-                        <div>
-                          <Label htmlFor="visita_contacto_nombre" className="flex items-center gap-2 text-gray-300">
-                            <User className="h-4 w-4 text-[#00FF80]" /> Nombre del Entrevistado
-                          </Label>
-                          <Input 
-                            id="visita_contacto_nombre" 
-                            value={solicitudFormData.visita_contacto_nombre} 
-                            onChange={handleFormChange} 
-                            className="bg-gray-900/50 border-gray-700 mt-2" 
-                            disabled={!isAdmin} 
-                            placeholder="Nombre completo"
-                          />
+                           <Input id="direccion" value={solicitudFormData.direccion} onChange={handleFormChange} className="bg-gray-900/50 border-gray-700" disabled={!isAdmin} placeholder="Dirección completa de la empresa" />
                         </div>
-                        <div>
-                          <Label htmlFor="visita_contacto_cargo" className="flex items-center gap-2 text-gray-300">
-                            <Briefcase className="h-4 w-4 text-[#00FF80]" /> Cargo del Entrevistado
-                          </Label>
-                          <Input 
-                            id="visita_contacto_cargo" 
-                            value={solicitudFormData.visita_contacto_cargo} 
-                            onChange={handleFormChange} 
-                            className="bg-gray-900/50 border-gray-700 mt-2" 
-                            disabled={!isAdmin} 
-                            placeholder="Gerente General, Administrador, etc."
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Sección 4: Evidencia (Fotos) - Placeholder para el Upload Manager */}
-                      {editingSolicitud && (
-                        <div className="pt-4 border-t border-gray-800">
-                           <Label className="flex items-center gap-2 text-gray-300 mb-2">
-                             <Camera className="h-4 w-4 text-[#00FF80]" /> Evidencia de Visita (Fotos/Actas)
-                           </Label>
-                           <div className="bg-gray-900/30 border border-dashed border-gray-700 p-4 rounded-lg">
-                             <p className="text-sm text-gray-500 mb-2">
-                               Utilice el panel de "Documentación y Evidencias" a la izquierda para subir fotos de la visita.
-                               Seleccione el tipo "Fotos/Evidencia Visita".
-                             </p>
+
+                        {/* Sección 2: Detalles de la Visita (Reemplaza input simple 'visita') */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-800">
+                           <div>
+                             <Label htmlFor="visita_tipo" className="flex items-center gap-2 text-gray-300 mb-2">
+                               <UserCheck className="h-4 w-4 text-[#00FF80]" /> Tipo de Visita
+                             </Label>
+                             <Select 
+                               value={solicitudFormData.visita_tipo || 'Presencial'} 
+                               onValueChange={(value: any) => setSolicitudFormData(prev => ({ ...prev, visita_tipo: value }))}
+                               disabled={!isAdmin}
+                             >
+                               <SelectTrigger className="bg-gray-900/50 border-gray-700 text-white">
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent className="bg-[#121212] border-gray-800 text-white">
+                                 <SelectItem value="Presencial">Presencial</SelectItem>
+                                 <SelectItem value="Virtual">Virtual (Zoom/Meet)</SelectItem>
+                                 <SelectItem value="No Realizada">No Realizada</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </div>
+                           <div>
+                             <Label htmlFor="visita_fecha" className="flex items-center gap-2 text-gray-300 mb-2">
+                               <Calendar className="h-4 w-4 text-[#00FF80]" /> Fecha de Visita
+                             </Label>
+                             <Input 
+                               id="visita_fecha" 
+                               type="date" 
+                               value={solicitudFormData.visita_fecha} 
+                               onChange={handleFormChange} 
+                               className="bg-gray-900/50 border-gray-700" 
+                               disabled={!isAdmin} 
+                             />
                            </div>
                         </div>
-                      )}
 
-                    </CardContent>
+                        {/* Sección 3: Detalles del Contacto */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-800">
+                          <div>
+                            <Label htmlFor="visita_contacto_nombre" className="flex items-center gap-2 text-gray-300">
+                              <User className="h-4 w-4 text-[#00FF80]" /> Nombre del Entrevistado
+                            </Label>
+                            <Input 
+                              id="visita_contacto_nombre" 
+                              value={solicitudFormData.visita_contacto_nombre} 
+                              onChange={handleFormChange} 
+                              className="bg-gray-900/50 border-gray-700 mt-2" 
+                              disabled={!isAdmin} 
+                              placeholder="Nombre completo"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="visita_contacto_cargo" className="flex items-center gap-2 text-gray-300">
+                              <Briefcase className="h-4 w-4 text-[#00FF80]" /> Cargo del Entrevistado
+                            </Label>
+                            <Input 
+                              id="visita_contacto_cargo" 
+                              value={solicitudFormData.visita_contacto_cargo} 
+                              onChange={handleFormChange} 
+                              className="bg-gray-900/50 border-gray-700 mt-2" 
+                              disabled={!isAdmin} 
+                              placeholder="Gerente General, Administrador, etc."
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Sección 4: Evidencia (Fotos) - Placeholder para el Upload Manager */}
+                        {editingSolicitud && (
+                          <div className="pt-4 border-t border-gray-800">
+                             <Label className="flex items-center gap-2 text-gray-300 mb-2">
+                               <Camera className="h-4 w-4 text-[#00FF80]" /> Evidencia de Visita (Fotos/Actas)
+                             </Label>
+                             <div className="bg-gray-900/30 border border-dashed border-gray-700 p-4 rounded-lg">
+                               <p className="text-sm text-gray-500 mb-2">
+                                 Utilice el panel de "Documentación y Evidencias" a la izquierda para subir fotos de la visita.
+                                 Seleccione el tipo "Fotos/Evidencia Visita".
+                               </p>
+                             </div>
+                          </div>
+                        )}
+
+                      </CardContent>
+                    )}
                   </Card>
 
                   <Card className="bg-[#121212] border border-gray-800">
