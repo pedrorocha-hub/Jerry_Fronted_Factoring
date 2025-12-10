@@ -20,6 +20,7 @@ import { AsyncCombobox, ComboboxOption } from '@/components/ui/async-combobox';
 import { supabase } from '@/integrations/supabase/client';
 import RibEeffAuditLogViewer from '@/components/audit/RibEeffAuditLogViewer';
 import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
+import { showSuccess, showError } from '@/utils/toast';
 
 const sum = (...args: (number | null | undefined)[]): number => {
   return args.reduce((acc, val) => acc + (val || 0), 0);
@@ -303,81 +304,65 @@ const RibEeffForm = () => {
   const fetchInitialData = async () => {
       setLoading(true);
       try {
-        // Check for ID in params. The ID here might be a single UUID from rib_eeff or a composite one.
-        // If coming from the list view or wizard, it's usually a single record ID, but we need to load all related records (years).
         if (isEditMode && id) {
-          // First, get the specific record to identify RUC and Solicitud
-          const { data: singleRecord, error } = await supabase.from('rib_eeff').select('ruc, solicitud_id, tipo_entidad, anio_reporte').eq('id', id).maybeSingle();
-          
-          if (error) throw error;
-          
-          if (singleRecord) {
-              // Now load all records for this RUC and Solicitud
-              let query = supabase.from('rib_eeff').select('*').eq('ruc', singleRecord.ruc);
-              
-              if (singleRecord.solicitud_id) {
-                  query = query.eq('solicitud_id', singleRecord.solicitud_id);
+          // CORRECCIÓN: Usar select múltiple en lugar de single
+          const { data: existingData, error: loadError } = await supabase
+            .from('rib_eeff')
+            .select('*')
+            .eq('id', id);
+
+          if (loadError) throw loadError;
+
+          if (existingData && existingData.length > 0) {
+            const loadedYears = [...new Set(existingData.map(d => d.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
+            setYears(loadedYears);
+
+            const proveedorData = existingData.find(d => d.tipo_entidad === 'proveedor');
+            const deudorData = existingData.find(d => d.tipo_entidad === 'deudor');
+
+            if (proveedorData) {
+              setProveedorRuc(proveedorData.ruc);
+              const proveedorFicha = await FichaRucService.getByRuc(proveedorData.ruc);
+              if (proveedorFicha) {
+                setInitialProveedorLabel(`${proveedorFicha.nombre_empresa} (${proveedorFicha.ruc})`);
+                setProveedorNombre(proveedorFicha.nombre_empresa);
               } else {
-                  query = query.is('solicitud_id', null);
+                setManualMode(true);
+                setProveedorNombre('Empresa Manual');
               }
-              
-              const { data: existingData, error: loadError } = await query;
-              
-              if (loadError) throw loadError;
-
-              if (existingData && existingData.length > 0) {
-                const loadedYears = [...new Set(existingData.map(d => d.anio_reporte).filter((y): y is number => y !== null))].sort((a, b) => b - a);
-                setYears(loadedYears);
-
-                const proveedorData = existingData.find(d => d.tipo_entidad === 'proveedor');
-                const deudorData = existingData.find(d => d.tipo_entidad === 'deudor');
-
-                if (proveedorData) {
-                  setProveedorRuc(proveedorData.ruc);
-                  const proveedorFicha = await FichaRucService.getByRuc(proveedorData.ruc);
-                  if (proveedorFicha) {
-                    setInitialProveedorLabel(`${proveedorFicha.nombre_empresa} (${proveedorFicha.ruc})`);
-                    setProveedorNombre(proveedorFicha.nombre_empresa);
-                  } else {
-                    // Manual mode fallback
-                    setManualMode(true);
-                    // Try to get name from somewhere or leave blank
-                    // In a real manual scenario we might store the name in rib_eeff too, but currently schema might not support it directly unless added
-                  }
-                }
-                
-                if (deudorData) {
-                  setDeudorRuc(deudorData.ruc);
-                  const deudorFicha = await FichaRucService.getByRuc(deudorData.ruc);
-                  if (deudorFicha) {
-                    setInitialDeudorLabel(`${deudorFicha.nombre_empresa} (${deudorFicha.ruc})`);
-                    setDeudorNombre(deudorFicha.nombre_empresa);
-                  }
-                }
-
-                const loadedYearsData = existingData.reduce((acc, record) => {
-                  if (record.anio_reporte) {
-                    const entityType = record.tipo_entidad === 'proveedor' ? 'proveedor' : 'deudor';
-                    if (!acc[entityType]) acc[entityType] = {};
-                    acc[entityType][record.anio_reporte] = record;
-                  }
-                  return acc;
-                }, { proveedor: {}, deudor: {} } as any);
-
-                setYearsData(loadedYearsData);
-                setStatus(existingData[0].status || 'Borrador');
-                setSolicitudId(existingData[0].solicitud_id || null);
-
-                if (existingData[0].solicitud_id) {
-                  const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingData[0].solicitud_id).single();
-                  if (solicitud) {
-                    const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
-                    setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
-                  }
-                }
+            }
+            
+            if (deudorData) {
+              setDeudorRuc(deudorData.ruc);
+              const deudorFicha = await FichaRucService.getByRuc(deudorData.ruc);
+              if (deudorFicha) {
+                setInitialDeudorLabel(`${deudorFicha.nombre_empresa} (${deudorFicha.ruc})`);
+                setDeudorNombre(deudorFicha.nombre_empresa);
               }
+            }
+
+            const loadedYearsData = existingData.reduce((acc, record) => {
+              if (record.anio_reporte) {
+                const entityType = record.tipo_entidad === 'proveedor' ? 'proveedor' : 'deudor';
+                if (!acc[entityType]) acc[entityType] = {};
+                acc[entityType][record.anio_reporte] = record;
+              }
+              return acc;
+            }, { proveedor: {}, deudor: {} } as any);
+
+            setYearsData(loadedYearsData);
+            setStatus(existingData[0].status || 'Borrador');
+            setSolicitudId(existingData[0].solicitud_id || null);
+
+            if (existingData[0].solicitud_id) {
+              const { data: solicitud } = await supabase.from('solicitudes_operacion').select('id, ruc, created_at').eq('id', existingData[0].solicitud_id).maybeSingle();
+              if (solicitud) {
+                const { data: ficha } = await supabase.from('ficha_ruc').select('nombre_empresa').eq('ruc', solicitud.ruc).maybeSingle();
+                setInitialSolicitudLabel(`${ficha?.nombre_empresa || solicitud.ruc} - ${new Date(solicitud.created_at).toLocaleDateString()}`);
+              }
+            }
           } else {
-              toast.error('Registro no encontrado.');
+            toast.error('Registro no encontrado.');
           }
         }
       } catch (error) {
@@ -414,7 +399,7 @@ const RibEeffForm = () => {
       
       if (eeffRecords.length === 0) {
         toast.info('No se encontraron registros de EEFF para las empresas seleccionadas.');
-        setYearsData({ proveedor: {}, deudor: {} }); // Limpiar datos si no se encuentra nada
+        setYearsData({ proveedor: {}, deudor: {} });
         setYears([]);
         setLoading(false);
         return;
@@ -545,7 +530,6 @@ const RibEeffForm = () => {
           }
         } catch (err) {
           console.error('Error al guardar fichas RUC:', err);
-          // No detener el guardado del reporte si falla la ficha
         }
       }
       
@@ -560,10 +544,6 @@ const RibEeffForm = () => {
           if (yearData && Object.keys(yearData).length > 0) {
             
             const { created_at, ...restOfYearData } = yearData;
-            
-            // Using existing ID if present, otherwise generating a new one for fresh inserts
-            // Note: If 'id' is present in yearData (from fetchInitialData), it's used for update.
-            // If not present (new year or new report), a new UUID is generated or we use the URL id if available (though typically ID in URL is for edit).
             
             const record: Partial<RibEeff> = {
               ...restOfYearData,
@@ -613,7 +593,6 @@ const RibEeffForm = () => {
   const searchFichas = useCallback(async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     try {
-      // FichaRucService.search ya retorna el formato correcto {value, label}
       const fichasData = await FichaRucService.search(query);
       return fichasData;
     } catch (error) {
@@ -627,7 +606,7 @@ const RibEeffForm = () => {
       <div className="p-6">
           <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">{isEditMode ? 'Editar' : 'Nuevo'} RIB EEFF</h1>
+            <h1 className="text-3xl font-bold text-white">{isEditMode ? 'Editar' : 'Nuevo'} RIB EEFF</h1>
             <div className="flex gap-3">
               <Button 
                 type="button" 
@@ -638,7 +617,7 @@ const RibEeffForm = () => {
                 <Save className="h-4 w-4 mr-2" />
                 {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
               </Button>
-              <Button variant="outline" onClick={() => navigate('/rib-eeff')}>
+              <Button variant="outline" onClick={() => navigate('/rib-eeff')} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                 <ArrowLeft className="h-4 w-4 mr-2" /> Volver
               </Button>
             </div>
@@ -661,7 +640,7 @@ const RibEeffForm = () => {
                     variant={manualMode ? "default" : "outline"}
                     size="sm"
                     onClick={() => setManualMode(!manualMode)}
-                    className={manualMode ? "bg-[#00FF80] text-black hover:bg-[#00FF80]/90" : ""}
+                    className={manualMode ? "bg-[#00FF80] text-black hover:bg-[#00FF80]/90" : "border-gray-700 text-gray-300 hover:bg-gray-800"}
                   >
                     {manualMode ? "Modo Manual Activo" : "Activar Modo Manual"}
                   </Button>
@@ -677,7 +656,6 @@ const RibEeffForm = () => {
                         onChange={(value) => {
                           setProveedorRuc(value);
                           if (value) {
-                            // Cargar nombre automáticamente
                             FichaRucService.getByRuc(value).then(ficha => {
                               if (ficha) setProveedorNombre(ficha.nombre_empresa);
                             });
@@ -798,7 +776,7 @@ const RibEeffForm = () => {
                       <RibEeffAuditLogViewer ribEeffId={id} />
                     )}
                     {!manualMode && (
-                      <Button type="button" variant="outline" onClick={handleLoadEeffData} disabled={!proveedorRuc || loading}>
+                      <Button type="button" variant="outline" onClick={handleLoadEeffData} disabled={!proveedorRuc || loading} className="border-gray-700 text-gray-300 hover:bg-gray-800">
                         <Download className="h-4 w-4 mr-2" />
                         {loading ? 'Cargando...' : 'Cargar datos de EEFF'}
                       </Button>
@@ -832,6 +810,7 @@ const RibEeffForm = () => {
                               onClick={handleAddYear}
                               disabled={!proveedorRuc}
                               size="sm"
+                              className="border-gray-700 text-gray-300 hover:bg-gray-800"
                             >
                               <Plus className="h-4 w-4 mr-2" />
                               Agregar Año
