@@ -21,7 +21,6 @@ import RibReporteTributarioAuditLogViewer from '@/components/audit/RibReporteTri
 import { showSuccess, showError } from '@/utils/toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ComboboxOption } from '@/components/ui/async-combobox';
-import { EstadoSituacionService } from '@/services/estadoSituacionService';
 import RibProcessWizard from '@/components/solicitud-operacion/RibProcessWizard';
 import { Badge } from '@/components/ui/badge';
 
@@ -105,8 +104,6 @@ const RibReporteTributarioForm = () => {
         setCreateWithoutRuc(false);
         nombreProveedor = fichaData.nombre_empresa;
         
-        // NO llamar a EstadoSituacionService aquí - causa los errores 406
-        // En su lugar, inicializar con valores null
         newDocument = {
           deudor: {
             ruc: fichaData.ruc,
@@ -391,7 +388,6 @@ const RibReporteTributarioForm = () => {
       setSearchedFicha(fichaData);
       setCreateWithoutRuc(false);
       
-      // NO llamar a EstadoSituacionService - causa errores 406
       const newDocument: RibReporteTributarioDocument = {
         deudor: {
           ruc: fichaData.ruc,
@@ -527,7 +523,6 @@ const RibReporteTributarioForm = () => {
         setSearchedFicha(fichaData);
         setCreateWithoutRuc(false);
         
-        // NO llamar a EstadoSituacionService
         const newDocument: RibReporteTributarioDocument = {
           deudor: {
             ruc: fichaData.ruc,
@@ -607,7 +602,6 @@ const RibReporteTributarioForm = () => {
     }
   };
 
-  // CORRECCIÓN: Usar useCallback para estabilizar las funciones y evitar re-renderizados
   const handleDeudorDataChange = useCallback((updatedData: any) => {
     setDocumentData((prevData) => {
       if (!prevData) return prevData;
@@ -690,25 +684,7 @@ const RibReporteTributarioForm = () => {
         return;
       }
       
-      console.log('💾 Guardando reporte con datos:', {
-        ruc: dataToSave.deudor.ruc,
-        nombre_empresa: dataToSave.nombre_empresa,
-        solicitud_id: dataToSave.solicitud_id,
-        status: dataToSave.status,
-        hasId: !!dataToSave.deudor.id,
-        isCreateMode: !dataToSave.deudor.id,
-        sampleFields: {
-          total_activos_2024: dataToSave.deudor.total_activos_2024,
-          total_pasivos_2024: dataToSave.deudor.total_pasivos_2024
-        }
-      });
-      
       const savedDocument = await RibReporteTributarioService.save(dataToSave);
-      
-      console.log('✅ Reporte guardado exitosamente:', {
-        id: savedDocument.deudor.id,
-        ruc: savedDocument.deudor.ruc
-      });
       
       setDocumentData(savedDocument);
       setHasUnsavedChanges(false);
@@ -726,7 +702,7 @@ const RibReporteTributarioForm = () => {
           navigate(`/rib-reporte-tributario/edit/${savedDocument.deudor.id}`, { replace: true });
       }
     } catch (err) {
-      console.error('❌ Error al guardar:', err);
+      console.error('Error al guardar:', err);
       showError(`Error al guardar el reporte RIB: ${err instanceof Error ? err.message : 'Error desconocido'}`);
     } finally {
       setIsSaving(false);

@@ -25,16 +25,10 @@ export interface EstadoSituacionResponse {
 }
 
 export class EstadoSituacionService {
-  /**
-   * Obtiene datos de estado de situación desde reporte_tributario
-   */
   static async getEstadoSituacion(ruc: string): Promise<EstadoSituacionResponse> {
-    console.log('🔍 Buscando estado de situación para RUC:', ruc);
-    
     const global_warnings: string[] = [];
     
     try {
-      // Buscar en reporte_tributario
       const { data: reportes, error } = await supabase
         .from('reporte_tributario')
         .select(`
@@ -54,19 +48,14 @@ export class EstadoSituacionService {
         .order('anio_reporte', { ascending: true });
 
       if (error) {
-        console.error('❌ Error buscando en reporte_tributario:', error);
+        console.error('Error buscando en reporte_tributario:', error);
         throw error;
       }
 
-      console.log('✅ Datos encontrados en reporte_tributario:', reportes);
-
-      // Si no hay datos, retornar estructura vacía
       if (!reportes || reportes.length === 0) {
-        console.log('ℹ️ No se encontraron datos para RUC:', ruc);
         return this.getEmptyResponse();
       }
 
-      // Organizar reportes por año
       const reportesPorAnio = new Map<number, any>();
       reportes.forEach(reporte => {
         reportesPorAnio.set(reporte.anio_reporte, reporte);
@@ -74,7 +63,6 @@ export class EstadoSituacionService {
 
       const empresa_nombre = reportes[0]?.razon_social || null;
 
-      // Función helper para convertir reporte a BalanceData
       const convertirReporte = (reporte: any, anio: number): BalanceData => {
         if (!reporte) {
           return this.getEmptyBalanceData();
@@ -82,25 +70,22 @@ export class EstadoSituacionService {
 
         const warnings: string[] = [];
 
-        // Calcular total_pasivo_y_patrimonio
         const total_pasivos = reporte.renta_total_cuentas_por_pagar || 0;
         const total_patrimonio = reporte.renta_total_patrimonio || 0;
         const total_pasivo_y_patrimonio = total_pasivos + total_patrimonio;
 
-        // Validación contable: Activos = Pasivo + Patrimonio
         const total_activos = reporte.renta_total_activos_netos || 0;
         if (total_activos > 0 && total_pasivo_y_patrimonio > 0) {
           const diferencia = Math.abs(total_activos - total_pasivo_y_patrimonio);
           const porcentaje_diferencia = (diferencia / total_activos) * 100;
           
-          if (porcentaje_diferencia > 0.1) { // Más de 0.1% de diferencia
+          if (porcentaje_diferencia > 0.1) {
             warnings.push(
               `Año ${anio}: Activos (${this.formatCurrency(total_activos)}) ≠ Pasivo+Patrimonio (${this.formatCurrency(total_pasivo_y_patrimonio)}). Diferencia: ${this.formatCurrency(diferencia)}`
             );
           }
         }
 
-        // Calcular ratios
         const solvencia = total_pasivos > 0 ? total_patrimonio / total_pasivos : null;
         const gestion = total_activos > 0 && reporte.renta_ingresos_netos 
           ? reporte.renta_ingresos_netos / total_activos 
@@ -110,7 +95,7 @@ export class EstadoSituacionService {
           cuentas_por_cobrar_del_giro: reporte.renta_cuentas_por_cobrar_comerciales_terceros,
           total_activos: reporte.renta_total_activos_netos,
           cuentas_por_pagar_del_giro: reporte.renta_total_cuentas_por_pagar,
-          total_pasivos: reporte.renta_total_cuentas_por_pagar, // En reporte_tributario no hay campo separado
+          total_pasivos: reporte.renta_total_cuentas_por_pagar,
           capital_pagado: reporte.renta_capital_social,
           total_patrimonio: reporte.renta_total_patrimonio,
           total_pasivo_y_patrimonio,
@@ -123,7 +108,7 @@ export class EstadoSituacionService {
         };
       };
 
-      const result: EstadoSituacionResponse = {
+      return {
         empresa_nombre,
         data_2022: convertirReporte(reportesPorAnio.get(2022), 2022),
         data_2023: convertirReporte(reportesPorAnio.get(2023), 2023),
@@ -131,16 +116,8 @@ export class EstadoSituacionService {
         global_warnings
       };
 
-      console.log('✅ Estado de situación procesado:', {
-        empresa: empresa_nombre,
-        años_con_datos: Array.from(reportesPorAnio.keys()),
-        warnings: global_warnings.length
-      });
-
-      return result;
-
     } catch (error) {
-      console.error('❌ Error en getEstadoSituacion:', error);
+      console.error('Error en getEstadoSituacion:', error);
       throw error;
     }
   }

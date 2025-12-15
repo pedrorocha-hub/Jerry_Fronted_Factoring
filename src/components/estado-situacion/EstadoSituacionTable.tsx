@@ -21,23 +21,17 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
   const loadData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Cargando estado de situación para RUC:', ruc);
-      
       const result = await EstadoSituacionService.getEstadoSituacion(ruc);
-      console.log('📊 Resultado recibido:', result);
-      
       setData(result);
       
-      // Verificar si hay datos reales (no solo null)
       const hasRealData = 
         result.data_2022.total_activos !== null ||
         result.data_2023.total_activos !== null ||
         result.data_2024.total_activos !== null;
       
-      console.log('✅ ¿Tiene datos reales?', hasRealData);
       setHasData(hasRealData);
     } catch (error) {
-      console.error('❌ Error cargando estado de situación:', error);
+      console.error('Error cargando estado de situación:', error);
       showError('Error cargando estado de situación');
       setHasData(false);
     } finally {
@@ -115,7 +109,6 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
 
   return (
     <div className="space-y-4">
-      {/* Success indicator */}
       <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
         <div className="flex items-center text-green-400 text-sm">
           <CheckCircle className="h-4 w-4 mr-2" />
@@ -160,7 +153,6 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {/* ACTIVOS */}
               <tr className="bg-[#00FF80]/5">
                 <td className="py-3 px-4 font-semibold text-[#00FF80]">ACTIVOS</td>
                 <td></td>
@@ -192,7 +184,6 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
                 </td>
               </tr>
 
-              {/* PASIVOS */}
               <tr className="bg-red-500/5">
                 <td className="py-3 px-4 font-semibold text-red-400">PASIVOS</td>
                 <td></td>
@@ -224,7 +215,6 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
                 </td>
               </tr>
 
-              {/* PATRIMONIO */}
               <tr className="bg-blue-500/5">
                 <td className="py-3 px-4 font-semibold text-blue-400">PATRIMONIO</td>
                 <td></td>
@@ -256,7 +246,6 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
                 </td>
               </tr>
 
-              {/* TOTAL PASIVO Y PATRIMONIO */}
               <tr className="bg-[#00FF80]/10 border-t-2 border-[#00FF80]/30">
                 <td className="py-3 px-4 font-bold text-[#00FF80]">TOTAL PASIVO Y PATRIMONIO</td>
                 <td className={`py-3 px-4 text-right font-mono font-bold ${getRowClass(data.data_2022.total_pasivo_y_patrimonio)} text-[#00FF80]`}>
