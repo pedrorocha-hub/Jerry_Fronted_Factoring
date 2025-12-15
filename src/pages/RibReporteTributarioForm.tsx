@@ -38,7 +38,7 @@ const RibReporteTributarioForm = () => {
   const navigate = useNavigate();
   const isEditMode = !!id;
 
-  const [initializing, setInitializing] = useState(true); // NUEVO
+  const [initializing, setInitializing] = useState(true);
   const [view, setView] = useState<'create_mode' | 'form'>('create_mode');
   const [rucInput, setRucInput] = useState('');
   const [searching, setSearching] = useState(false);
@@ -112,13 +112,27 @@ const RibReporteTributarioForm = () => {
             ruc: fichaData.ruc,
             tipo_entidad: 'deudor',
             anio: 2024,
-            cuentas_por_cobrar_giro: situacion.data_2024.cuentas_por_cobrar_del_giro,
-            total_activos: situacion.data_2024.total_activos,
-            cuentas_por_pagar_giro: situacion.data_2024.cuentas_por_pagar_del_giro,
-            total_pasivos: situacion.data_2024.total_pasivos,
-            capital_pagado: situacion.data_2024.capital_pagado,
-            total_patrimonio: situacion.data_2024.total_patrimonio,
-            total_pasivo_patrimonio: situacion.data_2024.total_pasivo_y_patrimonio
+            cuentas_por_cobrar_giro_2022: situacion.data_2022.cuentas_por_cobrar_del_giro,
+            total_activos_2022: situacion.data_2022.total_activos,
+            cuentas_por_pagar_giro_2022: situacion.data_2022.cuentas_por_pagar_del_giro,
+            total_pasivos_2022: situacion.data_2022.total_pasivos,
+            capital_pagado_2022: situacion.data_2022.capital_pagado,
+            total_patrimonio_2022: situacion.data_2022.total_patrimonio,
+            total_pasivo_patrimonio_2022: situacion.data_2022.total_pasivo_y_patrimonio,
+            cuentas_por_cobrar_giro_2023: situacion.data_2023.cuentas_por_cobrar_del_giro,
+            total_activos_2023: situacion.data_2023.total_activos,
+            cuentas_por_pagar_giro_2023: situacion.data_2023.cuentas_por_pagar_del_giro,
+            total_pasivos_2023: situacion.data_2023.total_pasivos,
+            capital_pagado_2023: situacion.data_2023.capital_pagado,
+            total_patrimonio_2023: situacion.data_2023.total_patrimonio,
+            total_pasivo_patrimonio_2023: situacion.data_2023.total_pasivo_y_patrimonio,
+            cuentas_por_cobrar_giro_2024: situacion.data_2024.cuentas_por_cobrar_del_giro,
+            total_activos_2024: situacion.data_2024.total_activos,
+            cuentas_por_pagar_giro_2024: situacion.data_2024.cuentas_por_pagar_del_giro,
+            total_pasivos_2024: situacion.data_2024.total_pasivos,
+            capital_pagado_2024: situacion.data_2024.capital_pagado,
+            total_patrimonio_2024: situacion.data_2024.total_patrimonio,
+            total_pasivo_patrimonio_2024: situacion.data_2024.total_pasivo_y_patrimonio,
           },
           proveedor: null,
           solicitud_id: solicitudId,
@@ -133,16 +147,56 @@ const RibReporteTributarioForm = () => {
             nombre_empresa: nombreProveedor,
             actividad_empresa: '',
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
         };
         setSearchedFicha(mockFicha);
         setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
         
+        // CORRECCIÓN: Inicializar con todos los campos necesarios para entrada manual
         newDocument = {
           deudor: {
             ruc: ruc,
             tipo_entidad: 'deudor',
-            anio: 2024
+            anio: 2024,
+            // Inicializar TODOS los campos con null para permitir entrada manual
+            cuentas_por_cobrar_giro_2022: null,
+            total_activos_2022: null,
+            cuentas_por_pagar_giro_2022: null,
+            total_pasivos_2022: null,
+            capital_pagado_2022: null,
+            total_patrimonio_2022: null,
+            total_pasivo_patrimonio_2022: null,
+            ingreso_ventas_2022: null,
+            utilidad_bruta_2022: null,
+            utilidad_antes_impuesto_2022: null,
+            solvencia_2022: null,
+            gestion_2022: null,
+            
+            cuentas_por_cobrar_giro_2023: null,
+            total_activos_2023: null,
+            cuentas_por_pagar_giro_2023: null,
+            total_pasivos_2023: null,
+            capital_pagado_2023: null,
+            total_patrimonio_2023: null,
+            total_pasivo_patrimonio_2023: null,
+            ingreso_ventas_2023: null,
+            utilidad_bruta_2023: null,
+            utilidad_antes_impuesto_2023: null,
+            solvencia_2023: null,
+            gestion_2023: null,
+            
+            cuentas_por_cobrar_giro_2024: null,
+            total_activos_2024: null,
+            cuentas_por_pagar_giro_2024: null,
+            total_pasivos_2024: null,
+            capital_pagado_2024: null,
+            total_patrimonio_2024: null,
+            total_pasivo_patrimonio_2024: null,
+            ingreso_ventas_2024: null,
+            utilidad_bruta_2024: null,
+            utilidad_antes_impuesto_2024: null,
+            solvencia_2024: null,
+            gestion_2024: null,
           },
           proveedor: null,
           solicitud_id: solicitudId,
@@ -151,7 +205,7 @@ const RibReporteTributarioForm = () => {
           nombre_empresa: nombreProveedor
         };
         
-        showSuccess('Ficha RUC no encontrada. Iniciando modo manual.');
+        showSuccess('Ficha RUC no encontrada. Iniciando modo manual con todos los campos disponibles.');
       }
       
       setDocumentData(newDocument);
@@ -254,8 +308,6 @@ const RibReporteTributarioForm = () => {
     return 'DATOS DE LA EMPRESA RELACIONADA';
   };
 
-  // ... (useEffects for createWithoutRuc, suggestions, handleSearchForNew, handleCreateManually, handleSelectSuggestion, handleKeyDown, handleDataChanges, handleStatusChange, handleSolicitudIdChange, handleSave, searchSolicitudes - NO CHANGES)
-  
   useEffect(() => {
     if (createWithoutRuc && searchedFicha && initialSearchedFicha) {
       const rucChanged = searchedFicha.ruc !== initialSearchedFicha.ruc;
@@ -346,13 +398,27 @@ const RibReporteTributarioForm = () => {
           ruc: fichaData.ruc,
           tipo_entidad: 'deudor',
           anio: 2024,
-          cuentas_por_cobrar_giro: situacion.data_2024.cuentas_por_cobrar_del_giro,
-          total_activos: situacion.data_2024.total_activos,
-          cuentas_por_pagar_giro: situacion.data_2024.cuentas_por_pagar_del_giro,
-          total_pasivos: situacion.data_2024.total_pasivos,
-          capital_pagado: situacion.data_2024.capital_pagado,
-          total_patrimonio: situacion.data_2024.total_patrimonio,
-          total_pasivo_patrimonio: situacion.data_2024.total_pasivo_y_patrimonio
+          cuentas_por_cobrar_giro_2022: situacion.data_2022.cuentas_por_cobrar_del_giro,
+          total_activos_2022: situacion.data_2022.total_activos,
+          cuentas_por_pagar_giro_2022: situacion.data_2022.cuentas_por_pagar_del_giro,
+          total_pasivos_2022: situacion.data_2022.total_pasivos,
+          capital_pagado_2022: situacion.data_2022.capital_pagado,
+          total_patrimonio_2022: situacion.data_2022.total_patrimonio,
+          total_pasivo_patrimonio_2022: situacion.data_2022.total_pasivo_y_patrimonio,
+          cuentas_por_cobrar_giro_2023: situacion.data_2023.cuentas_por_cobrar_del_giro,
+          total_activos_2023: situacion.data_2023.total_activos,
+          cuentas_por_pagar_giro_2023: situacion.data_2023.cuentas_por_pagar_del_giro,
+          total_pasivos_2023: situacion.data_2023.total_pasivos,
+          capital_pagado_2023: situacion.data_2023.capital_pagado,
+          total_patrimonio_2023: situacion.data_2023.total_patrimonio,
+          total_pasivo_patrimonio_2023: situacion.data_2023.total_pasivo_y_patrimonio,
+          cuentas_por_cobrar_giro_2024: situacion.data_2024.cuentas_por_cobrar_del_giro,
+          total_activos_2024: situacion.data_2024.total_activos,
+          cuentas_por_pagar_giro_2024: situacion.data_2024.cuentas_por_pagar_del_giro,
+          total_pasivos_2024: situacion.data_2024.total_pasivos,
+          capital_pagado_2024: situacion.data_2024.capital_pagado,
+          total_patrimonio_2024: situacion.data_2024.total_patrimonio,
+          total_pasivo_patrimonio_2024: situacion.data_2024.total_pasivo_y_patrimonio,
         },
         proveedor: null,
         solicitud_id: null,
@@ -391,11 +457,52 @@ const RibReporteTributarioForm = () => {
     };
     setSearchedFicha(mockFicha);
     setInitialSearchedFicha({ ruc: '', nombre_empresa: '' });
+    
+    // CORRECCIÓN: Inicializar con estructura completa para entrada manual
     const emptyDocument: RibReporteTributarioDocument = {
       deudor: {
         ruc: '',
         tipo_entidad: 'deudor',
-        anio: 2024
+        anio: 2024,
+        // Inicializar TODOS los campos con null
+        cuentas_por_cobrar_giro_2022: null,
+        total_activos_2022: null,
+        cuentas_por_pagar_giro_2022: null,
+        total_pasivos_2022: null,
+        capital_pagado_2022: null,
+        total_patrimonio_2022: null,
+        total_pasivo_patrimonio_2022: null,
+        ingreso_ventas_2022: null,
+        utilidad_bruta_2022: null,
+        utilidad_antes_impuesto_2022: null,
+        solvencia_2022: null,
+        gestion_2022: null,
+        
+        cuentas_por_cobrar_giro_2023: null,
+        total_activos_2023: null,
+        cuentas_por_pagar_giro_2023: null,
+        total_pasivos_2023: null,
+        capital_pagado_2023: null,
+        total_patrimonio_2023: null,
+        total_pasivo_patrimonio_2023: null,
+        ingreso_ventas_2023: null,
+        utilidad_bruta_2023: null,
+        utilidad_antes_impuesto_2023: null,
+        solvencia_2023: null,
+        gestion_2023: null,
+        
+        cuentas_por_cobrar_giro_2024: null,
+        total_activos_2024: null,
+        cuentas_por_pagar_giro_2024: null,
+        total_pasivos_2024: null,
+        capital_pagado_2024: null,
+        total_patrimonio_2024: null,
+        total_pasivo_patrimonio_2024: null,
+        ingreso_ventas_2024: null,
+        utilidad_bruta_2024: null,
+        utilidad_antes_impuesto_2024: null,
+        solvencia_2024: null,
+        gestion_2024: null,
       },
       proveedor: null,
       solicitud_id: null,
@@ -428,13 +535,27 @@ const RibReporteTributarioForm = () => {
             ruc: fichaData.ruc,
             tipo_entidad: 'deudor',
             anio: 2024,
-            cuentas_por_cobrar_giro: situacion.data_2024.cuentas_por_cobrar_del_giro,
-            total_activos: situacion.data_2024.total_activos,
-            cuentas_por_pagar_giro: situacion.data_2024.cuentas_por_pagar_del_giro,
-            total_pasivos: situacion.data_2024.total_pasivos,
-            capital_pagado: situacion.data_2024.capital_pagado,
-            total_patrimonio: situacion.data_2024.total_patrimonio,
-            total_pasivo_patrimonio: situacion.data_2024.total_pasivo_y_patrimonio
+            cuentas_por_cobrar_giro_2022: situacion.data_2022.cuentas_por_cobrar_del_giro,
+            total_activos_2022: situacion.data_2022.total_activos,
+            cuentas_por_pagar_giro_2022: situacion.data_2022.cuentas_por_pagar_del_giro,
+            total_pasivos_2022: situacion.data_2022.total_pasivos,
+            capital_pagado_2022: situacion.data_2022.capital_pagado,
+            total_patrimonio_2022: situacion.data_2022.total_patrimonio,
+            total_pasivo_patrimonio_2022: situacion.data_2022.total_pasivo_y_patrimonio,
+            cuentas_por_cobrar_giro_2023: situacion.data_2023.cuentas_por_cobrar_del_giro,
+            total_activos_2023: situacion.data_2023.total_activos,
+            cuentas_por_pagar_giro_2023: situacion.data_2023.cuentas_por_pagar_del_giro,
+            total_pasivos_2023: situacion.data_2023.total_pasivos,
+            capital_pagado_2023: situacion.data_2023.capital_pagado,
+            total_patrimonio_2023: situacion.data_2023.total_patrimonio,
+            total_pasivo_patrimonio_2023: situacion.data_2023.total_pasivo_y_patrimonio,
+            cuentas_por_cobrar_giro_2024: situacion.data_2024.cuentas_por_cobrar_del_giro,
+            total_activos_2024: situacion.data_2024.total_activos,
+            cuentas_por_pagar_giro_2024: situacion.data_2024.cuentas_por_pagar_del_giro,
+            total_pasivos_2024: situacion.data_2024.total_pasivos,
+            capital_pagado_2024: situacion.data_2024.capital_pagado,
+            total_patrimonio_2024: situacion.data_2024.total_patrimonio,
+            total_pasivo_patrimonio_2024: situacion.data_2024.total_pasivo_y_patrimonio,
           },
           proveedor: null,
           solicitud_id: null,
@@ -455,19 +576,36 @@ const RibReporteTributarioForm = () => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showSuggestions || searchSuggestions.length === 0) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedSuggestionIndex((prev) => prev < searchSuggestions.length - 1 ? prev + 1 : 0);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedSuggestionIndex((prev) => prev > 0 ? prev - 1 : searchSuggestions.length - 1);
-    } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
-      e.preventDefault();
-      handleSelectSuggestion(searchSuggestions[selectedSuggestionIndex]);
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
-      setSelectedSuggestionIndex(-1);
+    if (!showSuggestions || searchSuggestions.length === 0) {
+      if (e.key === 'Enter') {
+        handleSearchForNew();
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) =>
+          prev < searchSuggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestionIndex >= 0) {
+          handleSelectSuggestion(searchSuggestions[selectedSuggestionIndex]);
+        } else {
+          handleSearchForNew();
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setSelectedSuggestionIndex(-1);
+        break;
     }
   };
 
@@ -512,40 +650,75 @@ const RibReporteTributarioForm = () => {
       showError('No hay datos para guardar');
       return;
     }
-    if (createWithoutRuc) {
-      if (!searchedFicha?.ruc && !searchedFicha?.nombre_empresa) {
-        showError('Debe ingresar al menos el RUC o la Razón Social');
-        return;
-      }
-    } else if (!documentData.deudor.ruc) {
-      showError('No hay RUC para guardar');
+    
+    // CORRECCIÓN: Validar campos requeridos antes de guardar
+    const rucFinal = createWithoutRuc ? searchedFicha?.ruc : documentData.deudor.ruc;
+    const nombreEmpresaFinal = createWithoutRuc ? searchedFicha?.nombre_empresa : null;
+    
+    if (!rucFinal || rucFinal.trim() === '') {
+      showError('El RUC es obligatorio. Por favor, ingrese el RUC de la empresa.');
       return;
     }
+    
+    if (rucFinal.length !== 11) {
+      showError('El RUC debe tener exactamente 11 dígitos.');
+      return;
+    }
+    
+    if (createWithoutRuc && (!nombreEmpresaFinal || nombreEmpresaFinal.trim() === '')) {
+      showError('La Razón Social es obligatoria en modo manual.');
+      return;
+    }
+    
     if (!documentData.solicitud_id) {
       showError('Debe asociar el reporte a una Solicitud de Operación antes de guardar.');
       return;
     }
+    
     setIsSaving(true);
     try {
+      // CORRECCIÓN: Asegurar que el RUC y nombre_empresa estén en el objeto a guardar
       const dataToSave = { ...documentData };
+      
       if (createWithoutRuc && searchedFicha) {
         dataToSave.deudor.ruc = searchedFicha.ruc || '';
         dataToSave.nombre_empresa = searchedFicha.nombre_empresa;
       }
+      
+      // Validar que deudor.ruc esté presente
+      if (!dataToSave.deudor.ruc) {
+        showError('Error: RUC del deudor no está definido.');
+        setIsSaving(false);
+        return;
+      }
+      
+      console.log('💾 Guardando reporte con datos:', {
+        ruc: dataToSave.deudor.ruc,
+        nombre_empresa: dataToSave.nombre_empresa,
+        solicitud_id: dataToSave.solicitud_id,
+        status: dataToSave.status,
+        hasId: !!dataToSave.deudor.id,
+        isCreateMode: !dataToSave.deudor.id
+      });
+      
       const savedDocument = await RibReporteTributarioService.save(dataToSave);
       setDocumentData(savedDocument);
       setHasUnsavedChanges(false);
+      
       if (createWithoutRuc && searchedFicha) {
         setInitialSearchedFicha({
           ruc: searchedFicha.ruc,
           nombre_empresa: searchedFicha.nombre_empresa
         });
       }
+      
       showSuccess('Reporte RIB guardado exitosamente.');
+      
       if (!isEditMode && savedDocument.deudor.id) {
           navigate(`/rib-reporte-tributario/edit/${savedDocument.deudor.id}`, { replace: true });
       }
     } catch (err) {
+      console.error('❌ Error al guardar:', err);
       showError(`Error al guardar el reporte RIB: ${err instanceof Error ? err.message : 'Error desconocido'}`);
     } finally {
       setIsSaving(false);
@@ -562,7 +735,6 @@ const RibReporteTributarioForm = () => {
     return data || [];
   };
 
-  // FULL PAGE LOADER
   if (initializing) {
     return (
       <Layout>
@@ -729,29 +901,41 @@ const RibReporteTributarioForm = () => {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="manual-ruc" className="text-gray-300">Número de RUC</Label>
+                        <Label htmlFor="manual-ruc" className="text-gray-300">Número de RUC *</Label>
                         <Input
                           id="manual-ruc"
                           value={searchedFicha.ruc}
                           onChange={(e) => {
-                            setSearchedFicha({ ...searchedFicha, ruc: e.target.value });
+                            const newRuc = e.target.value;
+                            setSearchedFicha({ ...searchedFicha, ruc: newRuc });
+                            // CORRECCIÓN: También actualizar el RUC en documentData.deudor
+                            setDocumentData(prev => prev ? {
+                              ...prev,
+                              deudor: { ...prev.deudor, ruc: newRuc }
+                            } : prev);
                             setHasUnsavedChanges(true);
                           }}
-                          placeholder="Ingrese RUC (opcional)"
+                          placeholder="Ingrese RUC (11 dígitos)"
                           maxLength={11}
                           className="bg-gray-900/50 border-gray-700 text-white"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="manual-nombre" className="text-gray-300">Razón Social</Label>
+                        <Label htmlFor="manual-nombre" className="text-gray-300">Razón Social *</Label>
                         <Input
                           id="manual-nombre"
                           value={searchedFicha.nombre_empresa}
                           onChange={(e) => {
-                            setSearchedFicha({ ...searchedFicha, nombre_empresa: e.target.value });
+                            const newNombre = e.target.value;
+                            setSearchedFicha({ ...searchedFicha, nombre_empresa: newNombre });
+                            // CORRECCIÓN: También actualizar nombre_empresa en documentData
+                            setDocumentData(prev => prev ? {
+                              ...prev,
+                              nombre_empresa: newNombre
+                            } : prev);
                             setHasUnsavedChanges(true);
                           }}
-                          placeholder="Ingrese razón social (opcional)"
+                          placeholder="Ingrese razón social"
                           className="bg-gray-900/50 border-gray-700 text-white"
                         />
                       </div>
