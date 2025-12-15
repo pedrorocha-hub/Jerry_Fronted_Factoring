@@ -21,21 +21,23 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Cargando estado de situación para RUC:', ruc);
+      
       const result = await EstadoSituacionService.getEstadoSituacion(ruc);
+      console.log('📊 Resultado recibido:', result);
+      
       setData(result);
       
       // Verificar si hay datos reales (no solo null)
       const hasRealData = 
-        result.data_2022.cuentas_por_cobrar_del_giro !== null ||
         result.data_2022.total_activos !== null ||
-        result.data_2023.cuentas_por_cobrar_del_giro !== null ||
         result.data_2023.total_activos !== null ||
-        result.data_2024.cuentas_por_cobrar_del_giro !== null ||
         result.data_2024.total_activos !== null;
       
+      console.log('✅ ¿Tiene datos reales?', hasRealData);
       setHasData(hasRealData);
     } catch (error) {
-      console.error('Error cargando estado de situación:', error);
+      console.error('❌ Error cargando estado de situación:', error);
       showError('Error cargando estado de situación');
       setHasData(false);
     } finally {
@@ -65,6 +67,7 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
         <CardContent className="p-6">
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00FF80]"></div>
+            <span className="ml-3 text-gray-400">Buscando datos en Reporte Tributario...</span>
           </div>
         </CardContent>
       </Card>

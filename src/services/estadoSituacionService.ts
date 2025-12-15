@@ -1,123 +1,184 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export interface EstadoSituacionData {
-  year: number;
+export interface BalanceData {
   cuentas_por_cobrar_del_giro: number | null;
   total_activos: number | null;
   cuentas_por_pagar_del_giro: number | null;
-  total_patrimonio: number | null;
-  capital_pagado: number | null;
   total_pasivos: number | null;
+  capital_pagado: number | null;
+  total_patrimonio: number | null;
   total_pasivo_y_patrimonio: number | null;
+  ingreso_ventas: number | null;
+  utilidad_bruta: number | null;
+  utilidad_antes_impuesto: number | null;
+  solvencia: number | null;
+  gestion: number | null;
   warnings: string[];
 }
 
 export interface EstadoSituacionResponse {
-  ruc: string;
-  empresa_nombre?: string;
-  data_2022: EstadoSituacionData;
-  data_2023: EstadoSituacionData;
-  data_2024: EstadoSituacionData;
+  empresa_nombre: string | null;
+  data_2022: BalanceData;
+  data_2023: BalanceData;
+  data_2024: BalanceData;
   global_warnings: string[];
 }
 
 export class EstadoSituacionService {
+  /**
+   * Obtiene datos de estado de situación desde reporte_tributario
+   */
   static async getEstadoSituacion(ruc: string): Promise<EstadoSituacionResponse> {
-    console.log('🔍 EstadoSituacionService: Buscando datos para RUC:', ruc);
+    console.log('🔍 Buscando estado de situación para RUC:', ruc);
     
-    const result: EstadoSituacionResponse = {
-      ruc,
-      data_2022: this.createEmptyYearData(2022),
-      data_2023: this.createEmptyYearData(2023),
-      data_2024: this.createEmptyYearData(2024),
-      global_warnings: []
-    };
-
+    const global_warnings: string[] = [];
+    
     try {
-      // CORRECCIÓN: Buscar en rib_reporte_tributario en vez de reporte_tributario
-      const { data: ribData, error: ribError } = await supabase
-        .from('rib_reporte_tributario')
-        .select('*')
+      // Buscar en reporte_tributario
+      const { data: reportes, error } = await supabase
+        .from('reporte_tributario')
+        .select(`
+          anio_reporte,
+          razon_social,
+          renta_cuentas_por_cobrar_comerciales_terceros,
+          renta_total_activos_netos,
+          renta_total_cuentas_por_pagar,
+          renta_total_patrimonio,
+          renta_capital_social,
+          renta_ingresos_netos,
+          renta_resultado_bruto,
+          renta_resultado_antes_participaciones
+        `)
         .eq('ruc', ruc)
-        .order('created_at', { ascending: false });
+        .in('anio_reporte', [2022, 2023, 2024])
+        .order('anio_reporte', { ascending: true });
 
-      if (ribError) {
-        console.error('❌ Error buscando en rib_reporte_tributario:', ribError);
-        result.global_warnings.push('No se pudieron cargar datos previos');
-        return result;
+      if (error) {
+        console.error('❌ Error buscando en reporte_tributario:', error);
+        throw error;
       }
 
-      if (!ribData || ribData.length === 0) {
-        console.log('ℹ️ No se encontraron datos en rib_reporte_tributario para RUC:', ruc);
-        result.global_warnings.push('No hay datos previos. Puede ingresar valores manualmente.');
-        return result;
+      console.log('✅ Datos encontrados en reporte_tributario:', reportes);
+
+      // Si no hay datos, retornar estructura vacía
+      if (!reportes || reportes.length === 0) {
+        console.log('ℹ️ No se encontraron datos para RUC:', ruc);
+        return this.getEmptyResponse();
       }
 
-      console.log('✅ Datos encontrados en rib_reporte_tributario:', ribData.length, 'registros');
-
-      // Obtener nombre de empresa del primer registro
-      if (ribData[0].nombre_empresa) {
-        result.empresa_nombre = ribData[0].nombre_empresa;
-      }
-
-      // Procesar datos por año
-      const years = [2022, 2023, 2024];
-      years.forEach(year => {
-        // Buscar registro para este año
-        const yearRecord = ribData.find(r => r.anio === year);
-        
-        if (yearRecord) {
-          const yearData = this.processYearDataFromRib(year, yearRecord);
-          
-          if (year === 2022) result.data_2022 = yearData;
-          else if (year === 2023) result.data_2023 = yearData;
-          else if (year === 2024) result.data_2024 = yearData;
-        }
+      // Organizar reportes por año
+      const reportesPorAnio = new Map<number, any>();
+      reportes.forEach(reporte => {
+        reportesPorAnio.set(reporte.anio_reporte, reporte);
       });
 
-    } catch (error) {
-      console.error('❌ Error inesperado en getEstadoSituacion:', error);
-      result.global_warnings.push('Error al cargar datos');
-    }
+      const empresa_nombre = reportes[0]?.razon_social || null;
 
-    return result;
+      // Función helper para convertir reporte a BalanceData
+      const convertirReporte = (reporte: any, anio: number): BalanceData => {
+        if (!reporte) {
+          return this.getEmptyBalanceData();
+        }
+
+        const warnings: string[] = [];
+
+        // Calcular total_pasivo_y_patrimonio
+        const total_pasivos = reporte.renta_total_cuentas_por_pagar || 0;
+        const total_patrimonio = reporte.renta_total_patrimonio || 0;
+        const total_pasivo_y_patrimonio = total_pasivos + total_patrimonio;
+
+        // Validación contable: Activos = Pasivo + Patrimonio
+        const total_activos = reporte.renta_total_activos_netos || 0;
+        if (total_activos > 0 && total_pasivo_y_patrimonio > 0) {
+          const diferencia = Math.abs(total_activos - total_pasivo_y_patrimonio);
+          const porcentaje_diferencia = (diferencia / total_activos) * 100;
+          
+          if (porcentaje_diferencia > 0.1) { // Más de 0.1% de diferencia
+            warnings.push(
+              `Año ${anio}: Activos (${this.formatCurrency(total_activos)}) ≠ Pasivo+Patrimonio (${this.formatCurrency(total_pasivo_y_patrimonio)}). Diferencia: ${this.formatCurrency(diferencia)}`
+            );
+          }
+        }
+
+        // Calcular ratios
+        const solvencia = total_pasivos > 0 ? total_patrimonio / total_pasivos : null;
+        const gestion = total_activos > 0 && reporte.renta_ingresos_netos 
+          ? reporte.renta_ingresos_netos / total_activos 
+          : null;
+
+        return {
+          cuentas_por_cobrar_del_giro: reporte.renta_cuentas_por_cobrar_comerciales_terceros,
+          total_activos: reporte.renta_total_activos_netos,
+          cuentas_por_pagar_del_giro: reporte.renta_total_cuentas_por_pagar,
+          total_pasivos: reporte.renta_total_cuentas_por_pagar, // En reporte_tributario no hay campo separado
+          capital_pagado: reporte.renta_capital_social,
+          total_patrimonio: reporte.renta_total_patrimonio,
+          total_pasivo_y_patrimonio,
+          ingreso_ventas: reporte.renta_ingresos_netos,
+          utilidad_bruta: reporte.renta_resultado_bruto,
+          utilidad_antes_impuesto: reporte.renta_resultado_antes_participaciones,
+          solvencia,
+          gestion,
+          warnings
+        };
+      };
+
+      const result: EstadoSituacionResponse = {
+        empresa_nombre,
+        data_2022: convertirReporte(reportesPorAnio.get(2022), 2022),
+        data_2023: convertirReporte(reportesPorAnio.get(2023), 2023),
+        data_2024: convertirReporte(reportesPorAnio.get(2024), 2024),
+        global_warnings
+      };
+
+      console.log('✅ Estado de situación procesado:', {
+        empresa: empresa_nombre,
+        años_con_datos: Array.from(reportesPorAnio.keys()),
+        warnings: global_warnings.length
+      });
+
+      return result;
+
+    } catch (error) {
+      console.error('❌ Error en getEstadoSituacion:', error);
+      throw error;
+    }
   }
 
-  private static createEmptyYearData(year: number): EstadoSituacionData {
+  private static getEmptyBalanceData(): BalanceData {
     return {
-      year,
       cuentas_por_cobrar_del_giro: null,
       total_activos: null,
       cuentas_por_pagar_del_giro: null,
-      total_patrimonio: null,
-      capital_pagado: null,
       total_pasivos: null,
+      capital_pagado: null,
+      total_patrimonio: null,
       total_pasivo_y_patrimonio: null,
+      ingreso_ventas: null,
+      utilidad_bruta: null,
+      utilidad_antes_impuesto: null,
+      solvencia: null,
+      gestion: null,
       warnings: []
     };
   }
 
-  private static processYearDataFromRib(year: number, data: any): EstadoSituacionData {
-    const yearData: EstadoSituacionData = {
-      year,
-      cuentas_por_cobrar_del_giro: data[`cuentas_por_cobrar_giro_${year}`] || null,
-      total_activos: data[`total_activos_${year}`] || null,
-      cuentas_por_pagar_del_giro: data[`cuentas_por_pagar_giro_${year}`] || null,
-      total_patrimonio: data[`total_patrimonio_${year}`] || null,
-      capital_pagado: data[`capital_pagado_${year}`] || null,
-      total_pasivos: data[`total_pasivos_${year}`] || null,
-      total_pasivo_y_patrimonio: data[`total_pasivo_patrimonio_${year}`] || null,
-      warnings: []
+  private static getEmptyResponse(): EstadoSituacionResponse {
+    return {
+      empresa_nombre: null,
+      data_2022: this.getEmptyBalanceData(),
+      data_2023: this.getEmptyBalanceData(),
+      data_2024: this.getEmptyBalanceData(),
+      global_warnings: ['No se encontraron reportes tributarios previos. Puede ingresar valores manualmente.']
     };
+  }
 
-    // Validación contable: total_pasivo_y_patrimonio debe ser igual a total_activos (±1)
-    if (yearData.total_pasivo_y_patrimonio !== null && yearData.total_activos !== null) {
-      const diferencia = Math.abs(yearData.total_pasivo_y_patrimonio - yearData.total_activos);
-      if (diferencia > 1) {
-        yearData.warnings.push(`No cuadra con total_activos (año ${year}). Diferencia: ${diferencia}`);
-      }
-    }
-
-    return yearData;
+  private static formatCurrency(value: number): string {
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency: 'PEN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
   }
 }
