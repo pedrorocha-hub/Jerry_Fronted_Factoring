@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Calculator, TrendingUp, FileQuestion } from 'lucide-react';
+import { AlertTriangle, TrendingUp, FileQuestion, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EstadoSituacionService, EstadoSituacionResponse } from '@/services/estadoSituacionService';
@@ -73,16 +73,30 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
 
   if (!data || !hasData) {
     return (
-      <Card className="bg-[#121212] border border-gray-800">
+      <Card className="bg-blue-500/5 border border-blue-500/20">
         <CardContent className="p-6">
-          <div className="text-center py-8 text-gray-400">
-            <FileQuestion className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">No hay datos de Reporte Tributario disponibles</p>
-            <p className="text-sm">
-              No se encontraron reportes tributarios previos para este RUC.
-              <br />
-              Puedes ingresar los datos manualmente en las tablas de arriba.
+          <div className="text-center py-8">
+            <FileQuestion className="h-12 w-12 mx-auto mb-4 text-blue-400 opacity-50" />
+            <p className="text-lg font-medium mb-2 text-blue-300">
+              No hay datos de Reporte Tributario disponibles
             </p>
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
+              No se encontraron reportes tributarios previos para el RUC{' '}
+              <span className="font-mono text-white bg-gray-800 px-2 py-0.5 rounded">
+                {ruc}
+              </span>
+            </p>
+            <div className="mt-4 p-4 bg-gray-900/50 border border-gray-700 rounded-lg max-w-md mx-auto">
+              <p className="text-xs text-gray-400 text-left">
+                <strong className="text-white">💡 Puede:</strong>
+                <br />
+                • Ingresar los datos manualmente en las tablas de arriba
+                <br />
+                • Subir un Reporte Tributario desde la sección "Subir Documentos"
+                <br />
+                • Los datos se auto-completarán cuando estén disponibles
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -98,6 +112,16 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
 
   return (
     <div className="space-y-4">
+      {/* Success indicator */}
+      <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+        <div className="flex items-center text-green-400 text-sm">
+          <CheckCircle className="h-4 w-4 mr-2" />
+          <span>
+            <strong>Datos encontrados en Reporte Tributario</strong> - Los campos se auto-completarán
+          </span>
+        </div>
+      </div>
+
       {allWarnings.length > 0 && (
         <Alert className="bg-yellow-500/10 border-yellow-500/20 text-yellow-400">
           <AlertTriangle className="h-4 w-4" />
