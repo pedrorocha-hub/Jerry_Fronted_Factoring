@@ -127,7 +127,7 @@ export class ReporteTributarioService {
     try {
       const { data, error } = await supabase
         .from('reporte_tributario')
-        .select('anio_reporte, renta_resultado_antes_participaciones');
+        .select('ruc, anio_reporte, renta_resultado_antes_participaciones');
 
       if (error) {
         console.error('Error fetching stats:', error);
@@ -161,7 +161,8 @@ export class ReporteTributarioService {
       const positiveCount = utilidades.filter(val => val > 0).length;
       const negativeCount = utilidades.filter(val => val < 0).length;
 
-      const { count: empresasCount } = await supabase.rpc('count_distinct_ruc_in_reporte_tributario');
+      // Contar empresas únicas directamente desde los datos
+      const empresasUnicas = new Set(data.map(r => r.ruc)).size;
 
       return {
         total: data.length,
@@ -170,7 +171,7 @@ export class ReporteTributarioService {
         avgUtilidadNeta: avgUtilidad,
         positiveUtilidad: positiveCount,
         negativeUtilidad: negativeCount,
-        empresasConReportes: empresasCount || 0
+        empresasConReportes: empresasUnicas
       };
     } catch (error) {
       console.error('Error in getStats:', error);
@@ -226,7 +227,7 @@ export class ReporteTributarioService {
       return {
         ...reporteData,
         ficha_ruc: fichaData ? {
-          id: 0, // ID not available/needed here
+          id: 0,
           nombre_empresa: fichaData.nombre_empresa,
           ruc: fichaData.ruc,
         } : undefined
