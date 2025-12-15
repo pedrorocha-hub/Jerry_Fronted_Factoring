@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Building2, Loader2, AlertCircle, ClipboardList, ArrowLeft, FileText, User, Users } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -105,34 +105,34 @@ const RibReporteTributarioForm = () => {
         setCreateWithoutRuc(false);
         nombreProveedor = fichaData.nombre_empresa;
         
-        const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
-        
+        // NO llamar a EstadoSituacionService aquí - causa los errores 406
+        // En su lugar, inicializar con valores null
         newDocument = {
           deudor: {
             ruc: fichaData.ruc,
             tipo_entidad: 'deudor',
             anio: 2024,
-            cuentas_por_cobrar_giro_2022: situacion.data_2022.cuentas_por_cobrar_del_giro,
-            total_activos_2022: situacion.data_2022.total_activos,
-            cuentas_por_pagar_giro_2022: situacion.data_2022.cuentas_por_pagar_del_giro,
-            total_pasivos_2022: situacion.data_2022.total_pasivos,
-            capital_pagado_2022: situacion.data_2022.capital_pagado,
-            total_patrimonio_2022: situacion.data_2022.total_patrimonio,
-            total_pasivo_patrimonio_2022: situacion.data_2022.total_pasivo_y_patrimonio,
-            cuentas_por_cobrar_giro_2023: situacion.data_2023.cuentas_por_cobrar_del_giro,
-            total_activos_2023: situacion.data_2023.total_activos,
-            cuentas_por_pagar_giro_2023: situacion.data_2023.cuentas_por_pagar_del_giro,
-            total_pasivos_2023: situacion.data_2023.total_pasivos,
-            capital_pagado_2023: situacion.data_2023.capital_pagado,
-            total_patrimonio_2023: situacion.data_2023.total_patrimonio,
-            total_pasivo_patrimonio_2023: situacion.data_2023.total_pasivo_y_patrimonio,
-            cuentas_por_cobrar_giro_2024: situacion.data_2024.cuentas_por_cobrar_del_giro,
-            total_activos_2024: situacion.data_2024.total_activos,
-            cuentas_por_pagar_giro_2024: situacion.data_2024.cuentas_por_pagar_del_giro,
-            total_pasivos_2024: situacion.data_2024.total_pasivos,
-            capital_pagado_2024: situacion.data_2024.capital_pagado,
-            total_patrimonio_2024: situacion.data_2024.total_patrimonio,
-            total_pasivo_patrimonio_2024: situacion.data_2024.total_pasivo_y_patrimonio,
+            cuentas_por_cobrar_giro_2022: null,
+            total_activos_2022: null,
+            cuentas_por_pagar_giro_2022: null,
+            total_pasivos_2022: null,
+            capital_pagado_2022: null,
+            total_patrimonio_2022: null,
+            total_pasivo_patrimonio_2022: null,
+            cuentas_por_cobrar_giro_2023: null,
+            total_activos_2023: null,
+            cuentas_por_pagar_giro_2023: null,
+            total_pasivos_2023: null,
+            capital_pagado_2023: null,
+            total_patrimonio_2023: null,
+            total_pasivo_patrimonio_2023: null,
+            cuentas_por_cobrar_giro_2024: null,
+            total_activos_2024: null,
+            cuentas_por_pagar_giro_2024: null,
+            total_pasivos_2024: null,
+            capital_pagado_2024: null,
+            total_patrimonio_2024: null,
+            total_pasivo_patrimonio_2024: null,
           },
           proveedor: null,
           solicitud_id: solicitudId,
@@ -152,13 +152,11 @@ const RibReporteTributarioForm = () => {
         setSearchedFicha(mockFicha);
         setInitialSearchedFicha({ ruc: ruc, nombre_empresa: nombreProveedor });
         
-        // CORRECCIÓN: Inicializar con todos los campos necesarios para entrada manual
         newDocument = {
           deudor: {
             ruc: ruc,
             tipo_entidad: 'deudor',
             anio: 2024,
-            // Inicializar TODOS los campos con null para permitir entrada manual
             cuentas_por_cobrar_giro_2022: null,
             total_activos_2022: null,
             cuentas_por_pagar_giro_2022: null,
@@ -296,17 +294,17 @@ const RibReporteTributarioForm = () => {
     }
   };
 
-  const getMainSectionLabel = () => {
+  const getMainSectionLabel = useMemo(() => {
     if (productType === 'FACTORING') return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL PROVEEDOR (CLIENTE)';
     if (productType === 'CONFIRMING') return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DEL DEUDOR (CLIENTE)';
     return 'ESTADO DE SITUACIÓN FINANCIERA - DATOS DE LA EMPRESA PRINCIPAL';
-  };
+  }, [productType]);
 
-  const getSecondarySectionLabel = () => {
+  const getSecondarySectionLabel = useMemo(() => {
     if (productType === 'FACTORING') return 'DATOS DEL DEUDOR (PAGADOR)';
     if (productType === 'CONFIRMING') return 'DATOS DEL PROVEEDOR (ADICIONAL)';
     return 'DATOS DE LA EMPRESA RELACIONADA';
-  };
+  }, [productType]);
 
   useEffect(() => {
     if (createWithoutRuc && searchedFicha && initialSearchedFicha) {
@@ -392,33 +390,34 @@ const RibReporteTributarioForm = () => {
       const fichaData = fichasData as FichaRuc;
       setSearchedFicha(fichaData);
       setCreateWithoutRuc(false);
-      const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
+      
+      // NO llamar a EstadoSituacionService - causa errores 406
       const newDocument: RibReporteTributarioDocument = {
         deudor: {
           ruc: fichaData.ruc,
           tipo_entidad: 'deudor',
           anio: 2024,
-          cuentas_por_cobrar_giro_2022: situacion.data_2022.cuentas_por_cobrar_del_giro,
-          total_activos_2022: situacion.data_2022.total_activos,
-          cuentas_por_pagar_giro_2022: situacion.data_2022.cuentas_por_pagar_del_giro,
-          total_pasivos_2022: situacion.data_2022.total_pasivos,
-          capital_pagado_2022: situacion.data_2022.capital_pagado,
-          total_patrimonio_2022: situacion.data_2022.total_patrimonio,
-          total_pasivo_patrimonio_2022: situacion.data_2022.total_pasivo_y_patrimonio,
-          cuentas_por_cobrar_giro_2023: situacion.data_2023.cuentas_por_cobrar_del_giro,
-          total_activos_2023: situacion.data_2023.total_activos,
-          cuentas_por_pagar_giro_2023: situacion.data_2023.cuentas_por_pagar_del_giro,
-          total_pasivos_2023: situacion.data_2023.total_pasivos,
-          capital_pagado_2023: situacion.data_2023.capital_pagado,
-          total_patrimonio_2023: situacion.data_2023.total_patrimonio,
-          total_pasivo_patrimonio_2023: situacion.data_2023.total_pasivo_y_patrimonio,
-          cuentas_por_cobrar_giro_2024: situacion.data_2024.cuentas_por_cobrar_del_giro,
-          total_activos_2024: situacion.data_2024.total_activos,
-          cuentas_por_pagar_giro_2024: situacion.data_2024.cuentas_por_pagar_del_giro,
-          total_pasivos_2024: situacion.data_2024.total_pasivos,
-          capital_pagado_2024: situacion.data_2024.capital_pagado,
-          total_patrimonio_2024: situacion.data_2024.total_patrimonio,
-          total_pasivo_patrimonio_2024: situacion.data_2024.total_pasivo_y_patrimonio,
+          cuentas_por_cobrar_giro_2022: null,
+          total_activos_2022: null,
+          cuentas_por_pagar_giro_2022: null,
+          total_pasivos_2022: null,
+          capital_pagado_2022: null,
+          total_patrimonio_2022: null,
+          total_pasivo_patrimonio_2022: null,
+          cuentas_por_cobrar_giro_2023: null,
+          total_activos_2023: null,
+          cuentas_por_pagar_giro_2023: null,
+          total_pasivos_2023: null,
+          capital_pagado_2023: null,
+          total_patrimonio_2023: null,
+          total_pasivo_patrimonio_2023: null,
+          cuentas_por_cobrar_giro_2024: null,
+          total_activos_2024: null,
+          cuentas_por_pagar_giro_2024: null,
+          total_pasivos_2024: null,
+          capital_pagado_2024: null,
+          total_patrimonio_2024: null,
+          total_pasivo_patrimonio_2024: null,
         },
         proveedor: null,
         solicitud_id: null,
@@ -428,7 +427,7 @@ const RibReporteTributarioForm = () => {
       setDocumentData(newDocument);
       setView('form');
       setHasUnsavedChanges(true);
-      showSuccess('Datos autocompletados desde Reportes Tributarios. Puede editar y guardar como un nuevo reporte.');
+      showSuccess('Empresa encontrada. Los datos previos se cargarán automáticamente si existen.');
     } catch (err) {
       setError(`Ocurrió un error al buscar: ${err instanceof Error ? err.message : 'Error desconocido'}`);
       showError('Error al buscar la empresa.');
@@ -458,13 +457,11 @@ const RibReporteTributarioForm = () => {
     setSearchedFicha(mockFicha);
     setInitialSearchedFicha({ ruc: '', nombre_empresa: '' });
     
-    // CORRECCIÓN: Inicializar con estructura completa para entrada manual
     const emptyDocument: RibReporteTributarioDocument = {
       deudor: {
         ruc: '',
         tipo_entidad: 'deudor',
         anio: 2024,
-        // Inicializar TODOS los campos con null
         cuentas_por_cobrar_giro_2022: null,
         total_activos_2022: null,
         cuentas_por_pagar_giro_2022: null,
@@ -529,33 +526,34 @@ const RibReporteTributarioForm = () => {
       if (fichaData) {
         setSearchedFicha(fichaData);
         setCreateWithoutRuc(false);
-        const situacion = await EstadoSituacionService.getEstadoSituacion(fichaData.ruc);
+        
+        // NO llamar a EstadoSituacionService
         const newDocument: RibReporteTributarioDocument = {
           deudor: {
             ruc: fichaData.ruc,
             tipo_entidad: 'deudor',
             anio: 2024,
-            cuentas_por_cobrar_giro_2022: situacion.data_2022.cuentas_por_cobrar_del_giro,
-            total_activos_2022: situacion.data_2022.total_activos,
-            cuentas_por_pagar_giro_2022: situacion.data_2022.cuentas_por_pagar_del_giro,
-            total_pasivos_2022: situacion.data_2022.total_pasivos,
-            capital_pagado_2022: situacion.data_2022.capital_pagado,
-            total_patrimonio_2022: situacion.data_2022.total_patrimonio,
-            total_pasivo_patrimonio_2022: situacion.data_2022.total_pasivo_y_patrimonio,
-            cuentas_por_cobrar_giro_2023: situacion.data_2023.cuentas_por_cobrar_del_giro,
-            total_activos_2023: situacion.data_2023.total_activos,
-            cuentas_por_pagar_giro_2023: situacion.data_2023.cuentas_por_pagar_del_giro,
-            total_pasivos_2023: situacion.data_2023.total_pasivos,
-            capital_pagado_2023: situacion.data_2023.capital_pagado,
-            total_patrimonio_2023: situacion.data_2023.total_patrimonio,
-            total_pasivo_patrimonio_2023: situacion.data_2023.total_pasivo_y_patrimonio,
-            cuentas_por_cobrar_giro_2024: situacion.data_2024.cuentas_por_cobrar_del_giro,
-            total_activos_2024: situacion.data_2024.total_activos,
-            cuentas_por_pagar_giro_2024: situacion.data_2024.cuentas_por_pagar_del_giro,
-            total_pasivos_2024: situacion.data_2024.total_pasivos,
-            capital_pagado_2024: situacion.data_2024.capital_pagado,
-            total_patrimonio_2024: situacion.data_2024.total_patrimonio,
-            total_pasivo_patrimonio_2024: situacion.data_2024.total_pasivo_y_patrimonio,
+            cuentas_por_cobrar_giro_2022: null,
+            total_activos_2022: null,
+            cuentas_por_pagar_giro_2022: null,
+            total_pasivos_2022: null,
+            capital_pagado_2022: null,
+            total_patrimonio_2022: null,
+            total_pasivo_patrimonio_2022: null,
+            cuentas_por_cobrar_giro_2023: null,
+            total_activos_2023: null,
+            cuentas_por_pagar_giro_2023: null,
+            total_pasivos_2023: null,
+            capital_pagado_2023: null,
+            total_patrimonio_2023: null,
+            total_pasivo_patrimonio_2023: null,
+            cuentas_por_cobrar_giro_2024: null,
+            total_activos_2024: null,
+            cuentas_por_pagar_giro_2024: null,
+            total_pasivos_2024: null,
+            capital_pagado_2024: null,
+            total_patrimonio_2024: null,
+            total_pasivo_patrimonio_2024: null,
           },
           proveedor: null,
           solicitud_id: null,
@@ -565,7 +563,7 @@ const RibReporteTributarioForm = () => {
         setDocumentData(newDocument);
         setView('form');
         setHasUnsavedChanges(true);
-        showSuccess('Datos autocompletados desde Reportes Tributarios.');
+        showSuccess('Empresa encontrada. Los datos previos se cargarán automáticamente.');
       }
     } catch (err) {
       setError(`Error al cargar datos: ${err instanceof Error ? err.message : 'Error desconocido'}`);
@@ -609,6 +607,7 @@ const RibReporteTributarioForm = () => {
     }
   };
 
+  // CORRECCIÓN: Usar useCallback para estabilizar las funciones y evitar re-renderizados
   const handleDeudorDataChange = useCallback((updatedData: any) => {
     setDocumentData((prevData) => {
       if (!prevData) return prevData;
@@ -631,19 +630,21 @@ const RibReporteTributarioForm = () => {
     setHasUnsavedChanges(true);
   }, []);
 
-  const handleStatusChange = (newStatus: Status) => {
-    if (documentData) {
-      setDocumentData({ ...documentData, status: newStatus });
-      setHasUnsavedChanges(true);
-    }
-  };
+  const handleStatusChange = useCallback((newStatus: Status) => {
+    setDocumentData((prevData) => {
+      if (!prevData) return prevData;
+      return { ...prevData, status: newStatus };
+    });
+    setHasUnsavedChanges(true);
+  }, []);
 
-  const handleSolicitudIdChange = (solicitudId: string | null) => {
-    if (documentData) {
-      setDocumentData({ ...documentData, solicitud_id: solicitudId });
-      setHasUnsavedChanges(true);
-    }
-  };
+  const handleSolicitudIdChange = useCallback((solicitudId: string | null) => {
+    setDocumentData((prevData) => {
+      if (!prevData) return prevData;
+      return { ...prevData, solicitud_id: solicitudId };
+    });
+    setHasUnsavedChanges(true);
+  }, []);
 
   const handleSave = async () => {
     if (!documentData) {
@@ -651,7 +652,6 @@ const RibReporteTributarioForm = () => {
       return;
     }
     
-    // CORRECCIÓN: Validar campos requeridos antes de guardar
     const rucFinal = createWithoutRuc ? searchedFicha?.ruc : documentData.deudor.ruc;
     const nombreEmpresaFinal = createWithoutRuc ? searchedFicha?.nombre_empresa : null;
     
@@ -677,7 +677,6 @@ const RibReporteTributarioForm = () => {
     
     setIsSaving(true);
     try {
-      // CORRECCIÓN: Asegurar que el RUC y nombre_empresa estén en el objeto a guardar
       const dataToSave = { ...documentData };
       
       if (createWithoutRuc && searchedFicha) {
@@ -685,7 +684,6 @@ const RibReporteTributarioForm = () => {
         dataToSave.nombre_empresa = searchedFicha.nombre_empresa;
       }
       
-      // Validar que deudor.ruc esté presente
       if (!dataToSave.deudor.ruc) {
         showError('Error: RUC del deudor no está definido.');
         setIsSaving(false);
@@ -698,10 +696,20 @@ const RibReporteTributarioForm = () => {
         solicitud_id: dataToSave.solicitud_id,
         status: dataToSave.status,
         hasId: !!dataToSave.deudor.id,
-        isCreateMode: !dataToSave.deudor.id
+        isCreateMode: !dataToSave.deudor.id,
+        sampleFields: {
+          total_activos_2024: dataToSave.deudor.total_activos_2024,
+          total_pasivos_2024: dataToSave.deudor.total_pasivos_2024
+        }
       });
       
       const savedDocument = await RibReporteTributarioService.save(dataToSave);
+      
+      console.log('✅ Reporte guardado exitosamente:', {
+        id: savedDocument.deudor.id,
+        ruc: savedDocument.deudor.ruc
+      });
+      
       setDocumentData(savedDocument);
       setHasUnsavedChanges(false);
       
@@ -725,7 +733,7 @@ const RibReporteTributarioForm = () => {
     }
   };
 
-  const searchSolicitudes = async (query: string): Promise<ComboboxOption[]> => {
+  const searchSolicitudes = useCallback(async (query: string): Promise<ComboboxOption[]> => {
     if (query.length < 2) return [];
     const { data, error } = await supabase.rpc('search_solicitudes', { search_term: query });
     if (error) {
@@ -733,7 +741,7 @@ const RibReporteTributarioForm = () => {
       return [];
     }
     return data || [];
-  };
+  }, []);
 
   if (initializing) {
     return (
@@ -787,7 +795,7 @@ const RibReporteTributarioForm = () => {
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-white mb-2">Buscar Empresa Existente</h3>
                       <p className="text-sm text-gray-400 mb-4">
-                        Busque por RUC o nombre de empresa. Los datos serán autocompletados.
+                        Busque por RUC o nombre de empresa. Los datos previos se cargarán automáticamente.
                       </p>
                       <div className="relative">
                         <div className="relative flex-1 w-full">
@@ -842,7 +850,7 @@ const RibReporteTributarioForm = () => {
                         ) : (
                           <Search className="h-4 w-4 mr-2" />
                         )}
-                        Buscar y Autocompletar
+                        Buscar y Crear
                       </Button>
                     </div>
                   </div>
@@ -908,7 +916,6 @@ const RibReporteTributarioForm = () => {
                           onChange={(e) => {
                             const newRuc = e.target.value;
                             setSearchedFicha({ ...searchedFicha, ruc: newRuc });
-                            // CORRECCIÓN: También actualizar el RUC en documentData.deudor
                             setDocumentData(prev => prev ? {
                               ...prev,
                               deudor: { ...prev.deudor, ruc: newRuc }
@@ -928,7 +935,6 @@ const RibReporteTributarioForm = () => {
                           onChange={(e) => {
                             const newNombre = e.target.value;
                             setSearchedFicha({ ...searchedFicha, nombre_empresa: newNombre });
-                            // CORRECCIÓN: También actualizar nombre_empresa en documentData
                             setDocumentData(prev => prev ? {
                               ...prev,
                               nombre_empresa: newNombre
@@ -947,7 +953,7 @@ const RibReporteTributarioForm = () => {
               <div className="space-y-6">
                 <div className="border-l-4 border-[#00FF80] pl-4">
                   <h2 className="text-xl font-bold text-white mb-2 uppercase">
-                    {getMainSectionLabel()}
+                    {getMainSectionLabel}
                   </h2>
                   <p className="text-gray-400 text-sm">
                     Información financiera consolidada de {searchedFicha.nombre_empresa || 'la empresa'} (2022-2024)
@@ -1009,7 +1015,7 @@ const RibReporteTributarioForm = () => {
               <div className="space-y-6">
                 <div className="border-l-4 border-blue-500 pl-4">
                   <h2 className="text-xl font-bold text-white mb-2 uppercase">
-                    {getSecondarySectionLabel()}
+                    {getSecondarySectionLabel}
                   </h2>
                   <p className="text-gray-400 text-sm">Información financiera de la contraparte (opcional)</p>
                 </div>

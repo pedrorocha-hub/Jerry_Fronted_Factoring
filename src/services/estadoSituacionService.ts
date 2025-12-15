@@ -23,7 +23,8 @@ export interface EstadoSituacionResponse {
 
 export class EstadoSituacionService {
   static async getEstadoSituacion(ruc: string): Promise<EstadoSituacionResponse> {
-    const years = [2022, 2023, 2024];
+    console.log('🔍 EstadoSituacionService: Buscando datos para RUC:', ruc);
+    
     const result: EstadoSituacionResponse = {
       ruc,
       data_2022: this.createEmptyYearData(2022),
@@ -32,46 +33,51 @@ export class EstadoSituacionService {
       global_warnings: []
     };
 
-    // Obtener datos para cada año
-    for (const year of years) {
-      const { data, error } = await supabase
-        .from('reporte_tributario')
-        .select(`
-          anio_reporte,
-          razon_social,
-          renta_cuentas_por_cobrar_comerciales_terceros,
-          renta_total_activos_netos,
-          renta_total_cuentas_por_pagar,
-          renta_total_patrimonio,
-          renta_capital_social
-        `)
+    try {
+      // CORRECCIÓN: Buscar en rib_reporte_tributario en vez de reporte_tributario
+      const { data: ribData, error: ribError } = await supabase
+        .from('rib_reporte_tributario')
+        .select('*')
         .eq('ruc', ruc)
-        .eq('anio_reporte', year)
-        .single();
+        .order('created_at', { ascending: false });
 
-      if (error && error.code !== 'PGRST116') {
-        // Error diferente a "no encontrado"
-        console.error(`Error obteniendo datos para ${year}:`, error);
-        result.global_warnings.push(`Error obteniendo datos para ${year}: ${error.message}`);
-        continue;
+      if (ribError) {
+        console.error('❌ Error buscando en rib_reporte_tributario:', ribError);
+        result.global_warnings.push('No se pudieron cargar datos previos');
+        return result;
       }
 
-      if (!data) {
-        // No existe registro para este año, mantener valores null
-        continue;
+      if (!ribData || ribData.length === 0) {
+        console.log('ℹ️ No se encontraron datos en rib_reporte_tributario para RUC:', ruc);
+        result.global_warnings.push('No hay datos previos. Puede ingresar valores manualmente.');
+        return result;
       }
 
-      // Establecer nombre de empresa si no lo tenemos
-      if (!result.empresa_nombre && data.razon_social) {
-        result.empresa_nombre = data.razon_social;
+      console.log('✅ Datos encontrados en rib_reporte_tributario:', ribData.length, 'registros');
+
+      // Obtener nombre de empresa del primer registro
+      if (ribData[0].nombre_empresa) {
+        result.empresa_nombre = ribData[0].nombre_empresa;
       }
 
-      // Procesar datos del año
-      const yearData = this.processYearData(year, data);
-      
-      if (year === 2022) result.data_2022 = yearData;
-      else if (year === 2023) result.data_2023 = yearData;
-      else if (year === 2024) result.data_2024 = yearData;
+      // Procesar datos por año
+      const years = [2022, 2023, 2024];
+      years.forEach(year => {
+        // Buscar registro para este año
+        const yearRecord = ribData.find(r => r.anio === year);
+        
+        if (yearRecord) {
+          const yearData = this.processYearDataFromRib(year, yearRecord);
+          
+          if (year === 2022) result.data_2022 = yearData;
+          else if (year === 2023) result.data_2023 = yearData;
+          else if (year === 2024) result.data_2024 = yearData;
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Error inesperado en getEstadoSituacion:', error);
+      result.global_warnings.push('Error al cargar datos');
     }
 
     return result;
@@ -91,32 +97,18 @@ export class EstadoSituacionService {
     };
   }
 
-  private static processYearData(year: number, data: any): EstadoSituacionData {
+  private static processYearDataFromRib(year: number, data: any): EstadoSituacionData {
     const yearData: EstadoSituacionData = {
       year,
-      cuentas_por_cobrar_del_giro: data.renta_cuentas_por_cobrar_comerciales_terceros,
-      total_activos: data.renta_total_activos_netos,
-      cuentas_por_pagar_del_giro: data.renta_total_cuentas_por_pagar,
-      total_patrimonio: data.renta_total_patrimonio,
-      capital_pagado: data.renta_capital_social,
-      total_pasivos: null,
-      total_pasivo_y_patrimonio: null,
+      cuentas_por_cobrar_del_giro: data[`cuentas_por_cobrar_giro_${year}`] || null,
+      total_activos: data[`total_activos_${year}`] || null,
+      cuentas_por_pagar_del_giro: data[`cuentas_por_pagar_giro_${year}`] || null,
+      total_patrimonio: data[`total_patrimonio_${year}`] || null,
+      capital_pagado: data[`capital_pagado_${year}`] || null,
+      total_pasivos: data[`total_pasivos_${year}`] || null,
+      total_pasivo_y_patrimonio: data[`total_pasivo_patrimonio_${year}`] || null,
       warnings: []
     };
-
-    // Calcular total_pasivos = total_activos - total_patrimonio
-    if (yearData.total_activos !== null && yearData.total_patrimonio !== null) {
-      yearData.total_pasivos = yearData.total_activos - yearData.total_patrimonio;
-      
-      if (yearData.total_pasivos < 0) {
-        yearData.warnings.push(`Total pasivos negativo en ${year}: ${yearData.total_pasivos}`);
-      }
-    }
-
-    // Calcular total_pasivo_y_patrimonio = total_pasivos + total_patrimonio
-    if (yearData.total_pasivos !== null && yearData.total_patrimonio !== null) {
-      yearData.total_pasivo_y_patrimonio = yearData.total_pasivos + yearData.total_patrimonio;
-    }
 
     // Validación contable: total_pasivo_y_patrimonio debe ser igual a total_activos (±1)
     if (yearData.total_pasivo_y_patrimonio !== null && yearData.total_activos !== null) {
