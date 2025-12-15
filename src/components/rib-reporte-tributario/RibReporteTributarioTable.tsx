@@ -27,12 +27,10 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   const [balanceData, setBalanceData] = useState<ReporteTributarioBalanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
-  const [localValues, setLocalValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadBalanceData();
-    setLocalValues({}); // Limpiar valores locales al cambiar de RUC
-    setInitialized(false); // Reset initialized cuando cambia el RUC
+    setInitialized(false);
   }, [ruc]);
 
   // Auto-populate fields with reporte_tributario data when first loaded
@@ -41,7 +39,6 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
       const updatedData = { ...data };
       let hasChanges = false;
 
-      // Auto-populate fields if they don't have values yet
       const years = [2022, 2023, 2024];
       const fields = [
         'cuentas_por_cobrar_giro',
@@ -58,7 +55,6 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
           const fieldName = `${field}_${year}${getSuffix()}`;
           const balanceValue = getBalanceValue(year, field);
           
-          // Only set if field is empty and we have data from reporte_tributario
           if (balanceValue !== null && (updatedData[fieldName] === null || updatedData[fieldName] === undefined)) {
             updatedData[fieldName] = balanceValue;
             hasChanges = true;
@@ -88,24 +84,10 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   const getSuffix = useCallback(() => isProveedor ? '_proveedor' : '', [isProveedor]);
 
   const handleInputChange = useCallback((field: string, value: string) => {
-    // Solo actualizar el estado local mientras escribe
-    setLocalValues(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
-
-  const handleInputBlur = useCallback((field: string, value: string) => {
-    // Propagar al padre solo cuando pierde el focus
+    // Actualizar inmediatamente en el padre para evitar pérdida de datos
     const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
     onDataChange({
       [field]: numericValue,
-    });
-    // Limpiar el valor local después de guardarlo
-    setLocalValues(prev => {
-      const newValues = { ...prev };
-      delete newValues[field];
-      return newValues;
     });
   }, [onDataChange]);
 
@@ -139,11 +121,7 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   const InputCell = ({ field, year }: { field: string; year: string }) => {
     const fieldName = `${field}_${year}${getSuffix()}`;
     const dataValue = data?.[fieldName as keyof RibReporteTributario] as number | null;
-    
-    // Usar el valor local si existe, sino usar el valor de data
-    const displayValue = localValues[fieldName] !== undefined 
-      ? localValues[fieldName] 
-      : (dataValue?.toString() || '');
+    const displayValue = dataValue?.toString() || '';
     
     return (
       <TableCell className="p-2">
@@ -152,13 +130,11 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
           inputMode="decimal"
           value={displayValue}
           onChange={(e) => {
-            // Solo permitir números, puntos y comas
             const value = e.target.value;
             if (value === '' || /^-?\d*\.?\d*$/.test(value)) {
               handleInputChange(fieldName, value);
             }
           }}
-          onBlur={(e) => handleInputBlur(fieldName, e.target.value)}
           className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
           placeholder="0"
         />
@@ -288,7 +264,7 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
       
       <div className="p-4 bg-gray-900/30 border border-gray-800 rounded-lg">
         <p className="text-xs text-gray-400">
-          <strong>Nota:</strong> Los campos se llenan automáticamente con datos de los reportes tributarios cuando están disponibles.
+          <strong>Nota:</strong> Los campos se llenan automáticamente con datos previos cuando están disponibles.
           Puedes editar cualquier valor y los cambios se guardarán al presionar "Guardar".
           {balanceData?.empresa_nombre && (
             <span className="block mt-1">

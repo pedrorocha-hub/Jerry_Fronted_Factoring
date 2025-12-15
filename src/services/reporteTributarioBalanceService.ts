@@ -1,116 +1,130 @@
 import { supabase } from '@/integrations/supabase/client';
 
-export interface ReporteTributarioBalance {
-  year: number;
-  cuentas_por_cobrar_comerciales_terceros: number | null;
-  total_activos_netos: number | null;
-  total_cuentas_por_pagar: number | null;
-  total_patrimonio: number | null;
-  capital_social: number | null;
-  // Campos calculados
-  total_pasivos: number | null;
-  total_pasivo_patrimonio: number | null;
-}
-
 export interface ReporteTributarioBalanceData {
-  ruc: string;
-  empresa_nombre?: string;
-  balance_2022: ReporteTributarioBalance;
-  balance_2023: ReporteTributarioBalance;
-  balance_2024: ReporteTributarioBalance;
+  empresa_nombre: string | null;
+  balance_2022: {
+    cuentas_por_cobrar_comerciales_terceros: number | null;
+    total_activos_netos: number | null;
+    total_cuentas_por_pagar: number | null;
+    total_pasivos: number | null;
+    capital_social: number | null;
+    total_patrimonio: number | null;
+    total_pasivo_patrimonio: number | null;
+  };
+  balance_2023: {
+    cuentas_por_cobrar_comerciales_terceros: number | null;
+    total_activos_netos: number | null;
+    total_cuentas_por_pagar: number | null;
+    total_pasivos: number | null;
+    capital_social: number | null;
+    total_patrimonio: number | null;
+    total_pasivo_patrimonio: number | null;
+  };
+  balance_2024: {
+    cuentas_por_cobrar_comerciales_terceros: number | null;
+    total_activos_netos: number | null;
+    total_cuentas_por_pagar: number | null;
+    total_pasivos: number | null;
+    capital_social: number | null;
+    total_patrimonio: number | null;
+    total_pasivo_patrimonio: number | null;
+  };
   warnings: string[];
 }
 
 export class ReporteTributarioBalanceService {
+  /**
+   * Obtiene datos de balance desde rib_reporte_tributario (NO desde reporte_tributario)
+   * Si no existe en rib_reporte_tributario, retorna estructura vacía
+   */
   static async getBalanceData(ruc: string): Promise<ReporteTributarioBalanceData> {
-    const years = [2022, 2023, 2024];
-    const result: ReporteTributarioBalanceData = {
-      ruc,
-      balance_2022: this.createEmptyBalance(2022),
-      balance_2023: this.createEmptyBalance(2023),
-      balance_2024: this.createEmptyBalance(2024),
-      warnings: []
-    };
+    console.log('🔍 Buscando balance para RUC:', ruc, 'en rib_reporte_tributario');
+    
+    const warnings: string[] = [];
+    
+    // Buscar en rib_reporte_tributario (NO en reporte_tributario)
+    const { data: ribData, error: ribError } = await supabase
+      .from('rib_reporte_tributario')
+      .select('*')
+      .eq('ruc', ruc)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    // Obtener datos para cada año
-    for (const year of years) {
-      const { data, error } = await supabase
-        .from('reporte_tributario')
-        .select(`
-          anio_reporte,
-          razon_social,
-          renta_cuentas_por_cobrar_comerciales_terceros,
-          renta_total_activos_netos,
-          renta_total_cuentas_por_pagar,
-          renta_total_patrimonio,
-          renta_capital_social
-        `)
-        .eq('ruc', ruc)
-        .eq('anio_reporte', year)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error(`Error obteniendo datos para ${year}:`, error);
-        result.warnings.push(`Error obteniendo datos para ${year}: ${error.message}`);
-        continue;
-      }
-
-      if (!data) {
-        // No existe registro para este año
-        continue;
-      }
-
-      // Establecer nombre de empresa si no lo tenemos
-      if (!result.empresa_nombre && data.razon_social) {
-        result.empresa_nombre = data.razon_social;
-      }
-
-      // Procesar datos del año
-      const balance = this.processBalanceData(year, data);
-      
-      if (year === 2022) result.balance_2022 = balance;
-      else if (year === 2023) result.balance_2023 = balance;
-      else if (year === 2024) result.balance_2024 = balance;
+    if (ribError) {
+      console.error('❌ Error buscando en rib_reporte_tributario:', ribError);
+      warnings.push('Error al buscar datos previos en RIB');
     }
 
-    return result;
-  }
+    // Si no hay datos en rib_reporte_tributario, retornar estructura vacía
+    if (!ribData) {
+      console.log('ℹ️ No se encontraron datos previos en rib_reporte_tributario para RUC:', ruc);
+      return {
+        empresa_nombre: null,
+        balance_2022: {
+          cuentas_por_cobrar_comerciales_terceros: null,
+          total_activos_netos: null,
+          total_cuentas_por_pagar: null,
+          total_pasivos: null,
+          capital_social: null,
+          total_patrimonio: null,
+          total_pasivo_patrimonio: null,
+        },
+        balance_2023: {
+          cuentas_por_cobrar_comerciales_terceros: null,
+          total_activos_netos: null,
+          total_cuentas_por_pagar: null,
+          total_pasivos: null,
+          capital_social: null,
+          total_patrimonio: null,
+          total_pasivo_patrimonio: null,
+        },
+        balance_2024: {
+          cuentas_por_cobrar_comerciales_terceros: null,
+          total_activos_netos: null,
+          total_cuentas_por_pagar: null,
+          total_pasivos: null,
+          capital_social: null,
+          total_patrimonio: null,
+          total_pasivo_patrimonio: null,
+        },
+        warnings: ['No se encontraron datos previos. Puede ingresar valores manualmente.']
+      };
+    }
 
-  private static createEmptyBalance(year: number): ReporteTributarioBalance {
+    console.log('✅ Datos encontrados en rib_reporte_tributario:', ribData);
+
+    // Construir respuesta desde rib_reporte_tributario
     return {
-      year,
-      cuentas_por_cobrar_comerciales_terceros: null,
-      total_activos_netos: null,
-      total_cuentas_por_pagar: null,
-      total_patrimonio: null,
-      capital_social: null,
-      total_pasivos: null,
-      total_pasivo_patrimonio: null
+      empresa_nombre: ribData.nombre_empresa || null,
+      balance_2022: {
+        cuentas_por_cobrar_comerciales_terceros: ribData.cuentas_por_cobrar_giro_2022 || null,
+        total_activos_netos: ribData.total_activos_2022 || null,
+        total_cuentas_por_pagar: ribData.cuentas_por_pagar_giro_2022 || null,
+        total_pasivos: ribData.total_pasivos_2022 || null,
+        capital_social: ribData.capital_pagado_2022 || null,
+        total_patrimonio: ribData.total_patrimonio_2022 || null,
+        total_pasivo_patrimonio: ribData.total_pasivo_patrimonio_2022 || null,
+      },
+      balance_2023: {
+        cuentas_por_cobrar_comerciales_terceros: ribData.cuentas_por_cobrar_giro_2023 || null,
+        total_activos_netos: ribData.total_activos_2023 || null,
+        total_cuentas_por_pagar: ribData.cuentas_por_pagar_giro_2023 || null,
+        total_pasivos: ribData.total_pasivos_2023 || null,
+        capital_social: ribData.capital_pagado_2023 || null,
+        total_patrimonio: ribData.total_patrimonio_2023 || null,
+        total_pasivo_patrimonio: ribData.total_pasivo_patrimonio_2023 || null,
+      },
+      balance_2024: {
+        cuentas_por_cobrar_comerciales_terceros: ribData.cuentas_por_cobrar_giro_2024 || null,
+        total_activos_netos: ribData.total_activos_2024 || null,
+        total_cuentas_por_pagar: ribData.cuentas_por_pagar_giro_2024 || null,
+        total_pasivos: ribData.total_pasivos_2024 || null,
+        capital_social: ribData.capital_pagado_2024 || null,
+        total_patrimonio: ribData.total_patrimonio_2024 || null,
+        total_pasivo_patrimonio: ribData.total_pasivo_patrimonio_2024 || null,
+      },
+      warnings
     };
-  }
-
-  private static processBalanceData(year: number, data: any): ReporteTributarioBalance {
-    const balance: ReporteTributarioBalance = {
-      year,
-      cuentas_por_cobrar_comerciales_terceros: data.renta_cuentas_por_cobrar_comerciales_terceros,
-      total_activos_netos: data.renta_total_activos_netos,
-      total_cuentas_por_pagar: data.renta_total_cuentas_por_pagar,
-      total_patrimonio: data.renta_total_patrimonio,
-      capital_social: data.renta_capital_social,
-      total_pasivos: null,
-      total_pasivo_patrimonio: null
-    };
-
-    // Calcular total_pasivos = total_activos - total_patrimonio
-    if (balance.total_activos_netos !== null && balance.total_patrimonio !== null) {
-      balance.total_pasivos = balance.total_activos_netos - balance.total_patrimonio;
-    }
-
-    // Calcular total_pasivo_patrimonio = total_pasivos + total_patrimonio
-    if (balance.total_pasivos !== null && balance.total_patrimonio !== null) {
-      balance.total_pasivo_patrimonio = balance.total_pasivos + balance.total_patrimonio;
-    }
-
-    return balance;
   }
 }
