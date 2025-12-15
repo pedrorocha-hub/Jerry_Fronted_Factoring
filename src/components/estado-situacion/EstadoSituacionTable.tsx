@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Calculator, TrendingUp } from 'lucide-react';
+import { AlertTriangle, Calculator, TrendingUp, FileQuestion } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { EstadoSituacionService, EstadoSituacionResponse } from '@/services/estadoSituacionService';
@@ -12,6 +12,7 @@ interface EstadoSituacionTableProps {
 const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
   const [data, setData] = useState<EstadoSituacionResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasData, setHasData] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -22,9 +23,21 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
       setLoading(true);
       const result = await EstadoSituacionService.getEstadoSituacion(ruc);
       setData(result);
+      
+      // Verificar si hay datos reales (no solo null)
+      const hasRealData = 
+        result.data_2022.cuentas_por_cobrar_del_giro !== null ||
+        result.data_2022.total_activos !== null ||
+        result.data_2023.cuentas_por_cobrar_del_giro !== null ||
+        result.data_2023.total_activos !== null ||
+        result.data_2024.cuentas_por_cobrar_del_giro !== null ||
+        result.data_2024.total_activos !== null;
+      
+      setHasData(hasRealData);
     } catch (error) {
       console.error('Error cargando estado de situación:', error);
       showError('Error cargando estado de situación');
+      setHasData(false);
     } finally {
       setLoading(false);
     }
@@ -58,13 +71,18 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
     );
   }
 
-  if (!data) {
+  if (!data || !hasData) {
     return (
       <Card className="bg-[#121212] border border-gray-800">
         <CardContent className="p-6">
           <div className="text-center py-8 text-gray-400">
-            <Calculator className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No se pudieron cargar los datos del estado de situación</p>
+            <FileQuestion className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium mb-2">No hay datos de Reporte Tributario disponibles</p>
+            <p className="text-sm">
+              No se encontraron reportes tributarios previos para este RUC.
+              <br />
+              Puedes ingresar los datos manualmente en las tablas de arriba.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -98,7 +116,7 @@ const EstadoSituacionTable: React.FC<EstadoSituacionTableProps> = ({ ruc }) => {
         <CardHeader>
           <CardTitle className="text-white flex items-center">
             <TrendingUp className="h-5 w-5 mr-2 text-[#00FF80]" />
-            Estado de Situación Financiera
+            Estado de Situación Financiera (Reporte Tributario)
           </CardTitle>
           {data.empresa_nombre && (
             <p className="text-sm text-gray-400">{data.empresa_nombre}</p>

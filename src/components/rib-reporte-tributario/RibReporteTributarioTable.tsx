@@ -67,7 +67,7 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
       }
       setInitialized(true);
     }
-  }, [balanceData, initialized]);
+  }, [balanceData, initialized, data, onDataChange]);
 
   const loadBalanceData = async () => {
     try {
@@ -84,12 +84,12 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
   const getSuffix = useCallback(() => isProveedor ? '_proveedor' : '', [isProveedor]);
 
   const handleInputChange = useCallback((field: string, value: string) => {
-    // Actualizar inmediatamente en el padre para evitar pérdida de datos
     const numericValue = value === '' ? null : parseFloat(value.replace(/,/g, ''));
     onDataChange({
+      ...data,
       [field]: numericValue,
     });
-  }, [onDataChange]);
+  }, [data, onDataChange]);
 
   const getBalanceValue = (year: number, field: string): number | null => {
     if (!balanceData) return null;
@@ -118,7 +118,7 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
     }
   };
 
-  const InputCell = ({ field, year }: { field: string; year: string }) => {
+  const InputCell = React.memo(({ field, year }: { field: string; year: string }) => {
     const fieldName = `${field}_${year}${getSuffix()}`;
     const dataValue = data?.[fieldName as keyof RibReporteTributario] as number | null;
     const displayValue = dataValue?.toString() || '';
@@ -130,19 +130,25 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
           inputMode="decimal"
           value={displayValue}
           onChange={(e) => {
+            e.stopPropagation();
             const value = e.target.value;
             if (value === '' || /^-?\d*\.?\d*$/.test(value)) {
               handleInputChange(fieldName, value);
             }
           }}
+          onFocus={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
           className="w-full bg-gray-900/50 border border-gray-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#00FF80] focus:border-transparent"
           placeholder="0"
         />
       </TableCell>
     );
-  };
+  });
 
-  const sections = [
+  InputCell.displayName = 'InputCell';
+
+  const sections = useMemo(() => [
     {
       title: 'ACTIVOS',
       color: 'text-green-400',
@@ -199,7 +205,7 @@ const RibReporteTributarioTable: React.FC<RibReporteTributarioTableProps> = ({
         }
       ]
     }
-  ];
+  ], []);
 
   if (loading) {
     return (
